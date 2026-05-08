@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# kyriewen.cn
 
-## Getting Started
+> Personal website of **Kyriewen** — Indie hacker · Frontend developer · Chrome extension builder.
 
-First, run the development server:
+Built with Next.js 16 (App Router) + React 19 + TypeScript + Tailwind CSS v4.
+
+## ✨ Features
+
+- 🚀 **Product Matrix** — Showcase of all my Chrome extensions and web apps
+- ✍️ **Blog** — Technical writing in MDX (bilingual: EN / 中文)
+- 📅 **Now Page** — What I'm currently building, listening to, reading
+- 📊 **Stats Dashboard** — Build-in-public data (GitHub stars, Chrome users, MRR)
+- 📮 **Newsletter** — Subscribe via Buttondown
+- 💬 **Guestbook** — Sign in with GitHub and leave a message
+- 🕒 **Timeline** — Personal & product milestones (levels.io style)
+- ⚙️ **Uses** — My current hardware / software / dev stack
+
+## 🧰 Tech Stack
+
+| Layer | Tech |
+| --- | --- |
+| Framework | Next.js 16 (App Router) + React 19 |
+| Language | TypeScript (strict mode) |
+| Styling | Tailwind CSS v4 + CSS Variables |
+| UI | shadcn/ui · cmdk · framer-motion |
+| Theme | next-themes (light / dark) |
+| i18n | next-intl (en / zh) |
+| Database | Vercel Postgres + Drizzle ORM |
+| Auth | NextAuth (GitHub OAuth) |
+| Newsletter | Buttondown |
+| Analytics | Vercel Analytics + Umami (self-hosted) |
+| Deploy | Vercel + Cloudflare DNS |
+
+## 🚀 Getting Started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # fill in your secrets
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📦 Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Script | What it does |
+| --- | --- |
+| `pnpm dev` | Start dev server |
+| `pnpm build` | Production build |
+| `pnpm start` | Start production server |
+| `pnpm lint` | Run ESLint |
+| `pnpm type-check` | TypeScript check |
+| `pnpm format` | Format with Prettier |
 
-## Learn More
+## 📁 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/[locale]/        # i18n routes
+│   ├── page.tsx         # Home
+│   ├── projects/        # Product matrix
+│   ├── blog/            # MDX blog
+│   ├── now/             # Now page
+│   ├── stats/           # Build-in-public dashboard
+│   ├── timeline/        # Personal timeline
+│   ├── uses/            # Uses page
+│   └── guestbook/       # Guestbook
+├── components/          # Shared components
+├── content/             # Static content (projects, timeline, uses)
+├── lib/                 # Utilities (db, i18n, helpers)
+├── messages/            # i18n messages (en.json, zh.json)
+└── styles/              # Global CSS
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📝 License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT © Kyriewen
