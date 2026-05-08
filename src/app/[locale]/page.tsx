@@ -106,6 +106,7 @@ export default async function HomePage({
               <li key={post.slug}>
                 <Link
                   href={`/blog/${post.slug}`}
+                  prefetch
                   className="flex items-baseline justify-between gap-4 py-3 hover:text-[var(--accent)]"
                 >
                   <span className="font-medium">{post.title}</span>

@@ -1,8 +1,15 @@
+import { Suspense } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { NOW_ITEMS, NOW_UPDATED_AT } from '@/content/now';
+import { SpotifyWidget } from '@/components/spotify-widget';
+import { SectionHeading } from '@/components/section-heading';
 import { formatDate } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
+
+// 页面本身保持静态（NOW_ITEMS 是构建期数据），
+// Spotify 的短缓存由 src/lib/spotify.ts 里每个 fetch 的
+// { next: { revalidate } } 控制（token 50min、now-playing 60s、recent 5min）。
 
 export async function generateMetadata({
   params,
@@ -50,6 +57,24 @@ export default async function NowPage({
           </div>
         ))}
       </dl>
+
+      <section className="space-y-4">
+        <SectionHeading
+          title={locale === 'zh' ? '在听什么' : 'What I am listening to'}
+          subtitle={
+            locale === 'zh'
+              ? '实时同步自 Spotify，60 秒刷新一次。'
+              : 'Live from Spotify, refreshed every 60 seconds.'
+          }
+        />
+        <Suspense
+          fallback={
+            <div className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
+          }
+        >
+          <SpotifyWidget locale={locale} />
+        </Suspense>
+      </section>
     </div>
   );
 }

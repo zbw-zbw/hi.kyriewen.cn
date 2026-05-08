@@ -79,3 +79,47 @@ body {
   pointer-events: none;
 }
 
+/* MDX: rehype-autolink-headings 把 h2/h3 的内容 wrap 成 <a>，这里把它还原成正常标题样式。 */
+.prose-kw :is(h2, h3, h4) {
+  scroll-margin-top: 5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.prose-kw h2 {
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.5rem;
+}
+.prose-kw h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+.prose-kw a.heading-anchor {
+  color: inherit;
+  text-decoration: none;
+}
+.prose-kw a.heading-anchor:hover {
+  color: var(--accent);
+}
+.prose-kw p {
+  line-height: 1.7;
+}
+.prose-kw ul,
+.prose-kw ol {
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+.prose-kw ol {
+  list-style: decimal;
+}
+.prose-kw li {
+  margin: 0.25rem 0;
+}
+.prose-kw blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  color: var(--muted-fg);
+  font-style: italic;
+}
+

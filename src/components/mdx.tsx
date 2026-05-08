@@ -75,12 +75,27 @@ const components = {
 
 export async function Mdx({ source }: { source: string }) {
   const highlighter = await getHighlighter();
+  const [rehypeShikiMod, rehypeSlugMod, rehypeAutolinkMod] = await Promise.all([
+    import('@shikijs/rehype'),
+    import('rehype-slug'),
+    import('rehype-autolink-headings'),
+  ]);
 
   const options: MDXRemoteProps['options'] = {
     mdxOptions: {
       rehypePlugins: [
+        rehypeSlugMod.default,
         [
-          (await import('@shikijs/rehype')).default,
+          rehypeAutolinkMod.default,
+          {
+            behavior: 'wrap',
+            properties: {
+              className: ['heading-anchor'],
+            },
+          },
+        ],
+        [
+          rehypeShikiMod.default,
           {
             themes: { light: 'github-light', dark: 'github-dark' },
             langs: [

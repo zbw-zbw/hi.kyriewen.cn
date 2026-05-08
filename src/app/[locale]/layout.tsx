@@ -10,9 +10,10 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Spotlight } from '@/components/spotlight';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
-import { CommandMenu } from '@/components/command-menu';
+import { CommandMenu, type SearchablePost } from '@/components/command-menu';
 import { PersonJsonLd, WebSiteJsonLd } from '@/components/json-ld';
-import { routing } from '@/i18n/routing';
+import { getAllPosts } from '@/lib/blog';
+import { routing, type Locale } from '@/i18n/routing';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -86,6 +87,17 @@ export default async function LocaleLayout({
   }
   setRequestLocale(locale);
 
+  // 服务端读取博客列表并投影成客户端可用的搜索条目（剥掉正文、只留元数据）
+  const searchablePosts: SearchablePost[] = getAllPosts(locale as Locale).map(
+    (p) => ({
+      slug: p.slug,
+      title: p.title,
+      summary: p.summary,
+      tags: p.tags,
+      date: p.date,
+    })
+  );
+
   return (
     <html
       lang={locale}
@@ -108,7 +120,7 @@ export default async function LocaleLayout({
               </main>
               <Footer />
             </div>
-            <CommandMenu />
+            <CommandMenu posts={searchablePosts} />
             <Toaster position="bottom-right" theme="system" />
           </NextIntlClientProvider>
         </ThemeProvider>

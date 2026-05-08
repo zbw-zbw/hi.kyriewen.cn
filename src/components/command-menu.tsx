@@ -19,11 +19,20 @@ import {
   Copy,
   Github,
   Twitter,
+  BookOpen,
 } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRouter } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
+
+export interface SearchablePost {
+  slug: string;
+  title: string;
+  summary: string;
+  tags?: string[];
+  date: string;
+}
 
 const PAGES = [
   { href: '/', key: 'home', Icon: Home },
@@ -41,7 +50,7 @@ const SOCIAL = [
   { href: 'https://x.com/kyriewen', label: 'Twitter / X', Icon: Twitter },
 ];
 
-export function CommandMenu() {
+export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
@@ -89,12 +98,45 @@ export function CommandMenu() {
                   key={href}
                   value={`nav ${key} ${tNav(key)}`}
                   onSelect={() => runAndClose(() => router.push(href))}
+                  onMouseEnter={() => router.prefetch(href)}
                 >
                   <Icon className="h-4 w-4 text-[var(--muted)]" />
                   <span>{tNav(key)}</span>
                 </Command.Item>
               ))}
             </Command.Group>
+
+            {posts.length > 0 && (
+              <Command.Group heading={tCmd('groups.blog')}>
+                {posts.map((post) => {
+                  const href = `/blog/${post.slug}`;
+                  // cmdk 的 value 会参与模糊匹配，因此把 title / summary / tags 全拼进来。
+                  const value = [
+                    'blog',
+                    post.slug,
+                    post.title,
+                    post.summary,
+                    ...(post.tags ?? []),
+                  ].join(' ');
+                  return (
+                    <Command.Item
+                      key={post.slug}
+                      value={value}
+                      onSelect={() => runAndClose(() => router.push(href))}
+                      onMouseEnter={() => router.prefetch(href)}
+                    >
+                      <BookOpen className="h-4 w-4 text-[var(--muted)]" />
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate">{post.title}</span>
+                        <span className="truncate text-xs text-[var(--muted)]">
+                          {post.summary}
+                        </span>
+                      </div>
+                    </Command.Item>
+                  );
+                })}
+              </Command.Group>
+            )}
 
             <Command.Group heading={tCmd('groups.actions')}>
               <Command.Item

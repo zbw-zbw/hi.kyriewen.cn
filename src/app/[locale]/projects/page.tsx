@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { ProductCard } from '@/components/product-card';
+import { ProjectsFilter } from '@/components/projects-filter';
 import { SectionHeading } from '@/components/section-heading';
 import { PROJECTS } from '@/content/projects';
 import { fetchRepoStats } from '@/lib/github';
@@ -31,12 +32,11 @@ export default async function ProjectsPage({
   const projectsWithStats = await Promise.all(
     PROJECTS.map(async (project) => {
       const stats = project.repo ? await fetchRepoStats(project.repo) : null;
-      return { project, stats };
+      return { project, stars: stats?.stars };
     })
   );
 
   const pinned = projectsWithStats.filter((p) => p.project.pinned);
-  const others = projectsWithStats.filter((p) => !p.project.pinned);
 
   return (
     <div className="space-y-12">
@@ -52,44 +52,33 @@ export default async function ProjectsPage({
           title={locale === 'zh' ? '主打作品' : 'Pinned'}
           subtitle={
             locale === 'zh'
-              ? '日常在迭代、用户最多的四个产品。'
-              : 'The four I keep iterating on with the most users.'
+              ? '日常在迭代、用户最多的几个产品。'
+              : 'The ones I keep iterating on.'
           }
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          {pinned.map(({ project, stats }) => (
+          {pinned.map(({ project, stars }) => (
             <ProductCard
               key={project.slug}
               project={project}
               locale={locale}
-              stars={stats?.stars}
+              stars={stars}
             />
           ))}
         </div>
       </section>
 
-      {others.length > 0 && (
-        <section>
-          <SectionHeading
-            title={locale === 'zh' ? '隐藏宝藏' : 'Hidden Gems'}
-            subtitle={
-              locale === 'zh'
-                ? '还在打磨、但你可能会喜欢的作品。'
-                : 'Works-in-progress you might enjoy.'
-            }
-          />
-          <div className="grid gap-4 sm:grid-cols-2">
-            {others.map(({ project, stats }) => (
-              <ProductCard
-                key={project.slug}
-                project={project}
-                locale={locale}
-                stars={stats?.stars}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      <section>
+        <SectionHeading
+          title={locale === 'zh' ? '全部作品' : 'All Projects'}
+          subtitle={
+            locale === 'zh'
+              ? '按分类筛选。'
+              : 'Filter by category.'
+          }
+        />
+        <ProjectsFilter projects={projectsWithStats} locale={locale} />
+      </section>
     </div>
   );
 }

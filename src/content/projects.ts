@@ -14,7 +14,16 @@ export interface Project {
   stack: string[];
   repo?: string;
   live?: string;
-  chromeStoreId?: string; // Chrome Web Store 扩展 ID，用于抓取用户数
+  /**
+   * Chrome Web Store 扩展 ID（32 位小写字母）。
+   * 用于 /api/cron/chrome-stats 抓取用户数与评分。
+   *
+   * 如何获取：访问扩展在 Chrome Web Store 的详情页，URL 形如
+   *   https://chromewebstore.google.com/detail/xxx/<extensionId>
+   * 把最后那段 32 位 ID 粘到这里。
+   * 未上架或未填时会跳过抓取，/stats 页面对应卡片显示 "—"。
+   */
+  chromeStoreId?: string;
   featured: boolean;
   pinned: boolean;
   year: number;
@@ -36,6 +45,8 @@ export const PROJECTS: Project[] = [
     },
     stack: ['TypeScript', 'Chrome MV3', 'Vite', 'React'],
     repo: 'https://github.com/zbw-zbw/image-harvest',
+    live: 'https://image-harvest.kyriewen.cn',
+    chromeStoreId: 'iecgnjidmogebokcfnejncgnelcepffo',
     featured: true,
     pinned: true,
     year: 2024,
@@ -54,23 +65,24 @@ export const PROJECTS: Project[] = [
     },
     stack: ['TypeScript', 'Chrome MV3', 'Canvas API'],
     repo: 'https://github.com/zbw-zbw/qr-code-generator',
+    chromeStoreId: 'jklnokpkcmlbchlhegebjbhdhdamnmpg',
     featured: true,
     pinned: true,
     year: 2024,
   },
   {
     slug: 'news-aggregator',
-    name: 'News Aggregator',
-    category: 'chrome-extension',
+    name: 'Geek News Aggregator',
+    category: 'web-app',
     tagline: {
-      en: 'Your personal news dashboard',
-      zh: '你的个人新闻仪表盘',
+      en: 'Daily-updated news for dev & AI communities',
+      zh: '每日更新的开发者与 AI 资讯聚合',
     },
     description: {
-      en: 'Aggregate news feeds from multiple sources into a clean, customizable new-tab dashboard.',
-      zh: '将多个来源的新闻聚合到简洁的新标签页面板，支持自定义订阅与分类。',
+      en: 'Aggregates RSS feeds, YouTube channels and arXiv papers into 6 specialized categories (AI / Frontend / Backend / Cloud Native / Blockchain / Others) with hot-score ranking.',
+      zh: '聚合 RSS、YouTube、arXiv 三类数据源，自动归类 AI / 前端 / 后端 / 云原生 / 区块链 / 其他 六大板块，按热度与时间衰减排序。',
     },
-    stack: ['TypeScript', 'Chrome MV3', 'React', 'RSS'],
+    stack: ['Vue 3', 'Vite', 'Flask', 'SQLAlchemy', 'SQLite', 'Tailwind'],
     repo: 'https://github.com/zbw-zbw/news-aggregator',
     featured: true,
     pinned: true,
@@ -79,16 +91,16 @@ export const PROJECTS: Project[] = [
   {
     slug: 'dev-toolbox',
     name: 'Dev Toolbox',
-    category: 'chrome-extension',
+    category: 'web-app',
     tagline: {
-      en: 'Swiss-army knife for developers',
-      zh: '开发者的瑞士军刀',
+      en: 'Your coding partner to improve your efficiency',
+      zh: '提升开发效率的一站式工具箱',
     },
     description: {
-      en: 'JSON formatter, Base64 / URL codec, regex tester, UUID generator, timestamp converter — all in one popup.',
-      zh: 'JSON 格式化、Base64/URL 编解码、正则测试、UUID、时间戳转换，一个弹窗全搞定。',
+      en: 'A Next.js web suite bundling JSON formatter, Base64 / URL codecs, regex tester, UUID generator and timestamp converter. Zero-install, works in any browser.',
+      zh: '基于 Next.js 的在线工具集：JSON 格式化、Base64/URL 编解码、正则测试、UUID、时间戳转换，打开即用，无需安装。',
     },
-    stack: ['TypeScript', 'Chrome MV3', 'React'],
+    stack: ['Next.js', 'TypeScript', 'React', 'Tailwind'],
     repo: 'https://github.com/zbw-zbw/dev-toolbox',
     featured: true,
     pinned: true,
@@ -97,17 +109,17 @@ export const PROJECTS: Project[] = [
   {
     slug: 'devtoolbox-pro',
     name: 'DevToolbox Pro',
-    category: 'chrome-extension',
+    category: 'web-app',
     tagline: {
-      en: 'AI-powered dev utilities',
-      zh: 'AI 加持的开发者工具集',
+      en: 'AI-powered dev utilities, now with Gemini',
+      zh: 'Gemini 加持的开发者工具集',
     },
     description: {
-      en: 'The pro version with AI-powered regex explanation, JSON diff, code beautify and structured-data inspection.',
-      zh: '在 Dev Toolbox 基础上加入 AI：正则解释、JSON diff、代码美化、结构化数据检查。',
+      en: 'The premium suite with Gemini-powered code assistance, JSON tools and time conversion. Built in Google AI Studio.',
+      zh: '高级版工具集，接入 Gemini 模型，提供 AI 代码辅助、JSON 工具与时间转换，基于 Google AI Studio 搭建。',
     },
-    stack: ['TypeScript', 'Chrome MV3', 'React', 'OpenAI API'],
-    repo: 'https://github.com/zbw-zbw/devtoolbox-pro',
+    stack: ['React', 'TypeScript', 'Vite', 'Gemini API'],
+    repo: 'https://github.com/zbw-zbw/DevToolbox-Pro',
     featured: true,
     pinned: false,
     year: 2025,
@@ -124,8 +136,9 @@ export const PROJECTS: Project[] = [
       en: 'Automatically starts playback on popular video sites and skips intro / ads when possible.',
       zh: '在常见视频站点自动开始播放，并在可能时跳过片头/广告。',
     },
-    stack: ['TypeScript', 'Chrome MV3'],
+    stack: ['JavaScript', 'Chrome MV3', 'Side Panel API'],
     repo: 'https://github.com/zbw-zbw/auto-play-video',
+    // chromeStoreId 暂缺：该扩展目前仅通过开发者模式加载，尚未上架 Chrome Web Store。
     featured: false,
     pinned: false,
     year: 2025,

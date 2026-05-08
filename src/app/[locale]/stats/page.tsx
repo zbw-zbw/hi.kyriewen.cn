@@ -36,8 +36,11 @@ export default async function StatsPage({
   const latest = snapshots.at(-1);
   const prev = snapshots.length > 1 ? snapshots.at(-2) : null;
 
-  const toSeries = (key: keyof StatsSnapshot) =>
-    snapshots.map((s) => ({
+  // 过去 30 天切片（snapshot 已按 asc 排序，slice -30 即最近 30 条）
+  const last30 = snapshots.slice(-30);
+
+  const toSeries = (source: StatsSnapshot[], key: keyof StatsSnapshot) =>
+    source.map((s) => ({
       date: s.date,
       value: Number(s[key] ?? 0),
     }));
@@ -46,6 +49,11 @@ export default async function StatsPage({
     if (!latest || !prev) return 0;
     return Number(latest[key] ?? 0) - Number(prev[key] ?? 0);
   };
+
+  const emptyHint =
+    locale === 'zh'
+      ? '数据累积中，Cron 每天 0:00 UTC 自动补采。'
+      : 'Data is accumulating — the cron job runs every day at 00:00 UTC.';
 
   return (
     <div className="space-y-10">
@@ -96,19 +104,56 @@ export default async function StatsPage({
           <section>
             <SectionHeading
               title={
-                locale === 'zh' ? 'GitHub Star 趋势' : 'GitHub Stars over time'
+                locale === 'zh'
+                  ? 'GitHub Star · 近 30 天'
+                  : 'GitHub Stars · Last 30 days'
+              }
+              subtitle={
+                locale === 'zh'
+                  ? '每日一次采集，展示最近 30 个数据点。'
+                  : 'One snapshot per day, last 30 data points.'
               }
             />
-            <StatsChart data={toSeries('githubStars')} label="Stars" />
+            <StatsChart
+              data={toSeries(last30, 'githubStars')}
+              label="Stars"
+              emptyHint={emptyHint}
+            />
           </section>
 
           <section>
             <SectionHeading
               title={
-                locale === 'zh' ? 'Chrome 用户趋势' : 'Chrome Users over time'
+                locale === 'zh'
+                  ? 'Chrome 用户 · 近 30 天'
+                  : 'Chrome Users · Last 30 days'
+              }
+              subtitle={
+                locale === 'zh'
+                  ? '所有上架扩展的用户数合计。'
+                  : 'Sum of users across all published extensions.'
               }
             />
-            <StatsChart data={toSeries('chromeTotalUsers')} label="Users" />
+            <StatsChart
+              data={toSeries(last30, 'chromeTotalUsers')}
+              label="Users"
+              emptyHint={emptyHint}
+            />
+          </section>
+
+          <section>
+            <SectionHeading
+              title={
+                locale === 'zh'
+                  ? 'Newsletter 订阅 · 近 30 天'
+                  : 'Newsletter subscribers · Last 30 days'
+              }
+            />
+            <StatsChart
+              data={toSeries(last30, 'newsletterSubscribers')}
+              label="Subscribers"
+              emptyHint={emptyHint}
+            />
           </section>
         </>
       )}

@@ -43,6 +43,7 @@
     "noResults": "暂无结果。",
     "groups": {
       "navigation": "导航",
+      "blog": "博客文章",
       "actions": "操作",
       "social": "社交"
     },

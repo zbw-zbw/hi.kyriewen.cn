@@ -43,6 +43,7 @@
     "noResults": "No results found.",
     "groups": {
       "navigation": "Navigation",
+      "blog": "Blog Posts",
       "actions": "Actions",
       "social": "Social"
     },
