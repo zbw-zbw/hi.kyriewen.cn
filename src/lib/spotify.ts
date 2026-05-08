@@ -27,7 +27,7 @@ export interface SpotifyTrack {
   isPlaying?: boolean;
 }
 
-function hasCredentials() {
+export function hasCredentials() {
   return Boolean(
     process.env.SPOTIFY_CLIENT_ID &&
       process.env.SPOTIFY_CLIENT_SECRET &&
@@ -122,7 +122,20 @@ export async function getNowPlaying(): Promise<SpotifyTrack | null> {
       next: { revalidate: 60 }, // 1 分钟缓存
     });
 
-    if (res.status === 204 || res.status > 400) return null; // 没在播
+    // 204 No Content = 当前没有在播放任何内容，属于正常状态
+    if (res.status === 204) return null;
+
+    // 4xx / 5xx = 真的失败，打日志后返回 null 由上层降级
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error(
+        '[spotify] now-playing failed',
+        res.status,
+        text.slice(0, 300)
+      );
+      return null;
+    }
+
     const data = (await res.json()) as {
       is_playing?: boolean;
       item?: SpotifyTrackResponse;
@@ -145,7 +158,15 @@ export async function getRecentlyPlayed(): Promise<SpotifyTrack[]> {
       next: { revalidate: 60 * 5 }, // 5 分钟缓存
     });
 
-    if (!res.ok) return [];
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      console.error(
+        '[spotify] recently-played failed',
+        res.status,
+        text.slice(0, 300)
+      );
+      return [];
+    }
     const data = (await res.json()) as {
       items?: { track: SpotifyTrackResponse; played_at: string }[];
     };

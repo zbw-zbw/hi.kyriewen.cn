@@ -19,12 +19,15 @@ export const metadata: Metadata = {
 
 async function loadMessages(): Promise<GuestbookMessage[]> {
   try {
-    return await db
+    const rows = await db
       .select()
       .from(guestbookMessages)
       .orderBy(desc(guestbookMessages.createdAt))
       .limit(100);
-  } catch {
+    console.log('[guestbook] loaded', rows.length, 'messages');
+    return rows;
+  } catch (err) {
+    console.error('[guestbook] loadMessages failed', err);
     return [];
   }
 }

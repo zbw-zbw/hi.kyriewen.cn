@@ -7,9 +7,13 @@ import { SectionHeading } from '@/components/section-heading';
 import { formatDate } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
 
-// 页面本身保持静态（NOW_ITEMS 是构建期数据），
-// Spotify 的短缓存由 src/lib/spotify.ts 里每个 fetch 的
-// { next: { revalidate } } 控制（token 50min、now-playing 60s、recent 5min）。
+// 页面整体 60 秒 revalidate：
+// - NOW_ITEMS 是构建期数据，本来可以静态
+// - 但 <SpotifyWidget/> 是 async Server Component，如果页面全静态，
+//   build 时烤进的 HTML（可能是"未连接"空态）会一直被 CDN 缓存
+// - 声明 revalidate=60 让页面每分钟重新 SSR 一次，
+//   内部 getAccessToken/getNowPlaying 的更细粒度缓存继续生效
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,

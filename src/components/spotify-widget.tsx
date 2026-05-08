@@ -1,6 +1,10 @@
 import Image from 'next/image';
 import { Music, ExternalLink } from 'lucide-react';
-import { getNowPlaying, getRecentlyPlayed } from '@/lib/spotify';
+import {
+  getNowPlaying,
+  getRecentlyPlayed,
+  hasCredentials,
+} from '@/lib/spotify';
 import { cn } from '@/lib/utils';
 
 interface SpotifyWidgetProps {
@@ -29,6 +33,15 @@ export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
   ]);
 
   if (!nowPlaying && recent.length === 0) {
+    // 区分两类空态：env 缺失 vs 有凭据但最近没播过
+    const credsOk = hasCredentials();
+    const hint = !credsOk
+      ? locale === 'zh'
+        ? 'Spotify 未配置（缺少环境变量）。'
+        : 'Spotify not configured (missing env vars).'
+      : locale === 'zh'
+        ? '最近没有播放记录，或 Spotify API 暂时不可用。'
+        : 'No recent tracks, or Spotify API is unavailable.';
     return (
       <div
         className={cn(
@@ -37,11 +50,7 @@ export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
         )}
       >
         <Music className="h-4 w-4" />
-        <span>
-          {locale === 'zh'
-            ? 'Spotify 尚未连接。'
-            : 'Spotify not connected yet.'}
-        </span>
+        <span>{hint}</span>
       </div>
     );
   }

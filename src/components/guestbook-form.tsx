@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
 interface GuestbookFormProps {
   locale: 'en' | 'zh';
   user: { name: string; image?: string | null } | null;
-  onPosted?: () => void;
 }
 
-export function GuestbookForm({ locale, user, onPosted }: GuestbookFormProps) {
+export function GuestbookForm({ locale, user }: GuestbookFormProps) {
+  const router = useRouter();
   const [body, setBody] = useState('');
   const [pending, startTransition] = useTransition();
 
@@ -42,7 +43,9 @@ export function GuestbookForm({ locale, user, onPosted }: GuestbookFormProps) {
         }
         toast.success(locale === 'zh' ? '已发布 🎉' : 'Posted 🎉');
         setBody('');
-        onPosted?.();
+        // Server Component 列表是在服务端 await db 查出来的，
+        // 发布成功后必须让 Router 重新拉取一次 RSC 才能看到新留言。
+        router.refresh();
       } catch {
         toast.error(locale === 'zh' ? '发布失败。' : 'Failed to post.');
       }
