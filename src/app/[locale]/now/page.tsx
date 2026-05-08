@@ -2,17 +2,17 @@ import { Suspense } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { NOW_ITEMS, NOW_UPDATED_AT } from '@/content/now';
-import { SpotifyWidget } from '@/components/spotify-widget';
+import { LastfmWidget } from '@/components/lastfm-widget';
 import { SectionHeading } from '@/components/section-heading';
 import { formatDate } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
 
 // 页面整体 60 秒 revalidate：
 // - NOW_ITEMS 是构建期数据，本来可以静态
-// - 但 <SpotifyWidget/> 是 async Server Component，如果页面全静态，
+// - 但 <LastfmWidget/> 是 async Server Component，如果页面全静态，
 //   build 时烤进的 HTML（可能是"未连接"空态）会一直被 CDN 缓存
 // - 声明 revalidate=60 让页面每分钟重新 SSR 一次，
-//   内部 getAccessToken/getNowPlaying 的更细粒度缓存继续生效
+//   内部 getRecentTracks 的 fetch 缓存继续生效
 export const revalidate = 60;
 
 export async function generateMetadata({
@@ -67,8 +67,8 @@ export default async function NowPage({
           title={locale === 'zh' ? '在听什么' : 'What I am listening to'}
           subtitle={
             locale === 'zh'
-              ? '实时同步自 Spotify，60 秒刷新一次。'
-              : 'Live from Spotify, refreshed every 60 seconds.'
+              ? '同步自 Last.fm（scrobble 自 Spotify / Apple Music），每分钟刷新。'
+              : 'Scrobbled to Last.fm from Spotify / Apple Music, refreshed every minute.'
           }
         />
         <Suspense
@@ -76,7 +76,7 @@ export default async function NowPage({
             <div className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
           }
         >
-          <SpotifyWidget locale={locale} />
+          <LastfmWidget locale={locale} />
         </Suspense>
       </section>
     </div>

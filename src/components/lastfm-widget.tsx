@@ -4,10 +4,10 @@ import {
   getNowPlaying,
   getRecentlyPlayed,
   hasCredentials,
-} from '@/lib/spotify';
+} from '@/lib/lastfm';
 import { cn } from '@/lib/utils';
 
-interface SpotifyWidgetProps {
+interface LastfmWidgetProps {
   locale: 'en' | 'zh';
   className?: string;
 }
@@ -26,22 +26,21 @@ function formatRelative(iso: string | undefined, locale: 'en' | 'zh') {
   return locale === 'zh' ? `${days} 天前` : `${days}d ago`;
 }
 
-export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
+export async function LastfmWidget({ locale, className }: LastfmWidgetProps) {
   const [nowPlaying, recent] = await Promise.all([
     getNowPlaying(),
-    getRecentlyPlayed(),
+    getRecentlyPlayed(4),
   ]);
 
   if (!nowPlaying && recent.length === 0) {
-    // 区分两类空态：env 缺失 vs 有凭据但最近没播过
     const credsOk = hasCredentials();
     const hint = !credsOk
       ? locale === 'zh'
-        ? 'Spotify 未配置（缺少环境变量）。'
-        : 'Spotify not configured (missing env vars).'
+        ? 'Last.fm 未配置（缺少环境变量）。'
+        : 'Last.fm not configured (missing env vars).'
       : locale === 'zh'
-        ? '最近没有播放记录，或 Spotify API 暂时不可用。'
-        : 'No recent tracks, or Spotify API is unavailable.';
+        ? '最近没有播放记录。去 Last.fm 连接 Spotify/Apple Music 后就会有数据。'
+        : 'No recent tracks. Connect Spotify/Apple Music on Last.fm to populate this.';
     return (
       <div
         className={cn(
@@ -55,7 +54,7 @@ export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
     );
   }
 
-  const current = nowPlaying ?? recent[0];
+  const current = nowPlaying ?? recent[0] ?? null;
   const rest = nowPlaying ? recent.slice(0, 4) : recent.slice(1, 5);
 
   return (
@@ -67,7 +66,7 @@ export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
     >
       {current && (
         <a
-          href={current.url}
+          href={current.url || '#'}
           target="_blank"
           rel="noopener noreferrer"
           className="group flex items-center gap-4 border-b border-[var(--border)] p-4 transition-colors hover:bg-[var(--bg)]"
@@ -75,10 +74,11 @@ export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
           {current.albumImage ? (
             <Image
               src={current.albumImage}
-              alt={current.album}
+              alt={current.album || current.title}
               width={56}
               height={56}
               className="h-14 w-14 flex-shrink-0 rounded"
+              unoptimized
             />
           ) : (
             <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded bg-[var(--bg)]">
@@ -122,9 +122,9 @@ export async function SpotifyWidget({ locale, className }: SpotifyWidgetProps) {
       {rest.length > 0 && (
         <ul className="divide-y divide-[var(--border)]">
           {rest.map((track, idx) => (
-            <li key={`${track.url}-${idx}`}>
+            <li key={`${track.url || track.title}-${idx}`}>
               <a
-                href={track.url}
+                href={track.url || '#'}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 p-3 text-sm transition-colors hover:bg-[var(--bg)]"
