@@ -1,0 +1,63 @@
+{
+  "site": {
+    "name": "Kyriewen",
+    "tagline": "Indie Hacker · Frontend Developer",
+    "description": "Building useful little products that solve real problems — 100% local, privacy-first, zero tracking."
+  },
+  "nav": {
+    "home": "Home",
+    "projects": "Projects",
+    "blog": "Blog",
+    "now": "Now",
+    "stats": "Stats",
+    "timeline": "Timeline",
+    "uses": "Uses",
+    "guestbook": "Guestbook"
+  },
+  "home": {
+    "hero": {
+      "greeting": "Hi, I'm Kyriewen",
+      "intro": "I build small but delightful tools — Chrome extensions, web apps, and developer utilities.",
+      "currentlyBuilding": "Currently building",
+      "ctaProjects": "View Projects",
+      "ctaSubscribe": "Subscribe"
+    },
+    "products": {
+      "title": "My Products",
+      "subtitle": "Privacy-first tools, crafted with care."
+    },
+    "writing": {
+      "title": "Latest Writing",
+      "viewAll": "View all posts"
+    },
+    "connect": {
+      "title": "Let's Connect"
+    }
+  },
+  "footer": {
+    "builtWith": "Built with Next.js, deployed on Vercel.",
+    "copyright": "© {year} Kyriewen. All rights reserved."
+  },
+  "command": {
+    "placeholder": "Type a command or search...",
+    "noResults": "No results found.",
+    "groups": {
+      "navigation": "Navigation",
+      "actions": "Actions",
+      "social": "Social"
+    },
+    "actions": {
+      "toggleTheme": "Toggle theme",
+      "switchLocale": "Switch language",
+      "copyEmail": "Copy email"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong.",
+    "subscribe": "Subscribe",
+    "subscribePlaceholder": "your@email.com",
+    "subscribeSuccess": "Thanks for subscribing!",
+    "subscribeError": "Failed to subscribe."
+  }
+}

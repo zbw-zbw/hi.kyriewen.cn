@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# AI / tooling caches (never commit)
+.aone_copilot/
+.qoder/

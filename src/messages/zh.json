@@ -1,0 +1,63 @@
+{
+  "site": {
+    "name": "Kyriewen",
+    "tagline": "独立开发者 · 前端工程师",
+    "description": "打造解决真实问题的小而美的产品 —— 纯本地、隐私优先、零追踪。"
+  },
+  "nav": {
+    "home": "首页",
+    "projects": "产品",
+    "blog": "博客",
+    "now": "现在",
+    "stats": "数据",
+    "timeline": "时间线",
+    "uses": "装备",
+    "guestbook": "留言墙"
+  },
+  "home": {
+    "hero": {
+      "greeting": "嗨，我是 Kyriewen",
+      "intro": "我打造小而美的工具 —— 浏览器扩展、Web 应用、开发者工具。",
+      "currentlyBuilding": "正在打造",
+      "ctaProjects": "查看产品",
+      "ctaSubscribe": "订阅 Newsletter"
+    },
+    "products": {
+      "title": "我的产品",
+      "subtitle": "用心打磨的隐私优先工具集。"
+    },
+    "writing": {
+      "title": "最新文章",
+      "viewAll": "查看所有文章"
+    },
+    "connect": {
+      "title": "联系我"
+    }
+  },
+  "footer": {
+    "builtWith": "由 Next.js 驱动，部署于 Vercel。",
+    "copyright": "© {year} Kyriewen. 保留所有权利。"
+  },
+  "command": {
+    "placeholder": "输入命令或搜索...",
+    "noResults": "暂无结果。",
+    "groups": {
+      "navigation": "导航",
+      "actions": "操作",
+      "social": "社交"
+    },
+    "actions": {
+      "toggleTheme": "切换主题",
+      "switchLocale": "切换语言",
+      "copyEmail": "复制邮箱"
+    }
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "出错了。",
+    "subscribe": "订阅",
+    "subscribePlaceholder": "你的邮箱",
+    "subscribeSuccess": "订阅成功，感谢支持！",
+    "subscribeError": "订阅失败，请稍后重试。"
+  }
+}
