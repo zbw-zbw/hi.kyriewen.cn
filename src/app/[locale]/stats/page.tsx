@@ -14,12 +14,15 @@ export const metadata: Metadata = { title: 'Stats' };
 
 async function loadSnapshots(): Promise<StatsSnapshot[]> {
   try {
-    return await db
+    const rows = await db
       .select()
       .from(statsSnapshot)
       .orderBy(asc(statsSnapshot.date))
       .limit(90);
-  } catch {
+    console.log('[stats] loaded', rows.length, 'snapshots');
+    return rows;
+  } catch (err) {
+    console.error('[stats] loadSnapshots failed', err);
     return [];
   }
 }

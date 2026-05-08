@@ -36,7 +36,17 @@ function hasCredentials() {
 }
 
 async function getAccessToken(): Promise<string | null> {
-  if (!hasCredentials()) return null;
+  if (!hasCredentials()) {
+    console.warn(
+      '[spotify] missing env: CLIENT_ID=',
+      Boolean(process.env.SPOTIFY_CLIENT_ID),
+      'CLIENT_SECRET=',
+      Boolean(process.env.SPOTIFY_CLIENT_SECRET),
+      'REFRESH_TOKEN=',
+      Boolean(process.env.SPOTIFY_REFRESH_TOKEN)
+    );
+    return null;
+  }
 
   const basic = Buffer.from(
     `${process.env.SPOTIFY_CLIENT_ID}:${process.env.SPOTIFY_CLIENT_SECRET}`
@@ -57,11 +67,19 @@ async function getAccessToken(): Promise<string | null> {
     });
 
     if (!res.ok) {
-      console.error('[spotify] token refresh failed', res.status);
+      const text = await res.text().catch(() => '');
+      console.error(
+        '[spotify] token refresh failed',
+        res.status,
+        text.slice(0, 300)
+      );
       return null;
     }
 
     const data = (await res.json()) as { access_token?: string };
+    if (!data.access_token) {
+      console.error('[spotify] token refresh ok but no access_token in body');
+    }
     return data.access_token ?? null;
   } catch (err) {
     console.error('[spotify] token refresh error', err);
