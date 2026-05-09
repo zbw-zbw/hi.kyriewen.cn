@@ -3,6 +3,8 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { NOW_ITEMS, NOW_UPDATED_AT } from '@/content/now';
 import { LastfmWidget } from '@/components/lastfm-widget';
+import { HeroProse } from '@/components/hero-prose';
+import { ScrollReveal } from '@/components/scroll-reveal';
 import { SectionHeading } from '@/components/section-heading';
 import { formatDate } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
@@ -33,52 +35,53 @@ export default async function NowPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
+  const t = await getTranslations('now.page');
+
   return (
-    <div className="space-y-10">
-      <section className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Now</h1>
-        <p className="text-[var(--muted-fg)]">
-          {locale === 'zh'
-            ? '这页说明我现在的关注点。灵感来自 Derek Sivers 的 nownownow.com。'
-            : 'What I am focused on right now. Inspired by Derek Sivers\' nownownow.com.'}
+    <div className="space-y-16">
+      <HeroProse
+        footer={
+          <span className="font-mono text-xs text-[var(--muted)]">
+            {t('lastUpdated')}: {formatDate(NOW_UPDATED_AT, locale)}
+          </span>
+        }
+      >
+        <p>{t('title')}</p>
+        <p className="mt-4 text-[length:var(--text-body)] font-normal leading-relaxed text-[var(--muted-fg)]">
+          {t('subtitle')}
         </p>
-        <p className="font-mono text-xs text-[var(--muted)]">
-          {locale === 'zh' ? '最后更新：' : 'Last updated: '}
-          {formatDate(NOW_UPDATED_AT, locale)}
-        </p>
-      </section>
+      </HeroProse>
 
-      <dl className="space-y-6 rounded-lg border border-[var(--border)] bg-[var(--card)] p-6">
-        {NOW_ITEMS.map((item) => (
-          <div
-            key={item.label.en}
-            className="grid grid-cols-[7rem_1fr] gap-4 sm:grid-cols-[9rem_1fr]"
-          >
-            <dt className="font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-              {item.label[locale]}
-            </dt>
-            <dd className="text-sm leading-relaxed">{item.value[locale]}</dd>
-          </div>
+      <div className="space-y-10">
+        {NOW_ITEMS.map((item, itemIndex) => (
+          <ScrollReveal key={item.label.en} delay={itemIndex * 0.06}>
+            <article className="space-y-2">
+              <h2 className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
+                {item.label[locale]}
+              </h2>
+              <p className="max-w-prose text-base leading-relaxed text-[var(--fg)]">
+                {item.value[locale]}
+              </p>
+            </article>
+          </ScrollReveal>
         ))}
-      </dl>
+      </div>
 
-      <section className="space-y-4">
-        <SectionHeading
-          title={locale === 'zh' ? '在听什么' : 'What I am listening to'}
-          subtitle={
-            locale === 'zh'
-              ? '同步自 Last.fm（scrobble 自 Spotify / Apple Music），每分钟刷新。'
-              : 'Scrobbled to Last.fm from Spotify / Apple Music, refreshed every minute.'
-          }
-        />
-        <Suspense
-          fallback={
-            <div className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
-          }
-        >
-          <LastfmWidget locale={locale} />
-        </Suspense>
-      </section>
+      <ScrollReveal delay={0.1}>
+        <section className="space-y-4">
+          <SectionHeading
+            title={t('listeningTitle')}
+            subtitle={t('listeningSubtitle')}
+          />
+          <Suspense
+            fallback={
+              <div className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
+            }
+          >
+            <LastfmWidget locale={locale} />
+          </Suspense>
+        </section>
+      </ScrollReveal>
     </div>
   );
 }

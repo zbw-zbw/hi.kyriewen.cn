@@ -1,7 +1,9 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
+import { HeroProse } from '@/components/hero-prose';
 import { ProductCard } from '@/components/product-card';
 import { ProjectsFilter } from '@/components/projects-filter';
+import { ScrollReveal } from '@/components/scroll-reveal';
 import { SectionHeading } from '@/components/section-heading';
 import { PROJECTS } from '@/content/projects';
 import { fetchRepoStats } from '@/lib/github';
@@ -15,8 +17,8 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const t = await getTranslations({ locale, namespace: 'nav' });
-  return { title: t('projects') };
+  const t = await getTranslations({ locale, namespace: 'projects.page' });
+  return { title: t('metaTitle') };
 }
 
 export default async function ProjectsPage({
@@ -27,7 +29,7 @@ export default async function ProjectsPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const t = await getTranslations('home');
+  const tp = await getTranslations('projects.page');
 
   const projectsWithStats = await Promise.all(
     PROJECTS.map(async (project) => {
@@ -39,46 +41,45 @@ export default async function ProjectsPage({
   const pinned = projectsWithStats.filter((p) => p.project.pinned);
 
   return (
-    <div className="space-y-12">
-      <section className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {t('products.title')}
-        </h1>
-        <p className="text-[var(--muted-fg)]">{t('products.subtitle')}</p>
-      </section>
+    <div>
+      {/* Hero */}
+      <HeroProse eyebrow={tp('eyebrow')}>
+        <p className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
+          {tp('title')}
+        </p>
+        <p className="mt-3 text-base text-[var(--muted-fg)]">{tp('subtitle')}</p>
+      </HeroProse>
 
-      <section>
+      {/* FIG 01 — Pinned */}
+      <ScrollReveal as="section" className="mt-[var(--space-section)]">
         <SectionHeading
-          title={locale === 'zh' ? '主打作品' : 'Pinned'}
-          subtitle={
-            locale === 'zh'
-              ? '日常在迭代、用户最多的几个产品。'
-              : 'The ones I keep iterating on.'
-          }
+          index="01"
+          eyebrow={tp('pinnedEyebrow')}
+          title={tp('pinnedTitle')}
         />
         <div className="grid gap-4 sm:grid-cols-2">
-          {pinned.map(({ project, stars }) => (
-            <ProductCard
-              key={project.slug}
-              project={project}
-              locale={locale}
-              stars={stars}
-            />
+          {pinned.map(({ project, stars }, i) => (
+            <ScrollReveal key={project.slug} delay={i * 0.08}>
+              <ProductCard
+                project={project}
+                locale={locale}
+                stars={stars}
+                highlighted
+              />
+            </ScrollReveal>
           ))}
         </div>
-      </section>
+      </ScrollReveal>
 
-      <section>
+      {/* FIG 02 — All Work */}
+      <ScrollReveal as="section" className="mt-[var(--space-section)] pb-8">
         <SectionHeading
-          title={locale === 'zh' ? '全部作品' : 'All Projects'}
-          subtitle={
-            locale === 'zh'
-              ? '按分类筛选。'
-              : 'Filter by category.'
-          }
+          index="02"
+          eyebrow={tp('allEyebrow')}
+          title={tp('allTitle')}
         />
         <ProjectsFilter projects={projectsWithStats} locale={locale} />
-      </section>
+      </ScrollReveal>
     </div>
   );
 }

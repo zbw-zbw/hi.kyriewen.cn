@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
  * 环境变量：
  *   - RESEND_API_KEY（必填，才会真正持久化）
  *   - RESEND_AUDIENCE_ID（必填，指向某个 Audience，Resend Dashboard → Audiences 创建后复制 ID）
- *   - NEWSLETTER_FROM_EMAIL（可选，如 "Kyriewen <hi@kyriewen.cn>"；未配置时只订阅、不发欢迎邮件）
+ *   - NEWSLETTER_FROM_EMAIL（可选，如 "Kyriewen <coderkyriewen@gmail.com>"；未配置时只订阅、不发欢迎邮件）
  *   - NEXT_PUBLIC_SITE_URL（欢迎邮件里 CTA 用）
  *
  * 未配置 RESEND_API_KEY 时返回 `{ ok: true, persisted: false }`，

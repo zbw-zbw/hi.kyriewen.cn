@@ -5,6 +5,12 @@ export interface ProjectI18nField {
   zh: string;
 }
 
+export interface ProjectChangelog {
+  version: string;
+  date: string;
+  notes: ProjectI18nField;
+}
+
 export interface Project {
   slug: string;
   name: string;
@@ -17,17 +23,33 @@ export interface Project {
   /**
    * Chrome Web Store 扩展 ID（32 位小写字母）。
    * 用于 /api/cron/chrome-stats 抓取用户数与评分。
-   *
-   * 如何获取：访问扩展在 Chrome Web Store 的详情页，URL 形如
-   *   https://chromewebstore.google.com/detail/xxx/<extensionId>
-   * 把最后那段 32 位 ID 粘到这里。
-   * 未上架或未填时会跳过抓取，/stats 页面对应卡片显示 "—"。
    */
   chromeStoreId?: string;
   featured: boolean;
   pinned: boolean;
   year: number;
-  accent?: string; // 卡片强调色（可选）
+  accent?: string;
+
+  /* ── 详情页扩展字段（Phase 4） ── */
+
+  /** Hero 图片路径，如 /projects/image-harvest/hero.png */
+  heroImage?: string;
+  /** 产品截图墙 */
+  gallery?: string[];
+  /** Demo 视频（可选），如 /projects/image-harvest/demo.mp4 */
+  coverVideo?: string;
+  /** Case Study MDX 文件路径（中英双语） */
+  caseStudy?: ProjectI18nField;
+  /** 详情页主色（CSS color），会覆盖全局 accent */
+  colorTheme?: string;
+  /** 运营数据 */
+  metrics?: {
+    users?: number;
+    stars?: number;
+    rating?: number;
+  };
+  /** 版本更新日志 */
+  changelog?: ProjectChangelog[];
 }
 
 export const PROJECTS: Project[] = [
@@ -50,6 +72,9 @@ export const PROJECTS: Project[] = [
     featured: true,
     pinned: true,
     year: 2024,
+    accent: '#4285f4',
+    heroImage: '/projects/image-harvest/hero.png',
+    colorTheme: '#4285f4',
   },
   {
     slug: 'qr-code-generator',
@@ -69,6 +94,9 @@ export const PROJECTS: Project[] = [
     featured: true,
     pinned: true,
     year: 2024,
+    accent: '#34a853',
+    heroImage: '/projects/qr-code-generator/hero.png',
+    colorTheme: '#34a853',
   },
   {
     slug: 'news-aggregator',
@@ -87,6 +115,9 @@ export const PROJECTS: Project[] = [
     featured: true,
     pinned: true,
     year: 2024,
+    accent: '#ea4335',
+    heroImage: '/projects/news-aggregator/hero.png',
+    colorTheme: '#ea4335',
   },
   {
     slug: 'dev-toolbox',
@@ -105,6 +136,9 @@ export const PROJECTS: Project[] = [
     featured: true,
     pinned: true,
     year: 2024,
+    accent: '#fbbc04',
+    heroImage: '/projects/dev-toolbox/hero.png',
+    colorTheme: '#fbbc04',
   },
   {
     slug: 'devtoolbox-pro',
@@ -123,6 +157,9 @@ export const PROJECTS: Project[] = [
     featured: true,
     pinned: false,
     year: 2025,
+    accent: '#8b5cf6',
+    heroImage: '/projects/devtoolbox-pro/hero.png',
+    colorTheme: '#8b5cf6',
   },
   {
     slug: 'auto-play-video',
@@ -138,10 +175,12 @@ export const PROJECTS: Project[] = [
     },
     stack: ['JavaScript', 'Chrome MV3', 'Side Panel API'],
     repo: 'https://github.com/zbw-zbw/auto-play-video',
-    // chromeStoreId 暂缺：该扩展目前仅通过开发者模式加载，尚未上架 Chrome Web Store。
     featured: false,
     pinned: false,
     year: 2025,
+    accent: '#06b6d4',
+    heroImage: '/projects/auto-play-video/hero.png',
+    colorTheme: '#06b6d4',
   },
 ];
 

@@ -3,15 +3,15 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex cursor-pointer items-center justify-center gap-2 rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-[var(--accent)] text-[var(--accent-fg)] hover:opacity-90',
+          'bg-[var(--accent)] text-[var(--accent-fg)] shadow-sm hover:opacity-90 hover:shadow-md active:scale-[0.98]',
         outline:
-          'border border-[var(--border)] bg-transparent hover:bg-[var(--card)]',
-        ghost: 'hover:bg-[var(--card)]',
+          'border border-[var(--border)] bg-transparent hover:bg-[var(--card)] hover:border-[var(--accent)] hover:text-[var(--fg)] hover:shadow-sm active:scale-[0.98]',
+        ghost: 'hover:bg-[var(--card)] hover:text-[var(--fg)] active:scale-[0.98]',
         link: 'text-[var(--accent)] underline-offset-4 hover:underline',
       },
       size: {

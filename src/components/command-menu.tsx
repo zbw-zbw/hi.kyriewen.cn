@@ -17,14 +17,29 @@ import {
   Sun,
   Languages,
   Copy,
+  Mail,
   Github,
   Twitter,
   BookOpen,
+  Image as ImageIcon,
+  Box,
+  Palette,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRouter } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
+import { PROJECTS } from '@/content/projects';
+import { ACCENTS, useAccent, type Accent } from '@/components/theme-accent-provider';
 import { cn } from '@/lib/utils';
+
+/** 4 个 accent 色的展示色值（与 globals.css [data-accent] 中 light 模式保持一致） */
+const ACCENT_SWATCH: Record<Accent, string> = {
+  blue: '#4285f4',
+  green: '#10b981',
+  purple: '#8b5cf6',
+  orange: '#f97316',
+};
 
 export interface SearchablePost {
   slug: string;
@@ -42,6 +57,7 @@ const PAGES = [
   { href: '/stats', key: 'stats', Icon: BarChart3 },
   { href: '/timeline', key: 'timeline', Icon: Clock },
   { href: '/uses', key: 'uses', Icon: Wrench },
+  { href: '/photos', key: 'photos', Icon: ImageIcon },
   { href: '/guestbook', key: 'guestbook', Icon: MessageSquare },
 ] as const;
 
@@ -54,6 +70,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
+  const { accent, setAccent } = useAccent();
   const locale = useLocale() as Locale;
   const tNav = useTranslations('nav');
   const tCmd = useTranslations('command');
@@ -104,6 +121,29 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                   <span>{tNav(key)}</span>
                 </Command.Item>
               ))}
+            </Command.Group>
+
+            <Command.Group heading={locale === 'zh' ? '产品' : 'Products'}>
+              {PROJECTS.map((project) => {
+                const href = `/projects/${project.slug}`;
+                const tagline = project.tagline[locale];
+                return (
+                  <Command.Item
+                    key={project.slug}
+                    value={`product ${project.slug} ${project.name} ${tagline}`}
+                    onSelect={() => runAndClose(() => router.push(href))}
+                    onMouseEnter={() => router.prefetch(href)}
+                  >
+                    <Box className="h-4 w-4 text-[var(--muted)]" />
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate">{project.name}</span>
+                      <span className="truncate text-xs text-[var(--muted)]">
+                        {tagline}
+                      </span>
+                    </div>
+                  </Command.Item>
+                );
+              })}
             </Command.Group>
 
             {posts.length > 0 && (
@@ -167,18 +207,53 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                 <span>{tCmd('actions.switchLocale')}</span>
               </Command.Item>
               <Command.Item
-                value="action copy email"
+                value="action send email"
                 onSelect={() =>
                   runAndClose(() => {
                     navigator.clipboard
-                      ?.writeText('hi@kyriewen.cn')
-                      .catch(() => null);
+                      .writeText('coderkyriewen@gmail.com')
+                      .then(() => {
+                        toast.success(
+                          locale === 'zh'
+                            ? '邮箱已复制，正在打开邮件客户端…'
+                            : 'Email copied! Opening mail client…'
+                        );
+                      })
+                      .catch(() => {});
+                    window.location.href = 'mailto:coderkyriewen@gmail.com';
                   })
                 }
               >
-                <Copy className="h-4 w-4 text-[var(--muted)]" />
+                <Mail className="h-4 w-4 text-[var(--muted)]" />
                 <span>{tCmd('actions.copyEmail')}</span>
               </Command.Item>
+            </Command.Group>
+
+            <Command.Group
+              heading={locale === 'zh' ? '主题色' : 'Accent color'}
+            >
+              {ACCENTS.map((a) => (
+                <Command.Item
+                  key={a}
+                  value={`accent ${a}`}
+                  onSelect={() => runAndClose(() => setAccent(a))}
+                >
+                  <span className="flex items-center gap-2">
+                    <Palette className="h-4 w-4 text-[var(--muted)]" />
+                    <span
+                      aria-hidden
+                      className="inline-block h-3 w-3 rounded-full ring-1 ring-[var(--border)]"
+                      style={{ backgroundColor: ACCENT_SWATCH[a] }}
+                    />
+                  </span>
+                  <span className="capitalize">{a}</span>
+                  {accent === a && (
+                    <span className="ml-auto text-xs text-[var(--muted)]">
+                      {locale === 'zh' ? '当前' : 'current'}
+                    </span>
+                  )}
+                </Command.Item>
+              ))}
             </Command.Group>
 
             <Command.Group heading={tCmd('groups.social')}>

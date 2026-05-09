@@ -12,31 +12,209 @@
     "stats": "Stats",
     "timeline": "Timeline",
     "uses": "Uses",
-    "guestbook": "Guestbook"
+    "photos": "Photos",
+    "guestbook": "Guestbook",
+    "ask": "Ask AI",
+    "more": "More"
   },
   "home": {
     "hero": {
-      "greeting": "Hi, I'm Kyriewen",
-      "intro": "I build small but delightful tools — Chrome extensions, web apps, and developer utilities.",
-      "currentlyBuilding": "Currently building",
-      "ctaProjects": "View Projects",
-      "ctaSubscribe": "Subscribe"
+      "eyebrow": "Software Engineer · Hangzhou",
+      "proseLead": "I'm Kyriewen, a software engineer building",
+      "proseAndOthers": "and a few other small tools.",
+      "proseListening": "Right now I'm listening to",
+      "proseWriting": "I share what I learn at",
+      "proseConnect": "Say hi at"
     },
     "products": {
-      "title": "My Products",
-      "subtitle": "Privacy-first tools, crafted with care."
+      "title": "Selected Work",
+      "eyebrow": "Products",
+      "subtitle": "Privacy-first tools, crafted with care.",
+      "viewAll": "All projects"
     },
     "writing": {
       "title": "Latest Writing",
-      "viewAll": "View all posts"
+      "eyebrow": "Writing",
+      "viewAll": "All posts",
+      "empty": "Writing coming soon."
+    },
+    "now": {
+      "title": "What I'm Doing Now",
+      "eyebrow": "Now",
+      "linkLabel": "Read the full /now page →"
     },
     "connect": {
-      "title": "Let's Connect"
+      "title": "Connect",
+      "eyebrow": "Elsewhere"
+    },
+    "newsletter": {
+      "title": "Subscribe to the newsletter",
+      "subtitle": "Get monthly updates on new projects, posts and experiments. No spam, unsubscribe anytime."
+    }
+  },
+  "projects": {
+    "page": {
+      "metaTitle": "Projects",
+      "eyebrow": "Selected Work",
+      "title": "Things I've built",
+      "subtitle": "Side projects, Chrome extensions and small web apps. Most are open source.",
+      "pinnedEyebrow": "Pinned",
+      "pinnedTitle": "What I'm most proud of",
+      "allEyebrow": "All Work",
+      "allTitle": "Everything else",
+      "filterAll": "All",
+      "filterChrome": "Chrome Extensions",
+      "filterWeb": "Web Apps",
+      "filterLibrary": "Libraries",
+      "viewSource": "View source",
+      "viewLive": "Live demo",
+      "viewStore": "Chrome Web Store",
+      "readCaseStudy": "Read case study →"
+    },
+    "detail": {
+      "backLink": "All projects",
+      "overviewEyebrow": "Overview",
+      "overviewTitle": "What it is",
+      "whyEyebrow": "Story",
+      "whyTitle": "Why I built this",
+      "galleryEyebrow": "Gallery",
+      "galleryTitle": "How it looks",
+      "statsEyebrow": "Numbers",
+      "statsTitle": "By the numbers",
+      "changelogEyebrow": "Changelog",
+      "changelogTitle": "What's new",
+      "stack": "Built with",
+      "category": "Category",
+      "year": "Year"
+    }
+  },
+  "uses": {
+    "page": {
+      "metaTitle": "Uses",
+      "eyebrow": "Workspace",
+      "title": "What I use",
+      "subtitle": "The hardware, software and services I rely on every day."
+    }
+  },
+  "now": {
+    "page": {
+      "metaTitle": "Now",
+      "eyebrow": "Right Now",
+      "title": "What I'm doing now",
+      "subtitle": "Inspired by Derek Sivers' /now movement.",
+      "lastUpdated": "Last updated",
+      "listeningTitle": "What I'm listening to",
+      "listeningSubtitle": "Latest scrobbles via Last.fm."
+    }
+  },
+  "timeline": {
+    "page": {
+      "metaTitle": "Timeline",
+      "eyebrow": "Journey",
+      "title": "Timeline",
+      "subtitle": "A reverse-chronological log of milestones, jobs and product launches."
+    }
+  },
+  "blog": {
+    "page": {
+      "metaTitle": "Blog",
+      "eyebrow": "Writing",
+      "title": "Writing",
+      "subtitle": "Notes on web development, indie hacking and the tools I build.",
+      "rssLabel": "RSS feed",
+      "subscribeLine": "Subscribe to the newsletter to get new posts in your inbox.",
+      "empty": "No posts yet.",
+      "allTags": "All",
+      "minRead": "min read",
+      "navLabel": "Post navigation",
+      "previous": "Previous",
+      "next": "Next",
+      "subscribeFooterTitle": "Enjoyed this post?",
+      "subscribeFooterSub": "Get monthly updates on new posts and projects. No spam, unsubscribe anytime."
+    }
+  },
+  "stats": {
+    "page": {
+      "metaTitle": "Stats",
+      "eyebrow": "Build in Public",
+      "title": "Stats",
+      "subtitle": "Numbers refresh automatically every day at 00:00 UTC.",
+      "emptyTitle": "No data yet",
+      "emptyHint": "Data is accumulating — the cron job runs every day at 00:00 UTC.",
+      "noDataReady": "No data yet. Waiting for the first cron run (requires POSTGRES_URL + CRON_SECRET).",
+      "cardGithubStars": "GitHub Stars",
+      "cardGithubStarsHint": "All time",
+      "cardFollowers": "Followers",
+      "cardChromeUsers": "Chrome Users",
+      "cardChromeUsersHint": "Across all extensions",
+      "cardSubscribers": "Subscribers",
+      "chartGithubStarsTitle": "GitHub Stars · Last 30 days",
+      "chartGithubStarsSub": "One snapshot per day, last 30 data points.",
+      "chartChromeTitle": "Chrome Users · Last 30 days",
+      "chartChromeSub": "Sum of users across all published extensions.",
+      "chartSubscribersTitle": "Newsletter subscribers · Last 30 days"
+    }
+  },
+  "guestbook": {
+    "page": {
+      "metaTitle": "Guestbook",
+      "eyebrow": "Say Hi",
+      "title": "Guestbook",
+      "subtitle": "Sign in with GitHub and leave a note. Be kind.",
+      "signInPrompt": "Sign in with GitHub to leave a message.",
+      "signInButton": "Sign in with GitHub",
+      "signOut": "Sign out",
+      "placeholder": "Your message…",
+      "submit": "Post",
+      "empty": "No messages yet — be the first to say hi.",
+      "loadError": "Failed to load messages. Please try again later."
+    }
+  },
+  "message": {
+    "empty": "No messages yet — be the first to say hi.",
+    "emptyPost": "No comments yet — be the first to share your thoughts.",
+    "commentsHeading": "{count, plural, =0 {Comments} one {# Comment} other {# Comments}}",
+    "post": "Post",
+    "posting": "Posting…",
+    "posted": "Posted 🎉",
+    "postFailed": "Failed to post.",
+    "rateLimited": "Whoa, slow down — try again in a minute.",
+    "preview": "Preview",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleted": "Deleted.",
+    "edited": "edited",
+    "editSaved": "Saved.",
+    "confirmDelete": "Delete this message? This cannot be undone.",
+    "reply": "Reply",
+    "like": "Like",
+    "needLogin": "Sign in with GitHub to like this.",
+    "previewEmpty": "Nothing to preview.",
+    "mdHint": "Markdown supported",
+    "boldSample": "bold text",
+    "italicSample": "italic",
+    "linkSample": "link"
+  },
+  "subscribe": {
+    "page": {
+      "metaTitle": "Subscribe",
+      "eyebrow": "Newsletter",
+      "title": "Subscribe",
+      "subtitle": "Monthly updates on new projects, posts and experiments. No spam, unsubscribe anytime.",
+      "perks": [
+        "Behind-the-scenes notes on building Chrome extensions and web apps",
+        "Curated reading list and dev tips",
+        "First look at things I'm shipping next"
+      ],
+      "footnote": "Powered by Buttondown. Your email stays private."
     }
   },
   "footer": {
     "builtWith": "Built with Next.js, deployed on Vercel.",
-    "copyright": "© {year} Kyriewen. All rights reserved."
+    "copyright": "© {year} Kyriewen. All rights reserved.",
+    "alsoBuilding": "I also build:"
   },
   "command": {
     "placeholder": "Type a command or search...",
@@ -53,12 +231,24 @@
       "copyEmail": "Copy email"
     }
   },
+  "ask": {
+    "title": "Ask Kyriewen's AI",
+    "subtitle": "Chat with my AI avatar — powered by my blog, projects, and background.",
+    "placeholder": "Ask me anything about my work…",
+    "thinking": "Thinking…",
+    "error": "Something went wrong. Please try again.",
+    "emptyHint": "Ask me about my projects, tech stack, blog posts, or anything else!",
+    "comingSoon": "Coming Soon",
+    "comingSoonDesc": "AI Chat is being set up. Check back soon!"
+  },
   "common": {
     "loading": "Loading...",
     "error": "Something went wrong.",
     "subscribe": "Subscribe",
     "subscribePlaceholder": "your@email.com",
     "subscribeSuccess": "Thanks for subscribing!",
-    "subscribeError": "Failed to subscribe."
+    "subscribeError": "Failed to subscribe.",
+    "copy": "Copy",
+    "copied": "Copied"
   }
 }

@@ -1,3 +1,4 @@
+import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface StatsCardProps {
@@ -17,32 +18,39 @@ export function StatsCard({
 }: StatsCardProps) {
   const trendSign = trend === undefined ? '' : trend > 0 ? '+' : '';
   return (
-    <div
+    <Card
       className={cn(
-        'rounded-lg border border-[var(--border)] bg-[var(--card)] p-5',
+        'shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-elevated)]',
         className
       )}
     >
-      <p className="font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold tabular-nums">
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </p>
-      <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
-        {hint && <span>{hint}</span>}
-        {trend !== undefined && trend !== 0 && (
-          <span
-            className={cn(
-              'font-mono',
-              trend > 0 ? 'text-emerald-500' : 'text-rose-500'
-            )}
-          >
-            {trendSign}
-            {trend}
-          </span>
-        )}
-      </div>
-    </div>
+      <CardHeader className="gap-2 p-5 pb-2">
+        <p
+          className="truncate font-mono text-[var(--text-eyebrow)] tracking-wider text-[var(--muted)]"
+          title={label}
+        >
+          {label}
+        </p>
+      </CardHeader>
+      <CardContent className="p-5 pt-0">
+        <p className="min-h-[2.25rem] text-2xl font-bold tabular-nums sm:min-h-[2.5rem] sm:text-3xl">
+          {typeof value === 'number' ? value.toLocaleString() : value}
+        </p>
+        <div className="mt-1 flex items-center gap-2 text-xs text-[var(--muted)]">
+          {hint && <span>{hint}</span>}
+          {trend !== undefined && trend !== 0 && (
+            <span
+              className={cn(
+                'font-mono',
+                trend > 0 ? 'text-emerald-500' : 'text-rose-500'
+              )}
+            >
+              {trendSign}
+              {trend}
+            </span>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

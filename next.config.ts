@@ -15,6 +15,8 @@ const nextConfig: NextConfig = {
       // GitHub 头像 / opengraph 图
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
       { protocol: 'https', hostname: 'github.com' },
+      // Unsplash 占位图（/photos 照片墙 — 后续替换为本地资源）
+      { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
   experimental: {

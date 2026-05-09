@@ -1,11 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
-import { Github, Twitter, Mail, Rss, Globe } from 'lucide-react';
+import { Github, Twitter, Mail, Rss } from 'lucide-react';
 
 export interface SocialLink {
   name: string;
   href: string;
   Icon: LucideIcon;
   handle?: string;
+  /** 是否为邮箱（特殊处理：左键 mailto，右侧带 复制 按钮） */
+  isEmail?: boolean;
 }
 
 export const SOCIAL_LINKS: SocialLink[] = [
@@ -23,15 +25,10 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     name: 'Email',
-    href: 'mailto:hi@kyriewen.cn',
+    href: 'mailto:coderkyriewen@gmail.com',
     Icon: Mail,
-    handle: 'hi@kyriewen.cn',
-  },
-  {
-    name: 'Old Blog',
-    href: 'https://blog.zbw-zbw.cn',
-    Icon: Globe,
-    handle: 'blog.zbw-zbw.cn',
+    handle: 'coderkyriewen@gmail.com',
+    isEmail: true,
   },
   {
     name: 'RSS',

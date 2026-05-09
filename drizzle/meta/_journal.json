@@ -8,6 +8,13 @@
       "when": 1778239208465,
       "tag": "0000_empty_slipstream",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1778296163655,
+      "tag": "0001_exotic_loki",
+      "breakpoints": true
     }
   ]
 }

@@ -12,6 +12,7 @@ const STATIC_PATHS = [
   '/stats',
   '/timeline',
   '/uses',
+  '/photos',
   '/guestbook',
   '/subscribe',
 ];

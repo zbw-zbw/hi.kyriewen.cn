@@ -12,31 +12,209 @@
     "stats": "数据",
     "timeline": "时间线",
     "uses": "装备",
-    "guestbook": "留言墙"
+    "photos": "照片",
+    "guestbook": "留言墙",
+    "ask": "问 AI",
+    "more": "更多"
   },
   "home": {
     "hero": {
-      "greeting": "嗨，我是 Kyriewen",
-      "intro": "我打造小而美的工具 —— 浏览器扩展、Web 应用、开发者工具。",
-      "currentlyBuilding": "正在打造",
-      "ctaProjects": "查看产品",
-      "ctaSubscribe": "订阅 Newsletter"
+      "eyebrow": "软件工程师 · 杭州",
+      "proseLead": "我是 Kyriewen，一名独立开发者，正在打造",
+      "proseAndOthers": "等几个小工具。",
+      "proseListening": "此刻我在听",
+      "proseWriting": "我把折腾的过程写在",
+      "proseConnect": "想聊聊可以来"
     },
     "products": {
-      "title": "我的产品",
-      "subtitle": "用心打磨的隐私优先工具集。"
+      "title": "精选作品",
+      "eyebrow": "产品",
+      "subtitle": "用心打磨的隐私优先工具集。",
+      "viewAll": "全部作品"
     },
     "writing": {
       "title": "最新文章",
-      "viewAll": "查看所有文章"
+      "eyebrow": "写作",
+      "viewAll": "查看全部",
+      "empty": "即将开始写作。"
+    },
+    "now": {
+      "title": "现在在做什么",
+      "eyebrow": "现在",
+      "linkLabel": "查看完整的 /now 页面 →"
     },
     "connect": {
-      "title": "联系我"
+      "title": "联系",
+      "eyebrow": "其他渠道"
+    },
+    "newsletter": {
+      "title": "订阅 Newsletter",
+      "subtitle": "每月收到新项目、新文章和实验的更新。没有垃圾邮件，随时退订。"
+    }
+  },
+  "projects": {
+    "page": {
+      "metaTitle": "产品",
+      "eyebrow": "精选作品",
+      "title": "我做过的东西",
+      "subtitle": "副业项目、Chrome 扩展、小型 Web 应用，绝大部分都开源。",
+      "pinnedEyebrow": "主打",
+      "pinnedTitle": "我最满意的几个",
+      "allEyebrow": "全部",
+      "allTitle": "其他作品",
+      "filterAll": "全部",
+      "filterChrome": "Chrome 扩展",
+      "filterWeb": "Web 应用",
+      "filterLibrary": "开源库",
+      "viewSource": "查看源码",
+      "viewLive": "在线体验",
+      "viewStore": "Chrome 应用商店",
+      "readCaseStudy": "阅读详情 →"
+    },
+    "detail": {
+      "backLink": "返回作品列表",
+      "overviewEyebrow": "概览",
+      "overviewTitle": "这是什么",
+      "whyEyebrow": "故事",
+      "whyTitle": "为什么做这个",
+      "galleryEyebrow": "画廊",
+      "galleryTitle": "长什么样",
+      "statsEyebrow": "数据",
+      "statsTitle": "用数字说话",
+      "changelogEyebrow": "更新日志",
+      "changelogTitle": "最近更新",
+      "stack": "技术栈",
+      "category": "分类",
+      "year": "年份"
+    }
+  },
+  "uses": {
+    "page": {
+      "metaTitle": "装备",
+      "eyebrow": "工作台",
+      "title": "我的装备",
+      "subtitle": "我每天依赖的硬件、软件和服务。"
+    }
+  },
+  "now": {
+    "page": {
+      "metaTitle": "现在",
+      "eyebrow": "此刻",
+      "title": "现在在做什么",
+      "subtitle": "灵感来自 Derek Sivers 的 /now 运动。",
+      "lastUpdated": "最后更新",
+      "listeningTitle": "在听什么",
+      "listeningSubtitle": "通过 Last.fm 同步的最近播放。"
+    }
+  },
+  "timeline": {
+    "page": {
+      "metaTitle": "时间线",
+      "eyebrow": "旅程",
+      "title": "时间线",
+      "subtitle": "倒序记录的里程碑、工作变动与产品发布。"
+    }
+  },
+  "blog": {
+    "page": {
+      "metaTitle": "博客",
+      "eyebrow": "写作",
+      "title": "博客",
+      "subtitle": "关于 Web 开发、独立开发与我做的工具的笔记。",
+      "rssLabel": "RSS 订阅",
+      "subscribeLine": "订阅 Newsletter，把新文章直接送到你的邮箱。",
+      "empty": "暂无文章。",
+      "allTags": "全部",
+      "minRead": "分钟阅读",
+      "navLabel": "文章翻页导航",
+      "previous": "上一篇",
+      "next": "下一篇",
+      "subscribeFooterTitle": "喜欢这篇文章？",
+      "subscribeFooterSub": "每月收到新文章和新项目更新。没有垃圾邮件，随时退订。"
+    }
+  },
+  "stats": {
+    "page": {
+      "metaTitle": "数据",
+      "eyebrow": "Build in Public",
+      "title": "数据看板",
+      "subtitle": "数据每日 0:00 UTC 自动更新。",
+      "emptyTitle": "暂无数据",
+      "emptyHint": "数据累积中，Cron 每天 0:00 UTC 自动补采。",
+      "noDataReady": "数据尚未就绪。请等待首次 Cron 执行（需要配置 POSTGRES_URL + CRON_SECRET）。",
+      "cardGithubStars": "GitHub Star",
+      "cardGithubStarsHint": "总数",
+      "cardFollowers": "GitHub 粉丝",
+      "cardChromeUsers": "Chrome 用户",
+      "cardChromeUsersHint": "所有扩展合计",
+      "cardSubscribers": "订阅",
+      "chartGithubStarsTitle": "GitHub Star · 近 30 天",
+      "chartGithubStarsSub": "每日一次采集，展示最近 30 个数据点。",
+      "chartChromeTitle": "Chrome 用户 · 近 30 天",
+      "chartChromeSub": "所有上架扩展的用户数合计。",
+      "chartSubscribersTitle": "Newsletter 订阅 · 近 30 天"
+    }
+  },
+  "guestbook": {
+    "page": {
+      "metaTitle": "留言墙",
+      "eyebrow": "打个招呼",
+      "title": "留言墙",
+      "subtitle": "用 GitHub 登录后留下你的脚印。请保持友善。",
+      "signInPrompt": "用 GitHub 登录后即可留言。",
+      "signInButton": "用 GitHub 登录",
+      "signOut": "登出",
+      "placeholder": "写点什么…",
+      "submit": "发布",
+      "empty": "还没有留言 —— 来当第一位访客吧。",
+      "loadError": "加载留言失败，请稍后再试。"
+    }
+  },
+  "message": {
+    "empty": "还没有留言 —— 来当第一位访客吧。",
+    "emptyPost": "还没有评论 —— 来分享你的想法吧。",
+    "commentsHeading": "{count, plural, =0 {评论} other {# 条评论}}",
+    "post": "发布",
+    "posting": "发布中…",
+    "posted": "已发布 🎉",
+    "postFailed": "发布失败，请重试。",
+    "rateLimited": "太快啦，请稍后再试。",
+    "preview": "预览",
+    "edit": "编辑",
+    "save": "保存",
+    "cancel": "取消",
+    "delete": "删除",
+    "deleted": "已删除。",
+    "edited": "已编辑",
+    "editSaved": "已保存。",
+    "confirmDelete": "确定删除这条留言吗？此操作不可撤销。",
+    "reply": "回复",
+    "like": "点赞",
+    "needLogin": "登录后即可点赞。",
+    "previewEmpty": "暂无内容预览。",
+    "mdHint": "支持 Markdown",
+    "boldSample": "粗体",
+    "italicSample": "斜体",
+    "linkSample": "链接"
+  },
+  "subscribe": {
+    "page": {
+      "metaTitle": "订阅 Newsletter",
+      "eyebrow": "Newsletter",
+      "title": "订阅 Newsletter",
+      "subtitle": "每月收到新项目、新文章和实验的更新。没有垃圾邮件，随时退订。",
+      "perks": [
+        "Chrome 扩展和 Web 应用的开发幕后笔记",
+        "精选阅读清单与开发小技巧",
+        "下一个项目的抢先预告"
+      ],
+      "footnote": "由 Buttondown 提供支持，你的邮箱不会被泄露。"
     }
   },
   "footer": {
     "builtWith": "由 Next.js 驱动，部署于 Vercel。",
-    "copyright": "© {year} Kyriewen. 保留所有权利。"
+    "copyright": "© {year} Kyriewen. 保留所有权利。",
+    "alsoBuilding": "我同时在做："
   },
   "command": {
     "placeholder": "输入命令或搜索...",
@@ -53,12 +231,24 @@
       "copyEmail": "复制邮箱"
     }
   },
+  "ask": {
+    "title": "问 Kyriewen 的 AI",
+    "subtitle": "和我的 AI 分身聊天 —— 基于我的博客、项目和履历。",
+    "placeholder": "问我任何关于我的事…",
+    "thinking": "思考中…",
+    "error": "出错了，请重试。",
+    "emptyHint": "问我关于我的产品、技术栈、博客或任何事！",
+    "comingSoon": "即将上线",
+    "comingSoonDesc": "AI 对话正在配置中，敬请期待！"
+  },
   "common": {
     "loading": "加载中...",
     "error": "出错了。",
     "subscribe": "订阅",
     "subscribePlaceholder": "你的邮箱",
     "subscribeSuccess": "订阅成功，感谢支持！",
-    "subscribeError": "订阅失败，请稍后重试。"
+    "subscribeError": "订阅失败，请稍后重试。",
+    "copy": "复制",
+    "copied": "已复制"
   }
 }

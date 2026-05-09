@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
-import { setRequestLocale } from 'next-intl/server';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { asc } from 'drizzle-orm';
 import { db, statsSnapshot } from '@/lib/db';
 import type { StatsSnapshot } from '@/lib/db';
+import { HeroProse } from '@/components/hero-prose';
+import { ScrollReveal } from '@/components/scroll-reveal';
 import { StatsCard } from '@/components/stats-card';
 import { StatsChart } from '@/components/stats-chart';
 import { SectionHeading } from '@/components/section-heading';
@@ -12,7 +14,11 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = { title: 'Stats' };
 
-async function loadSnapshots(): Promise<StatsSnapshot[]> {
+type LoadResult =
+  | { ok: true; rows: StatsSnapshot[] }
+  | { ok: false; reason: 'cert' | 'network' | 'unknown' };
+
+async function loadSnapshots(): Promise<LoadResult> {
   try {
     const rows = await db
       .select()
@@ -20,10 +26,22 @@ async function loadSnapshots(): Promise<StatsSnapshot[]> {
       .orderBy(asc(statsSnapshot.date))
       .limit(90);
     console.log('[stats] loaded', rows.length, 'snapshots');
-    return rows;
+    return { ok: true, rows };
   } catch (err) {
     console.error('[stats] loadSnapshots failed', err);
-    return [];
+    const message = err instanceof Error ? err.message : String(err);
+    const code =
+      err && typeof err === 'object' && 'cause' in err
+        ? // @ts-expect-error - drilling into nested error cause
+          (err.cause?.cause?.code ?? err.cause?.code)
+        : undefined;
+    if (code === 'SELF_SIGNED_CERT_IN_CHAIN' || message.includes('certificate')) {
+      return { ok: false, reason: 'cert' };
+    }
+    if (message.includes('fetch failed') || message.includes('ETIMEDOUT')) {
+      return { ok: false, reason: 'network' };
+    }
+    return { ok: false, reason: 'unknown' };
   }
 }
 
@@ -34,8 +52,10 @@ export default async function StatsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations('stats.page');
 
-  const snapshots = await loadSnapshots();
+  const result = await loadSnapshots();
+  const snapshots = result.ok ? result.rows : [];
   const latest = snapshots.at(-1);
   const prev = snapshots.length > 1 ? snapshots.at(-2) : null;
 
@@ -53,111 +73,111 @@ export default async function StatsPage({
     return Number(latest[key] ?? 0) - Number(prev[key] ?? 0);
   };
 
-  const emptyHint =
-    locale === 'zh'
-      ? '数据累积中，Cron 每天 0:00 UTC 自动补采。'
-      : 'Data is accumulating — the cron job runs every day at 00:00 UTC.';
+  const emptyHint = t('emptyHint');
 
   return (
     <div className="space-y-10">
-      <section className="space-y-3">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          {locale === 'zh' ? '数据看板' : 'Stats'}
-        </h1>
-        <p className="text-[var(--muted-fg)]">
-          {locale === 'zh'
-            ? 'Build in Public —— 数据每日 0:00 UTC 自动更新。'
-            : 'Build in Public — numbers auto-refresh every day at 00:00 UTC.'}
+      <HeroProse>
+        <p>{t('title')}</p>
+        <p className="mt-2 text-[length:var(--text-body)] font-normal text-[var(--muted-fg)]">
+          {t('subtitle')}
         </p>
-      </section>
+      </HeroProse>
 
-      {snapshots.length === 0 ? (
+      {!result.ok ? (
+        <div className="space-y-2 rounded-lg border border-dashed border-[var(--border)] p-8 text-center text-sm">
+          <p className="font-medium text-[var(--fg)]">
+            {result.reason === 'cert'
+              ? locale === 'zh'
+                ? '数据库连接遇到证书拦截'
+                : 'Database connection blocked by TLS certificate'
+              : result.reason === 'network'
+                ? locale === 'zh'
+                  ? '数据库网络连接超时'
+                  : 'Database network timeout'
+                : locale === 'zh'
+                  ? '数据加载失败'
+                  : 'Failed to load stats'}
+          </p>
+          <p className="text-[var(--muted)]">
+            {locale === 'zh'
+              ? '稍后刷新或切换网络后重试。线上环境不会出现此问题。'
+              : 'Try refreshing later or switch network. Production is unaffected.'}
+          </p>
+        </div>
+      ) : snapshots.length === 0 ? (
         <div className="rounded-lg border border-dashed border-[var(--border)] p-8 text-center text-sm text-[var(--muted)]">
-          {locale === 'zh'
-            ? '数据尚未就绪。请等待首次 Cron 执行（需要配置 POSTGRES_URL + CRON_SECRET）。'
-            : 'No data yet. Waiting for the first cron run (requires POSTGRES_URL + CRON_SECRET).'}
+          {t('noDataReady')}
         </div>
       ) : (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatsCard
-              label={locale === 'zh' ? 'GitHub Star' : 'GitHub Stars'}
-              value={latest?.githubStars ?? 0}
-              trend={trend('githubStars')}
-              hint={locale === 'zh' ? '总数' : 'All time'}
-            />
-            <StatsCard
-              label={locale === 'zh' ? 'GitHub 粉丝' : 'Followers'}
-              value={latest?.githubFollowers ?? 0}
-              trend={trend('githubFollowers')}
-            />
-            <StatsCard
-              label={locale === 'zh' ? 'Chrome 用户' : 'Chrome Users'}
-              value={latest?.chromeTotalUsers ?? 0}
-              trend={trend('chromeTotalUsers')}
-              hint={locale === 'zh' ? '所有扩展合计' : 'Across all extensions'}
-            />
-            <StatsCard
-              label={locale === 'zh' ? '订阅' : 'Subscribers'}
-              value={latest?.newsletterSubscribers ?? 0}
-              trend={trend('newsletterSubscribers')}
-            />
-          </div>
+          <ScrollReveal>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatsCard
+                label={t('cardGithubStars')}
+                value={latest?.githubStars ?? 0}
+                trend={trend('githubStars')}
+                hint={t('cardGithubStarsHint')}
+              />
+              <StatsCard
+                label={t('cardFollowers')}
+                value={latest?.githubFollowers ?? 0}
+                trend={trend('githubFollowers')}
+              />
+              <StatsCard
+                label={t('cardChromeUsers')}
+                value={latest?.chromeTotalUsers ?? 0}
+                trend={trend('chromeTotalUsers')}
+                hint={t('cardChromeUsersHint')}
+              />
+              <StatsCard
+                label={t('cardSubscribers')}
+                value={latest?.newsletterSubscribers ?? 0}
+                trend={trend('newsletterSubscribers')}
+              />
+            </div>
+          </ScrollReveal>
 
-          <section>
+          <ScrollReveal as="section" delay={0.1}>
             <SectionHeading
-              title={
-                locale === 'zh'
-                  ? 'GitHub Star · 近 30 天'
-                  : 'GitHub Stars · Last 30 days'
-              }
-              subtitle={
-                locale === 'zh'
-                  ? '每日一次采集，展示最近 30 个数据点。'
-                  : 'One snapshot per day, last 30 data points.'
-              }
+              index="01"
+              eyebrow="GitHub"
+              title={t('chartGithubStarsTitle')}
+              subtitle={t('chartGithubStarsSub')}
             />
             <StatsChart
               data={toSeries(last30, 'githubStars')}
               label="Stars"
               emptyHint={emptyHint}
             />
-          </section>
+          </ScrollReveal>
 
-          <section>
+          <ScrollReveal as="section" delay={0.2}>
             <SectionHeading
-              title={
-                locale === 'zh'
-                  ? 'Chrome 用户 · 近 30 天'
-                  : 'Chrome Users · Last 30 days'
-              }
-              subtitle={
-                locale === 'zh'
-                  ? '所有上架扩展的用户数合计。'
-                  : 'Sum of users across all published extensions.'
-              }
+              index="02"
+              eyebrow="Chrome Extensions"
+              title={t('chartChromeTitle')}
+              subtitle={t('chartChromeSub')}
             />
             <StatsChart
               data={toSeries(last30, 'chromeTotalUsers')}
               label="Users"
               emptyHint={emptyHint}
             />
-          </section>
+          </ScrollReveal>
 
-          <section>
+          <ScrollReveal as="section" delay={0.3}>
             <SectionHeading
-              title={
-                locale === 'zh'
-                  ? 'Newsletter 订阅 · 近 30 天'
-                  : 'Newsletter subscribers · Last 30 days'
-              }
+              index="03"
+              eyebrow="Newsletter"
+              title={t('chartSubscribersTitle')}
             />
             <StatsChart
               data={toSeries(last30, 'newsletterSubscribers')}
               label="Subscribers"
               emptyHint={emptyHint}
             />
-          </section>
+          </ScrollReveal>
         </>
       )}
     </div>

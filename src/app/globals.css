@@ -29,6 +29,47 @@
   --ring: #64ffda;
 }
 
+/* === Accent 主题色切换 ===
+ * 4 套配色，通过 <html data-accent="..."> 切换。
+ * 每套都同时定义 light / dark 下的 --accent 和 --ring。
+ * 默认 (data-accent="blue" 或未设置) = 上方 :root / .dark 已定义。
+ */
+[data-accent='green'] {
+  --accent: #10b981; /* emerald-500 */
+  --accent-fg: #ffffff;
+  --ring: #10b981;
+}
+[data-accent='green'].dark,
+.dark[data-accent='green'] {
+  --accent: #34d399; /* emerald-400, 暗色更亮 */
+  --accent-fg: #022c22;
+  --ring: #34d399;
+}
+
+[data-accent='purple'] {
+  --accent: #8b5cf6; /* violet-500 */
+  --accent-fg: #ffffff;
+  --ring: #8b5cf6;
+}
+[data-accent='purple'].dark,
+.dark[data-accent='purple'] {
+  --accent: #a78bfa; /* violet-400 */
+  --accent-fg: #1e1b4b;
+  --ring: #a78bfa;
+}
+
+[data-accent='orange'] {
+  --accent: #f97316; /* orange-500 */
+  --accent-fg: #ffffff;
+  --ring: #f97316;
+}
+[data-accent='orange'].dark,
+.dark[data-accent='orange'] {
+  --accent: #fb923c; /* orange-400 */
+  --accent-fg: #431407;
+  --ring: #fb923c;
+}
+
 @theme inline {
   --color-bg: var(--bg);
   --color-fg: var(--fg);
@@ -40,8 +81,47 @@
   --color-card-fg: var(--card-fg);
   --color-border: var(--border);
   --color-ring: var(--ring);
+
+  /* === 字体 === */
   --font-sans: var(--font-geist-sans, ui-sans-serif, system-ui, sans-serif);
   --font-mono: var(--font-geist-mono, ui-monospace, monospace);
+  --font-display:
+    var(--font-geist-sans, 'Inter Display'), ui-sans-serif, system-ui, sans-serif;
+  --font-serif:
+    'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, serif;
+
+  /* === 流体字号 (clamp) === */
+  --text-eyebrow: 0.75rem; /* FIG 01 — LABEL */
+  --text-display: clamp(2.5rem, 5vw + 1rem, 5rem); /* Section title 大字 */
+  /* 散文 hero 正文：Lee Robinson 风，20-24px，整段散文友好 */
+  --text-hero: clamp(1.25rem, 0.6vw + 1.1rem, 1.5rem);
+  --text-prose: clamp(1.05rem, 0.6vw + 0.95rem, 1.25rem); /* 散文段落 */
+  --text-body: 1rem;
+
+  /* === 间距 === */
+  --space-section: clamp(5rem, 10vw, 9rem); /* 章节大留白 */
+  --space-eyebrow-gap: 2.5rem; /* 编号到标题距离 */
+
+  /* === 阴影 === */
+  --shadow-soft:
+    0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.04);
+  --shadow-elevated:
+    0 2px 8px rgba(0, 0, 0, 0.06), 0 24px 64px rgba(0, 0, 0, 0.08);
+
+  /* === 圆角 === */
+  --radius-lg: 0.75rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.75rem;
+
+  /* === 动效 === */
+  --ease-out-expo: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-slow: 700ms;
+  --duration-medium: 400ms;
+
+  /* === Surface 分层 === */
+  --color-surface-elevated: color-mix(in srgb, var(--card) 80%, var(--bg));
+  --color-surface-glass: color-mix(in srgb, var(--bg) 70%, transparent);
 }
 
 * {
@@ -121,5 +201,10 @@ body {
   padding-left: 1rem;
   color: var(--muted-fg);
   font-style: italic;
+}
+.prose-kw hr {
+  margin: 2.5rem 0;
+  border: none;
+  border-top: 1px solid var(--border);
 }
 

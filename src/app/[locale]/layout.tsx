@@ -7,9 +7,15 @@ import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { ThemeProvider } from '@/components/theme-provider';
+import {
+  ThemeAccentProvider,
+  ThemeAccentScript,
+} from '@/components/theme-accent-provider';
 import { Spotlight } from '@/components/spotlight';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
+import { ScrollToTop } from '@/components/scroll-to-top';
+import { AiChatBubble } from '@/components/ai-chat-bubble';
 import { CommandMenu, type SearchablePost } from '@/components/command-menu';
 import { PersonJsonLd, WebSiteJsonLd } from '@/components/json-ld';
 import { getAllPosts } from '@/lib/blog';
@@ -104,6 +110,10 @@ export default async function LocaleLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
+      <head>
+        {/* 防闪烁：在 hydration 前同步设置 data-accent 属性 */}
+        <ThemeAccentScript />
+      </head>
       <body className="relative">
         <ThemeProvider
           attribute="class"
@@ -111,18 +121,22 @@ export default async function LocaleLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <NextIntlClientProvider>
-            <Spotlight />
-            <div className="relative z-10 flex min-h-screen flex-col">
-              <Header />
-              <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
-                {children}
-              </main>
-              <Footer />
-            </div>
-            <CommandMenu posts={searchablePosts} />
-            <Toaster position="bottom-right" theme="system" />
-          </NextIntlClientProvider>
+          <ThemeAccentProvider>
+            <NextIntlClientProvider>
+              <Spotlight />
+              <div className="relative z-10 flex min-h-screen flex-col">
+                <Header />
+                <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
+                  {children}
+                </main>
+                <Footer />
+              </div>
+              <CommandMenu posts={searchablePosts} />
+              <AiChatBubble />
+              <ScrollToTop />
+              <Toaster position="bottom-right" theme="system" />
+            </NextIntlClientProvider>
+          </ThemeAccentProvider>
         </ThemeProvider>
         <PersonJsonLd />
         <WebSiteJsonLd />
