@@ -104,18 +104,22 @@ export default async function GuestbookPage({
         </HeroProse>
 
         <ScrollReveal>
-          <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-            <GuestbookAuth locale={locale} user={user} />
+          <div className="mx-auto max-w-2xl">
+            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+              <GuestbookAuth locale={locale} user={user} />
+            </div>
           </div>
         </ScrollReveal>
 
         <ScrollReveal delay={0.1}>
-          <MessageComposer
-            locale={locale}
-            user={user}
-            postSlug={null}
-            parentId={null}
-          />
+          <div className="mx-auto max-w-2xl">
+            <MessageComposer
+              locale={locale}
+              user={user}
+              postSlug={null}
+              parentId={null}
+            />
+          </div>
         </ScrollReveal>
 
         <ScrollReveal delay={0.2}>

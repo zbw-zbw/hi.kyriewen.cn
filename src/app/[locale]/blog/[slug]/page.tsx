@@ -266,7 +266,7 @@ export default async function BlogPostPage({
           <SessionProvider session={session}>
             <section
               id="comments"
-              className="space-y-4 border-t border-[var(--border)] pt-8"
+              className="mt-16 space-y-4 border-t border-[var(--border)] pt-8"
             >
               <div className="flex flex-wrap items-baseline justify-between gap-2">
                 <h3 className="text-xl font-semibold tracking-tight">

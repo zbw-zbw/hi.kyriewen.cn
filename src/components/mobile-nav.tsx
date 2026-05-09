@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { href: '/stats', key: 'stats' },
   { href: '/timeline', key: 'timeline' },
   { href: '/uses', key: 'uses' },
+  { href: '/subscribe', key: 'subscribe' },
 ] as const;
 
 const SOCIAL = [
@@ -86,7 +87,7 @@ export function MobileNav() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]"
+                className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]"
                 aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
@@ -148,7 +149,7 @@ export function MobileNav() {
         aria-label={open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
         onClick={toggleMenu}
-        className="relative z-[101] inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] md:hidden"
+        className="relative z-[101] inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] md:hidden"
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>

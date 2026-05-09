@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { href: '/stats', key: 'stats' },
   { href: '/timeline', key: 'timeline' },
   { href: '/uses', key: 'uses' },
+  { href: '/subscribe', key: 'subscribe' },
 ] as const;
 
 /** 触发 ⌘K 命令面板 */
@@ -93,7 +94,7 @@ export function Header() {
             type="button"
             onClick={triggerCommandMenu}
             aria-label="Search"
-            className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] sm:hidden"
+            className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] sm:hidden"
           >
             <Search className="h-4 w-4" />
           </button>

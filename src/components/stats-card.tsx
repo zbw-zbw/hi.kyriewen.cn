@@ -20,7 +20,7 @@ export function StatsCard({
   return (
     <Card
       className={cn(
-        'shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-elevated)]',
+        'cursor-pointer shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-elevated)]',
         className
       )}
     >

@@ -82,16 +82,11 @@ export function ProductCard({
               </div>
               <CardDescription>{tagline}</CardDescription>
             </div>
-            {/* 右上角箭头：仅作为"卡片整体可点"的视觉提示，不再单独是个链接 */}
-            <ArrowRight
-              className="h-4 w-4 shrink-0 text-[var(--muted)] transition-all duration-300 group-hover:translate-x-0.5 group-hover:text-[var(--accent)]"
-              aria-hidden
-            />
           </div>
         </CardHeader>
 
         <CardContent className="flex flex-1 flex-col gap-3 p-5 pt-0">
-          <p className="text-sm leading-relaxed text-[var(--card-fg)]">
+          <p className="line-clamp-2 text-sm leading-relaxed text-[var(--card-fg)]">
             {description}
           </p>
           <div className="mt-auto flex flex-wrap gap-1.5 pt-2">

@@ -215,12 +215,11 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                       .then(() => {
                         toast.success(
                           locale === 'zh'
-                            ? '邮箱已复制，正在打开邮件客户端…'
-                            : 'Email copied! Opening mail client…'
+                            ? '邮箱已复制'
+                            : 'Email copied!'
                         );
                       })
                       .catch(() => {});
-                    window.location.href = 'mailto:coderkyriewen@gmail.com';
                   })
                 }
               >

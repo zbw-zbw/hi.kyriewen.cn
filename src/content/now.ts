@@ -32,11 +32,4 @@ export const NOW_ITEMS: NowItem[] = [
       zh: '《Working in Public》— Nadia Eghbal',
     },
   },
-  {
-    label: { en: 'Listening', zh: '正在听' },
-    value: {
-      en: 'Lo-fi beats while coding; podcasts on indie hacking.',
-      zh: 'Lo-fi beats 编码背景音；独立开发者相关播客。',
-    },
-  },
 ];

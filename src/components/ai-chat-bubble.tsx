@@ -69,8 +69,10 @@ export function AiChatBubble() {
   const [input, setInput] = useState('');
   const [apiUnavailable, setApiUnavailable] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({ api: '/api/chat' }),
@@ -100,6 +102,29 @@ export function AiChatBubble() {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
+  }, [isOpen]);
+
+  // 移动端键盘弹起适配：监听 visualViewport 变化，动态调整面板底部偏移
+  useEffect(() => {
+    if (!isOpen) {
+      setKeyboardOffset(0);
+      return;
+    }
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      // 键盘弹出时 visualViewport.height < window.innerHeight
+      const diff = window.innerHeight - vv.height;
+      setKeyboardOffset(diff > 50 ? diff : 0);
+    };
+
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
   }, [isOpen]);
 
   // 清除错误提示
@@ -146,7 +171,14 @@ export function AiChatBubble() {
 
       {/* 聊天面板 */}
       {isOpen && (
-        <div className="fixed right-5 bottom-[8.5rem] z-50 flex h-[min(480px,65vh)] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl">
+        <div
+          ref={panelRef}
+          style={keyboardOffset > 0 ? { bottom: `${keyboardOffset + 16}px` } : undefined}
+          className={cn(
+            'fixed right-5 z-50 flex w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl',
+            keyboardOffset > 0 ? 'h-[min(360px,50dvh)]' : 'bottom-[8.5rem] h-[min(480px,60dvh)]'
+          )}
+        >
           {/* 头部 */}
           <div className="flex items-center gap-2 border-b border-[var(--border)] px-4 py-3">
             <Bot className="h-5 w-5 text-[var(--accent)]" />

@@ -71,7 +71,7 @@ export function AccentSwitcher() {
         type="button"
         onClick={handleToggle}
         aria-label="Switch accent color"
-        className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]"
+        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]"
       >
         <Palette className="h-4 w-4" />
       </button>

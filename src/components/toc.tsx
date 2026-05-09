@@ -58,7 +58,7 @@ export function Toc({ entries, locale }: TocProps) {
   return (
     <nav
       aria-label={locale === 'zh' ? '文章目录' : 'Table of contents'}
-      className="sticky top-20 hidden max-h-[calc(100vh-6rem)] w-56 shrink-0 self-start overflow-y-auto pl-6 text-sm lg:block"
+      className="sticky top-16 hidden max-h-[calc(100vh-5rem)] w-56 shrink-0 self-start overflow-y-auto pl-6 text-sm lg:block"
     >
       <p className="mb-3 font-mono text-xs uppercase tracking-wider text-[var(--muted)]">
         {locale === 'zh' ? '目录' : 'On this page'}

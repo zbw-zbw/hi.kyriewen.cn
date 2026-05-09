@@ -28,7 +28,7 @@ export function StatsChart({ data, label, emptyHint }: StatsChartProps) {
   }
 
   return (
-    <div className="h-64 w-full">
+    <div className="h-64 w-full cursor-crosshair">
       <ResponsiveContainer>
         <LineChart data={data} margin={{ top: 16, right: 16, bottom: 0, left: 0 }}>
           <CartesianGrid

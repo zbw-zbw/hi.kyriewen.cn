@@ -58,6 +58,15 @@ export default async function BlogIndexPage({
       </HeroProse>
 
       <ScrollReveal>
+        <BlogList
+          posts={posts}
+          locale={locale}
+          emptyText={t('empty')}
+          allLabel={t('allTags')}
+        />
+      </ScrollReveal>
+
+      <ScrollReveal delay={0.1}>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-[var(--muted-fg)]">
@@ -66,15 +75,6 @@ export default async function BlogIndexPage({
             <NewsletterForm className="sm:max-w-sm" />
           </div>
         </div>
-      </ScrollReveal>
-
-      <ScrollReveal delay={0.1}>
-        <BlogList
-          posts={posts}
-          locale={locale}
-          emptyText={t('empty')}
-          allLabel={t('allTags')}
-        />
       </ScrollReveal>
     </div>
   );

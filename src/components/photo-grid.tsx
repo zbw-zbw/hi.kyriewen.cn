@@ -53,7 +53,8 @@ export function PhotoGrid({
               className="h-auto w-full transition-transform duration-700 group-hover:scale-[1.02]"
             />
 
-            <figcaption className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/85 via-black/60 to-transparent p-4 text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+            {/* 移动端始终显示基本信息（location + date），桌面端 hover 展示完整信息 */}
+            <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/60 to-transparent p-4 text-white sm:translate-y-full sm:opacity-0 sm:transition-all sm:duration-300 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
               <div className="flex items-baseline justify-between gap-2">
                 <p className="text-sm font-medium">
                   {photo.location ?? photo.alt}
@@ -63,12 +64,12 @@ export function PhotoGrid({
                 </p>
               </div>
               {photo.story && (
-                <p className="mt-1 text-xs text-white/80">
+                <p className="mt-1 hidden text-xs text-white/80 sm:block">
                   {photo.story[locale]}
                 </p>
               )}
               {photo.exif && (
-                <p className="mt-2 font-mono text-[10px] tracking-wider text-white/60 uppercase">
+                <p className="mt-2 hidden font-mono text-[10px] tracking-wider text-white/60 uppercase sm:block">
                   {[
                     photo.exif.camera,
                     photo.exif.lens,

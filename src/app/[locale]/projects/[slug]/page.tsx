@@ -60,36 +60,36 @@ export default async function ProjectDetailPage({
       <ReadingProgress />
 
       <article className="pb-20">
-        {/* ── Back link（吸顶） ── */}
-        <div className="sticky top-14 z-10 bg-[color-mix(in_srgb,var(--bg)_95%,transparent)] pb-2 backdrop-blur-md">
+        {/* ── Sticky Header: 返回按钮 + Hero 标题区域固定吸顶 ── */}
+        <div className="sticky top-14 z-10 bg-[color-mix(in_srgb,var(--bg)_95%,transparent)] pb-4 pt-2 backdrop-blur-md">
           <Link
             href="/projects"
-            className="inline-flex items-center gap-1.5 py-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+            className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {t('backLink')}
           </Link>
-        </div>
 
-        {/* ── Hero ── */}
-        <ScrollReveal as="section">
-          <div className="mb-4 font-mono text-[var(--text-eyebrow)] uppercase tracking-[0.18em] text-[var(--muted)]">
+          <div className="font-mono text-[var(--text-eyebrow)] uppercase tracking-[0.18em] text-[var(--muted)]">
             {categoryLabel[project.category]} · {project.year}
           </div>
 
           <h1
-            className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
+            className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
             style={project.colorTheme ? { color: project.colorTheme } : undefined}
           >
             {project.name}
           </h1>
 
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[var(--muted-fg)] sm:text-xl">
+          <p className="mt-3 max-w-2xl text-lg leading-relaxed text-[var(--muted-fg)] sm:text-xl">
             {project.tagline[locale]}
           </p>
+        </div>
 
+        {/* ── Hero: CTA + Image（滚动区域） ── */}
+        <ScrollReveal as="section">
           {/* CTA Buttons */}
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-4 flex flex-wrap gap-3">
             {project.live && (
               <a
                 href={project.live}

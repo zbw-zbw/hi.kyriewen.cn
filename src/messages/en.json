@@ -15,6 +15,7 @@
     "photos": "Photos",
     "guestbook": "Guestbook",
     "ask": "Ask AI",
+    "subscribe": "Subscribe",
     "more": "More"
   },
   "home": {
@@ -208,7 +209,7 @@
         "Curated reading list and dev tips",
         "First look at things I'm shipping next"
       ],
-      "footnote": "Powered by Buttondown. Your email stays private."
+      "footnote": "Powered by Resend. Your email stays private."
     }
   },
   "footer": {

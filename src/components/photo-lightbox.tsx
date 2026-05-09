@@ -100,7 +100,7 @@ export function PhotoLightbox({
             <X className="h-5 w-5" />
           </button>
 
-          {/* 左箭头 */}
+          {/* 左箭头：移动端缩小并半透明，避免遮挡图片 */}
           {photos.length > 1 && (
             <button
               type="button"
@@ -109,13 +109,13 @@ export function PhotoLightbox({
                 goPrev();
               }}
               aria-label="Previous photo"
-              className="absolute left-4 z-10 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20 sm:left-6"
+              className="absolute left-2 bottom-20 z-10 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 sm:bottom-auto sm:left-6 sm:h-10 sm:w-10 sm:bg-white/10 sm:hover:bg-white/20"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           )}
 
-          {/* 右箭头 */}
+          {/* 右箭头：移动端缩小并半透明，避免遮挡图片 */}
           {photos.length > 1 && (
             <button
               type="button"
@@ -124,9 +124,9 @@ export function PhotoLightbox({
                 goNext();
               }}
               aria-label="Next photo"
-              className="absolute right-4 z-10 inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20 sm:right-6"
+              className="absolute right-2 bottom-20 z-10 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 sm:bottom-auto sm:right-6 sm:h-10 sm:w-10 sm:bg-white/10 sm:hover:bg-white/20"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
             </button>
           )}
 
@@ -158,7 +158,7 @@ export function PhotoLightbox({
               height={photo.height}
               priority
               sizes="90vw"
-              className="h-auto max-h-[80vh] w-auto rounded-md object-contain"
+              className="h-auto max-h-[70vh] w-auto rounded-md object-contain sm:max-h-[80vh]"
             />
 
             {/* 底部信息覆盖层 */}

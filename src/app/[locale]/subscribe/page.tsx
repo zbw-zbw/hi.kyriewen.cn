@@ -72,7 +72,7 @@ export default async function SubscribePage({
 
       {/* ── 订阅表单 ── */}
       <ScrollReveal>
-        <Card className="space-y-4 p-6">
+        <Card className="mx-auto max-w-xl space-y-4 p-6">
           <NewsletterForm />
           <p className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
             <ShieldCheck className="h-3.5 w-3.5" />
