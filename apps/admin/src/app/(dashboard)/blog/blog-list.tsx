@@ -1,9 +1,9 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface BlogPost {
   id: number;
@@ -15,26 +15,62 @@ interface BlogPost {
   lang: string;
   draft: number;
   coverImage: string | null;
+  source: string | null;
+  sourceUrl: string | null;
   publishedAt: Date | string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
 }
 
 type LangFilter = 'all' | 'en' | 'zh';
+type SourceFilter = 'all' | 'manual' | 'csdn' | 'juejin';
+
+const PAGE_SIZE = 20;
 
 interface BlogListProps {
   posts: BlogPost[];
 }
 
+const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
+  csdn: { label: 'CSDN', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  juejin: { label: '掘金', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  manual: { label: '手动', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' },
+};
+
+function getSourceBadge(source: string | null) {
+  const key = source || 'manual';
+  const config = SOURCE_LABELS[key] ?? SOURCE_LABELS.manual!;
+  return (
+    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${config.color}`}>
+      {config.label}
+    </span>
+  );
+}
+
 export function BlogList({ posts }: BlogListProps) {
   const router = useRouter();
   const [langFilter, setLangFilter] = useState<LangFilter>('all');
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [currentPage, setCurrentPage] = useState(1);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  const filteredPosts =
-    langFilter === 'all'
-      ? posts
-      : posts.filter((post) => post.lang === langFilter);
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      if (langFilter !== 'all' && post.lang !== langFilter) return false;
+      if (sourceFilter !== 'all') {
+        const postSource = post.source || 'manual';
+        if (postSource !== sourceFilter) return false;
+      }
+      return true;
+    });
+  }, [posts, langFilter, sourceFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedPosts = filteredPosts.slice(
+    (safePage - 1) * PAGE_SIZE,
+    safePage * PAGE_SIZE,
+  );
 
   const handleDelete = useCallback(
     async (postId: number, postTitle: string) => {
@@ -76,22 +112,46 @@ export function BlogList({ posts }: BlogListProps) {
   return (
     <div className="space-y-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        {/* Language filter */}
-        <div className="flex gap-1 rounded-md border border-border p-1">
-          {(['all', 'en', 'zh'] as const).map((value) => (
-            <button
-              key={value}
-              onClick={() => setLangFilter(value)}
-              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                langFilter === value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              {value === 'all' ? 'All' : value.toUpperCase()}
-            </button>
-          ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Language filter */}
+          <div className="flex gap-1 rounded-md border border-border p-1">
+            {(['all', 'en', 'zh'] as const).map((value) => (
+              <button
+                key={value}
+                onClick={() => { setLangFilter(value); setCurrentPage(1); }}
+                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                  langFilter === value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                {value === 'all' ? 'All' : value.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Source filter */}
+          <div className="flex gap-1 rounded-md border border-border p-1">
+            {(['all', 'manual', 'csdn', 'juejin'] as const).map((value) => (
+              <button
+                key={value}
+                onClick={() => { setSourceFilter(value); setCurrentPage(1); }}
+                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                  sourceFilter === value
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                }`}
+              >
+                {value === 'all' ? 'All Sources' : (SOURCE_LABELS[value]?.label ?? value)}
+              </button>
+            ))}
+          </div>
+
+          {/* Total count */}
+          <span className="text-sm text-muted-foreground">
+            {filteredPosts.length} posts
+          </span>
         </div>
 
         {/* New post button */}
@@ -113,6 +173,9 @@ export function BlogList({ posts }: BlogListProps) {
                 Title
               </th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">
+                Source
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground">
                 Lang
               </th>
               <th className="px-4 py-3 text-left font-medium text-muted-foreground">
@@ -127,22 +190,27 @@ export function BlogList({ posts }: BlogListProps) {
             </tr>
           </thead>
           <tbody>
-            {filteredPosts.length === 0 ? (
+            {paginatedPosts.length === 0 ? (
               <tr>
                 <td
-                  colSpan={5}
+                  colSpan={6}
                   className="px-4 py-12 text-center text-muted-foreground"
                 >
                   No posts found.
                 </td>
               </tr>
             ) : (
-              filteredPosts.map((post) => (
+              paginatedPosts.map((post) => (
                 <tr
                   key={post.id}
                   className="border-b border-border last:border-b-0 hover:bg-muted/30"
                 >
-                  <td className="px-4 py-3 font-medium">{post.title}</td>
+                  <td className="max-w-75 truncate px-4 py-3 font-medium" title={post.title}>
+                    {post.title}
+                  </td>
+                  <td className="px-4 py-3">
+                    {getSourceBadge(post.source)}
+                  </td>
                   <td className="px-4 py-3">
                     <span className="inline-flex rounded-full bg-accent px-2 py-0.5 text-xs font-medium text-accent-foreground">
                       {post.lang.toUpperCase()}
@@ -187,6 +255,31 @@ export function BlogList({ posts }: BlogListProps) {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">
+            Page {safePage} of {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" /> Prev
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:opacity-50"
+            >
+              Next <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

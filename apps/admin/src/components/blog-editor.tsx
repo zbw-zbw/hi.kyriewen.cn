@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import {
   Save,
@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   Languages,
   Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { TiptapEditor, markdownToHtml, htmlToMarkdown } from './tiptap-editor';
 import { MdUpload } from './md-upload';
@@ -68,6 +70,24 @@ export function BlogEditor({ post }: BlogEditorProps) {
 
   const [saving, setSaving] = useState(false);
   const [translating, setTranslating] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewMd, setPreviewMd] = useState(post?.content ?? '');
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced preview: convert HTML → Markdown for live preview
+  useEffect(() => {
+    if (!showPreview) return;
+    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = setTimeout(async () => {
+      try {
+        const md = await htmlToMarkdown(editorHtml);
+        setPreviewMd(md);
+      } catch {
+        // ignore conversion errors during typing
+      }
+    }, 500);
+    return () => { if (previewTimerRef.current) clearTimeout(previewTimerRef.current); };
+  }, [editorHtml, showPreview]);
 
   // Auto-generate slug from title (only in create mode)
   const handleTitleChange = useCallback(
@@ -410,12 +430,61 @@ export function BlogEditor({ post }: BlogEditorProps) {
         </div>
       </div>
 
-      {/* Tiptap Rich Text Editor */}
-      <TiptapEditor
-        content={editorHtml}
-        onChange={setEditorHtml}
-        placeholder="Start writing your post..."
-      />
+      {/* Editor + Preview toggle */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-medium">Content</h3>
+        <button
+          type="button"
+          onClick={() => setShowPreview((v) => !v)}
+          className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
+        >
+          {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+          {showPreview ? 'Hide Preview' : 'Show Preview'}
+        </button>
+      </div>
+
+      {/* Editor + Live Preview (side by side) */}
+      <div className={`grid gap-4 ${showPreview ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {/* Left: Tiptap Editor */}
+        <div className="min-w-0">
+          <TiptapEditor
+            content={editorHtml}
+            onChange={setEditorHtml}
+            placeholder="Start writing your post..."
+          />
+        </div>
+
+        {/* Right: Markdown Preview */}
+        {showPreview && (
+          <div className="min-w-0 overflow-auto rounded-lg border border-border bg-background p-4">
+            <div className="mb-2 flex items-center gap-2 border-b border-border pb-2">
+              <Eye className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-medium text-muted-foreground">Markdown Preview</span>
+            </div>
+            <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap wrap-break-word text-sm leading-relaxed">
+              {previewMd ? (
+                previewMd.split('\n').map((line, lineIndex) => {
+                  if (line.startsWith('# ')) return <h1 key={lineIndex} className="mt-4 mb-2 text-xl font-bold">{line.slice(2)}</h1>;
+                  if (line.startsWith('## ')) return <h2 key={lineIndex} className="mt-3 mb-2 text-lg font-bold">{line.slice(3)}</h2>;
+                  if (line.startsWith('### ')) return <h3 key={lineIndex} className="mt-2 mb-1 text-base font-bold">{line.slice(4)}</h3>;
+                  if (line.startsWith('```')) return <code key={lineIndex} className="block rounded bg-muted px-2 py-0.5 text-xs">{line}</code>;
+                  if (line.startsWith('- ')) return <li key={lineIndex} className="ml-4 list-disc">{line.slice(2)}</li>;
+                  if (line.startsWith('> ')) return <blockquote key={lineIndex} className="border-l-2 border-muted-foreground/30 pl-3 italic text-muted-foreground">{line.slice(2)}</blockquote>;
+                  if (line.startsWith('---')) return <hr key={lineIndex} className="my-3" />;
+                  if (line.startsWith('![')) {
+                    const altMatch = line.match(/!\[([^\]]*)\]\(([^)]*)\)/);
+                    if (altMatch) return <img key={lineIndex} src={altMatch[2]} alt={altMatch[1]} className="my-2 max-h-48 rounded" />;
+                  }
+                  if (line.trim() === '') return <br key={lineIndex} />;
+                  return <p key={lineIndex} className="my-0.5">{line}</p>;
+                })
+              ) : (
+                <p className="text-muted-foreground italic">Preview will appear here...</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Action buttons */}
       <div className="flex flex-wrap items-center gap-3 border-t border-border pt-4">

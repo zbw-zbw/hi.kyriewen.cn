@@ -195,8 +195,8 @@ for (const art of articles) {
     console.log(`✅ ${md.length} chars`);
     ok++;
 
-    // Longer delay to avoid rate limiting (1.5s between articles)
-    await new Promise(r => setTimeout(r, 1500));
+    // Longer delay to avoid rate limiting (3s + random 0-2s jitter)
+    await new Promise(r => setTimeout(r, 3000 + Math.random() * 2000));
   } catch (e) {
     console.log(`❌ ${e.message}`);
     failed.push({ id: art.id, title: art.title, source: art.source, url: art.sourceUrl });
