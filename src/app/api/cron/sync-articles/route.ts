@@ -22,7 +22,7 @@ interface JuejinArticle {
     cover_image: string;
     content: string;
     mark_content: string;
-    ctime: string; // unix timestamp string
+    ctime: string;
     mtime: string;
     tag_ids: string[];
   };
@@ -38,17 +38,59 @@ interface JuejinResponse {
   has_more: boolean;
 }
 
-function slugify(title: string): string {
-  return title
+interface JuejinDetailResponse {
+  err_no: number;
+  err_msg: string;
+  data: {
+    article_id: string;
+    article_info: {
+      article_id: string;
+      mark_content: string;
+      content: string;
+    };
+  };
+}
+
+/**
+ * Generate a readable slug from article title.
+ * For Chinese titles, extract English/number parts + use article ID suffix.
+ */
+function slugify(title: string, articleId: string): string {
+  // Extract English words and numbers from the title
+  const englishParts = title
+    .replace(/[^\w\s-]/g, ' ')
+    .trim()
     .toLowerCase()
-    .replace(/[\u4e00-\u9fa5]/g, (ch) => {
-      // Simple pinyin-ish fallback: use char code
-      return `-u${ch.charCodeAt(0).toString(16)}-`;
-    })
-    .replace(/[^a-z0-9-]/g, '-')
+    .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .substring(0, 200);
+    .replace(/^-|-$/g, '');
+
+  // Use english parts if available, otherwise use "juejin" prefix
+  const prefix = englishParts.length >= 3 ? englishParts.substring(0, 60) : 'juejin';
+  // Always append short article ID for uniqueness
+  return `${prefix}-${articleId.slice(-8)}`;
+}
+
+/**
+ * Fetch article detail (with full markdown content) from Juejin API
+ */
+async function fetchArticleDetail(articleId: string): Promise<string> {
+  try {
+    const res = await fetch(
+      'https://api.juejin.cn/content_api/v1/article/detail',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ article_id: articleId }),
+      }
+    );
+    if (!res.ok) return '';
+    const data: JuejinDetailResponse = await res.json();
+    if (data.err_no !== 0) return '';
+    return data.data?.article_info?.mark_content || data.data?.article_info?.content || '';
+  } catch {
+    return '';
+  }
 }
 
 export async function GET(req: Request) {
@@ -125,8 +167,6 @@ export async function GET(req: Request) {
       }
 
       const title = article.article_info.title;
-      const content =
-        article.article_info.mark_content || article.article_info.content;
       const summary = article.article_info.brief_content;
       const coverImage = article.article_info.cover_image || null;
       const tags = JSON.stringify(
@@ -135,23 +175,18 @@ export async function GET(req: Request) {
       const publishedAt = new Date(
         parseInt(article.article_info.ctime, 10) * 1000
       );
-      const slug = slugify(title) || `juejin-${articleId}`;
 
-      // Check if slug already exists for zh lang
-      const slugExists = await db
-        .select({ id: blogPosts.id })
-        .from(blogPosts)
-        .where(and(eq(blogPosts.slug, slug), eq(blogPosts.lang, 'zh')))
-        .limit(1);
+      // Fetch full article content via detail API
+      // (query_list API does NOT return article body)
+      const content = await fetchArticleDetail(articleId);
 
-      const finalSlug =
-        slugExists.length > 0 ? `${slug}-${articleId.slice(-6)}` : slug;
+      const slug = slugify(title, articleId);
 
       await db.insert(blogPosts).values({
-        slug: finalSlug,
+        slug,
         title,
         summary: summary || null,
-        content: content || '',
+        content: content || '(Content not available)',
         tags,
         lang: 'zh',
         draft: 1, // Import as draft for human review
@@ -163,6 +198,11 @@ export async function GET(req: Request) {
       });
 
       imported++;
+
+      // Small delay to avoid rate limiting
+      if (imported % 10 === 0) {
+        await new Promise((r) => setTimeout(r, 500));
+      }
     }
 
     return NextResponse.json({
