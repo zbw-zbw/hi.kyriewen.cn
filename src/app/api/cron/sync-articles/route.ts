@@ -72,25 +72,142 @@ function slugify(title: string, articleId: string): string {
 }
 
 /**
- * Fetch article detail (with full markdown content) from Juejin API
+ * Fetch article content by scraping the Juejin article page.
+ * The detail API (/article/detail) has anti-scraping restrictions,
+ * so we extract content from the SSR-rendered HTML page instead.
+ * The page contains an `article-viewer markdown-body result` div with the rendered HTML.
+ * We convert it back to simplified Markdown.
  */
-async function fetchArticleDetail(articleId: string): Promise<string> {
+async function fetchArticleContent(articleId: string): Promise<string> {
   try {
-    const res = await fetch(
-      'https://api.juejin.cn/content_api/v1/article/detail',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ article_id: articleId }),
-      }
-    );
+    const res = await fetch(`https://juejin.cn/post/${articleId}`, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+    });
     if (!res.ok) return '';
-    const data: JuejinDetailResponse = await res.json();
-    if (data.err_no !== 0) return '';
-    return data.data?.article_info?.mark_content || data.data?.article_info?.content || '';
+    const html = await res.text();
+
+    // Extract the markdown-body div content
+    const startMarker = 'class="article-viewer markdown-body result">';
+    const startIdx = html.indexOf(startMarker);
+    if (startIdx === -1) return '';
+
+    let body = html.substring(startIdx + startMarker.length);
+
+    // Skip <style> tags at the beginning
+    while (body.trimStart().startsWith('<style')) {
+      const styleEnd = body.indexOf('</style>');
+      if (styleEnd === -1) break;
+      body = body.substring(styleEnd + 8);
+    }
+
+    // Find end of article content (before tag-list, article-end, etc.)
+    for (const marker of [
+      'class="tag-list-box"',
+      'class="article-end"',
+      'class="article-suspended-panel"',
+      'class="recommended-area"',
+    ]) {
+      const idx = body.indexOf(marker);
+      if (idx > 0) {
+        // Go back to find the opening < of this div
+        let cutoff = idx;
+        while (cutoff > 0 && body[cutoff] !== '<') cutoff--;
+        body = body.substring(0, cutoff);
+        break;
+      }
+    }
+
+    // Convert HTML to simplified Markdown
+    return htmlToSimpleMarkdown(body.trim());
   } catch {
     return '';
   }
+}
+
+/**
+ * Very simple HTML→Markdown converter for Juejin article content.
+ * Handles headings, paragraphs, code blocks, lists, images, links, bold, italic.
+ */
+function htmlToSimpleMarkdown(html: string): string {
+  let md = html;
+
+  // Code blocks: <pre><code class="hljs language-xxx">...</code></pre>
+  md = md.replace(
+    /<pre[^>]*><code[^>]*(?:class="[^"]*language-(\w+)[^"]*")?[^>]*>([\s\S]*?)<\/code><\/pre>/gi,
+    (_m, lang, code) => {
+      const decoded = decodeHtmlEntities(code.replace(/<[^>]+>/g, ''));
+      return `\n\`\`\`${lang || ''}\n${decoded}\n\`\`\`\n`;
+    }
+  );
+
+  // Headings
+  md = md.replace(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, (_m, c) => `\n# ${stripTags(c)}\n`);
+  md = md.replace(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, (_m, c) => `\n## ${stripTags(c)}\n`);
+  md = md.replace(/<h3[^>]*>([\s\S]*?)<\/h3>/gi, (_m, c) => `\n### ${stripTags(c)}\n`);
+  md = md.replace(/<h4[^>]*>([\s\S]*?)<\/h4>/gi, (_m, c) => `\n#### ${stripTags(c)}\n`);
+
+  // Images
+  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
+  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+
+  // Links
+  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_m, href, text) => `[${stripTags(text)}](${href})`);
+
+  // Bold
+  md = md.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+
+  // Italic
+  md = md.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<i[^>]*>([\s\S]*?)<\/i>/gi, '*$1*');
+
+  // Inline code
+  md = md.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_m, c) => `\`${decodeHtmlEntities(c)}\``);
+
+  // List items
+  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_m, c) => `- ${stripTags(c).trim()}\n`);
+
+  // Blockquotes
+  md = md.replace(/<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi, (_m, c) => {
+    return stripTags(c).trim().split('\n').map((l: string) => `> ${l}`).join('\n') + '\n';
+  });
+
+  // Paragraphs → double newline
+  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_m, c) => `\n${stripTags(c).trim()}\n`);
+
+  // Horizontal rule
+  md = md.replace(/<hr[^>]*\/?>/gi, '\n---\n');
+
+  // Line breaks
+  md = md.replace(/<br[^>]*\/?>/gi, '\n');
+
+  // Remove remaining HTML tags
+  md = md.replace(/<[^>]+>/g, '');
+
+  // Decode HTML entities
+  md = decodeHtmlEntities(md);
+
+  // Clean up whitespace
+  md = md.replace(/\n{3,}/g, '\n\n').trim();
+
+  return md;
+}
+
+function stripTags(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
+function decodeHtmlEntities(text: string): string {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
 }
 
 export async function GET(req: Request) {
@@ -178,7 +295,7 @@ export async function GET(req: Request) {
 
       // Fetch full article content via detail API
       // (query_list API does NOT return article body)
-      const content = await fetchArticleDetail(articleId);
+      const content = await fetchArticleContent(articleId);
 
       const slug = slugify(title, articleId);
 
