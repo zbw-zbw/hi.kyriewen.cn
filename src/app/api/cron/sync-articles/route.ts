@@ -13,9 +13,7 @@ function authorize(req: Request) {
   return auth === `Bearer ${secret}`;
 }
 
-/* ------------------------------------------------------------------ */
-/*  RSS parsing helpers                                                */
-/* ------------------------------------------------------------------ */
+/* ── RSS helpers (CSDN) ─────────────────────────────────────────── */
 
 interface RssItem {
   title: string;
@@ -24,184 +22,173 @@ interface RssItem {
   description: string;
 }
 
-/**
- * Parse CSDN RSS XML and extract items.
- * CSDN wraps text in CDATA sections: <![CDATA[...]]>
- */
 function parseRssItems(xml: string): RssItem[] {
   const items: RssItem[] = [];
-  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = itemRegex.exec(xml)) !== null) {
-    const block = match[1] ?? '';
-    const title = extractCdata(block, 'title');
-    const link = extractTag(block, 'link');
-    const pubDate = extractTag(block, 'pubDate');
-    const description = extractCdata(block, 'description');
-
-    if (title && link) {
-      items.push({ title, link, pubDate, description });
-    }
+  const re = /<item>([\s\S]*?)<\/item>/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(xml)) !== null) {
+    const b = m[1] ?? '';
+    const title = cdata(b, 'title');
+    const link = tag(b, 'link');
+    const pubDate = tag(b, 'pubDate');
+    const description = cdata(b, 'description');
+    if (title && link) items.push({ title, link, pubDate, description });
   }
   return items;
 }
 
-/** Extract CDATA or plain text from an XML tag */
-function extractCdata(xml: string, tag: string): string {
-  const cdataRe = new RegExp(
-    `<${tag}>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${tag}>`,
-    'i',
-  );
-  const cdataMatch = cdataRe.exec(xml);
-  if (cdataMatch) return (cdataMatch[1] ?? '').trim();
-  return extractTag(xml, tag);
+function cdata(xml: string, t: string): string {
+  const m = new RegExp(`<${t}>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${t}>`, 'i').exec(xml);
+  return m ? (m[1] ?? '').trim() : tag(xml, t);
 }
 
-/** Extract plain text content from an XML tag */
-function extractTag(xml: string, tag: string): string {
-  const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
-  const m = re.exec(xml);
+function tag(xml: string, t: string): string {
+  const m = new RegExp(`<${t}>([\\s\\S]*?)</${t}>`, 'i').exec(xml);
   return m ? (m[1] ?? '').trim() : '';
 }
 
-/* ------------------------------------------------------------------ */
-/*  Slug helper                                                        */
-/* ------------------------------------------------------------------ */
+/* ── Juejin API types ────────────────────────────────────────────── */
 
-/**
- * Generate a slug from the CSDN article URL.
- * URL format: https://blog.csdn.net/user/article/details/160866560
- */
-function slugify(title: string, articleUrl: string): string {
-  const idMatch = articleUrl.match(/\/details\/(\d+)/);
-  const articleId = idMatch ? (idMatch[1] ?? '') : '';
-
-  const englishParts = title
-    .replace(/[^\w\s-]/g, ' ')
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '');
-
-  const prefix =
-    englishParts.length >= 3 ? englishParts.substring(0, 50) : 'csdn';
-  return `${prefix}-${articleId}`;
+interface JuejinArticle {
+  article_id: string;
+  article_info: {
+    article_id: string;
+    title: string;
+    brief_content: string;
+    cover_image: string;
+    ctime: string;
+  };
+  tags: Array<{ tag_name: string }>;
 }
 
-/* ------------------------------------------------------------------ */
-/*  GET handler – Cron entry point                                     */
-/* ------------------------------------------------------------------ */
+/* ── Slug helper ─────────────────────────────────────────────────── */
+
+function slugify(title: string, source: string, id: string): string {
+  const eng = title
+    .replace(/[^\w\s-]/g, ' ').trim().toLowerCase()
+    .replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const prefix = eng.length >= 3 ? eng.substring(0, 50) : source;
+  return `${prefix}-${id.slice(-10)}`;
+}
+
+/* ── Sync CSDN ───────────────────────────────────────────────────── */
+
+async function syncCsdn(userId: string) {
+  const rssRes = await fetch(`https://blog.csdn.net/${userId}/rss/list`, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+  });
+  if (!rssRes.ok) throw new Error(`CSDN RSS failed: ${rssRes.status}`);
+  const articles = parseRssItems(await rssRes.text());
+
+  const existing = new Set(
+    (await db.select({ sourceId: blogPosts.sourceId }).from(blogPosts).where(eq(blogPosts.source, 'csdn')))
+      .map((p) => p.sourceId).filter(Boolean),
+  );
+
+  let imported = 0, skipped = 0;
+  for (const art of articles) {
+    const id = art.link.match(/\/details\/(\d+)/)?.[1] ?? '';
+    if (!id || existing.has(id)) { skipped++; continue; }
+    await db.insert(blogPosts).values({
+      slug: slugify(art.title, 'csdn', id),
+      title: art.title,
+      summary: art.description || null,
+      content: art.description || '(Content pending backfill)',
+      tags: '[]', lang: 'zh', draft: 1, coverImage: null,
+      source: 'csdn', sourceId: id, sourceUrl: art.link,
+      publishedAt: art.pubDate ? new Date(art.pubDate) : new Date(),
+    });
+    imported++;
+  }
+  return { source: 'csdn', fetched: articles.length, imported, skipped };
+}
+
+/* ── Sync Juejin ─────────────────────────────────────────────────── */
+
+async function syncJuejin(userId: string) {
+  const articles: JuejinArticle[] = [];
+  let cursor = '0';
+  let hasMore = true;
+  let page = 0;
+
+  while (hasMore && page < 5) {
+    const res = await fetch('https://api.juejin.cn/content_api/v1/article/query_list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, sort_type: 2, cursor }),
+    });
+    if (!res.ok) throw new Error(`Juejin API error: ${res.status}`);
+    const data = await res.json();
+    if (data.err_no !== 0) throw new Error(`Juejin API: ${data.err_msg}`);
+    articles.push(...(data.data || []));
+    cursor = data.cursor;
+    hasMore = data.has_more;
+    page++;
+  }
+
+  const existing = new Set(
+    (await db.select({ sourceId: blogPosts.sourceId }).from(blogPosts).where(eq(blogPosts.source, 'juejin')))
+      .map((p) => p.sourceId).filter(Boolean),
+  );
+
+  let imported = 0, skipped = 0;
+  for (const art of articles) {
+    const id = art.article_info.article_id;
+    if (existing.has(id)) { skipped++; continue; }
+    const tags = (art.tags || []).map((t) => t.tag_name);
+    await db.insert(blogPosts).values({
+      slug: slugify(art.article_info.title, 'juejin', id),
+      title: art.article_info.title,
+      summary: art.article_info.brief_content || null,
+      content: art.article_info.brief_content || '(Content pending backfill)',
+      tags: JSON.stringify(tags), lang: 'zh', draft: 1,
+      coverImage: art.article_info.cover_image || null,
+      source: 'juejin', sourceId: id,
+      sourceUrl: `https://juejin.cn/post/${id}`,
+      publishedAt: new Date(parseInt(art.article_info.ctime, 10) * 1000),
+    });
+    imported++;
+  }
+  return { source: 'juejin', fetched: articles.length, imported, skipped };
+}
+
+/* ── GET handler ─────────────────────────────────────────────────── */
 
 export async function GET(req: Request) {
   if (!authorize(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const userId = process.env.CSDN_USER_ID;
-  if (!userId) {
-    return NextResponse.json(
-      { error: 'CSDN_USER_ID not configured' },
-      { status: 500 },
-    );
+  const results: Array<{ source: string; fetched: number; imported: number; skipped: number; error?: string }> = [];
+
+  // Sync CSDN
+  const csdnUser = process.env.CSDN_USER_ID;
+  if (csdnUser) {
+    try {
+      results.push(await syncCsdn(csdnUser));
+    } catch (e) {
+      results.push({ source: 'csdn', fetched: 0, imported: 0, skipped: 0, error: String(e) });
+    }
   }
 
-  try {
-    // 1. Fetch RSS feed
-    const rssUrl = `https://blog.csdn.net/${userId}/rss/list`;
-    const rssRes = await fetch(rssUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-      },
-    });
-
-    if (!rssRes.ok) {
-      throw new Error(`RSS fetch failed: ${rssRes.status}`);
+  // Sync Juejin
+  const juejinUser = process.env.JUEJIN_USER_ID;
+  if (juejinUser) {
+    try {
+      results.push(await syncJuejin(juejinUser));
+    } catch (e) {
+      results.push({ source: 'juejin', fetched: 0, imported: 0, skipped: 0, error: String(e) });
     }
-
-    const rssXml = await rssRes.text();
-    const articles = parseRssItems(rssXml);
-
-    if (articles.length === 0) {
-      return NextResponse.json({
-        ok: true,
-        message: 'No articles found in RSS feed',
-        fetched: 0,
-        imported: 0,
-        skipped: 0,
-      });
-    }
-
-    // 2. Get existing CSDN source IDs to skip duplicates
-    const existingPosts = await db
-      .select({ sourceId: blogPosts.sourceId })
-      .from(blogPosts)
-      .where(eq(blogPosts.source, 'csdn'));
-
-    const existingSourceIds = new Set(
-      existingPosts.map((p) => p.sourceId).filter(Boolean),
-    );
-
-    let imported = 0;
-    let skipped = 0;
-
-    for (const article of articles) {
-      const idMatch = article.link.match(/\/details\/(\d+)/);
-      const articleId = idMatch?.[1] ?? '';
-
-      if (!articleId) {
-        skipped++;
-        continue;
-      }
-
-      if (existingSourceIds.has(articleId)) {
-        skipped++;
-        continue;
-      }
-
-      // Store RSS summary as initial content.
-      // Full content is backfilled via Admin panel (browser-side fetch
-      // bypasses CSDN anti-scraping since it runs from a domestic IP).
-      const slug = slugify(article.title, article.link);
-      const publishedAt = article.pubDate
-        ? new Date(article.pubDate)
-        : new Date();
-
-      await db.insert(blogPosts).values({
-        slug,
-        title: article.title,
-        summary: article.description || null,
-        content: article.description || '(Content pending backfill)',
-        tags: '[]',
-        lang: 'zh',
-        draft: 1,
-        coverImage: null,
-        source: 'csdn',
-        sourceId: articleId,
-        sourceUrl: article.link,
-        publishedAt,
-      });
-
-      imported++;
-    }
-
-    return NextResponse.json({
-      ok: true,
-      fetched: articles.length,
-      imported,
-      skipped,
-      message: `Synced ${imported} new articles from CSDN (${skipped} already existed)`,
-    });
-  } catch (error) {
-    console.error('[sync-articles] Error:', error);
-    return NextResponse.json(
-      {
-        error: 'Failed to sync articles from CSDN',
-        detail: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 },
-    );
   }
+
+  if (results.length === 0) {
+    return NextResponse.json({ error: 'No source configured (CSDN_USER_ID / JUEJIN_USER_ID)' }, { status: 500 });
+  }
+
+  const total = {
+    imported: results.reduce((s, r) => s + r.imported, 0),
+    skipped: results.reduce((s, r) => s + r.skipped, 0),
+  };
+
+  return NextResponse.json({ ok: true, results, ...total });
 }

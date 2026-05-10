@@ -76,22 +76,32 @@ export async function POST(req: Request) {
  * Returns all CSDN articles that need content backfill
  * (content is empty, placeholder, or just a short summary).
  */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const rows = await db
+    const { searchParams } = new URL(req.url);
+    const source = searchParams.get('source'); // 'csdn' | 'juejin' | null (all)
+
+    const conditions = source
+      ? eq(blogPosts.source, source)
+      : undefined;
+
+    const query = db
       .select({
         id: blogPosts.id,
         title: blogPosts.title,
         sourceUrl: blogPosts.sourceUrl,
         source: blogPosts.source,
       })
-      .from(blogPosts)
-      .where(eq(blogPosts.source, 'csdn'));
+      .from(blogPosts);
 
-    // Filter to only articles needing backfill (content is short/placeholder)
-    // We can't easily check content length in the query, so we check all CSDN articles
-    // and let the frontend decide which ones need backfill
-    return NextResponse.json({ data: rows });
+    const rows = conditions
+      ? await query.where(conditions)
+      : await query;
+
+    // Only return articles from external sources (csdn/juejin)
+    const filtered = rows.filter((r) => r.source === 'csdn' || r.source === 'juejin');
+
+    return NextResponse.json({ data: filtered });
   } catch (error) {
     console.error('[api/blog/backfill] GET failed', error);
     return NextResponse.json({ error: 'db_error' }, { status: 500 });
