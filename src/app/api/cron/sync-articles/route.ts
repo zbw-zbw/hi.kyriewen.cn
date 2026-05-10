@@ -34,7 +34,7 @@ function parseRssItems(xml: string): RssItem[] {
   let match: RegExpExecArray | null;
 
   while ((match = itemRegex.exec(xml)) !== null) {
-    const block = match[1];
+    const block = match[1] ?? '';
     const title = extractCdata(block, 'title');
     const link = extractTag(block, 'link');
     const pubDate = extractTag(block, 'pubDate');
