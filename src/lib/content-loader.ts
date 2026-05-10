@@ -83,7 +83,7 @@ export async function getProjects(): Promise<Project[]> {
   if (!shouldReadDb()) return FILE_PROJECTS;
   try {
     const rows = await db.select().from(projectsTable).orderBy(asc(projectsTable.sortOrder));
-    return rows.map(rowToProject);
+    return rows.length > 0 ? rows.map(rowToProject) : FILE_PROJECTS;
   } catch {
     return FILE_PROJECTS;
   }
@@ -142,6 +142,7 @@ export async function getNowItems(): Promise<NowItem[]> {
   if (!shouldReadDb()) return FILE_NOW_ITEMS;
   try {
     const rows = await db.select().from(nowItemsTable).orderBy(asc(nowItemsTable.sortOrder));
+    if (rows.length === 0) return FILE_NOW_ITEMS;
     return rows.map((r) => ({
       label: { en: r.labelEn, zh: r.labelZh },
       value: { en: r.valueEn, zh: r.valueZh },
@@ -184,6 +185,7 @@ export async function getPhotos(): Promise<Photo[]> {
   if (!shouldReadDb()) return FILE_PHOTOS;
   try {
     const rows = await db.select().from(photosTable).orderBy(asc(photosTable.sortOrder));
+    if (rows.length === 0) return FILE_PHOTOS;
     return rows.map((r) => ({
       src: r.src,
       alt: r.alt,
@@ -223,6 +225,7 @@ export async function getTimeline(): Promise<TimelineEvent[]> {
   if (!shouldReadDb()) return FILE_TIMELINE;
   try {
     const rows = await db.select().from(timelineEventsTable).orderBy(desc(timelineEventsTable.date));
+    if (rows.length === 0) return FILE_TIMELINE;
     return rows.map((r) => ({
       date: r.date,
       title: { en: r.titleEn, zh: r.titleZh },
@@ -265,6 +268,7 @@ export async function getUses(): Promise<UsesSection[]> {
   if (!shouldReadDb()) return FILE_USES;
   try {
     const sections = await db.select().from(usesSectionsTable).orderBy(asc(usesSectionsTable.sortOrder));
+    if (sections.length === 0) return FILE_USES;
     const items = await db.select().from(usesItemsTable).orderBy(asc(usesItemsTable.sortOrder));
 
     return sections.map((s) => ({
@@ -300,6 +304,7 @@ export async function getSocialLinks(): Promise<SocialLink[]> {
       Github, Twitter, Mail, Rss,
     };
     const rows = await db.select().from(socialLinksTable).orderBy(asc(socialLinksTable.sortOrder));
+    if (rows.length === 0) return FILE_SOCIAL_LINKS;
     return rows.map((r) => ({
       name: r.name,
       href: r.href,
@@ -320,6 +325,7 @@ export async function getPopularPosts(): Promise<PopularPost[]> {
   if (!shouldReadDb()) return FILE_POPULAR_POSTS;
   try {
     const rows = await db.select().from(popularPostsTable).orderBy(desc(popularPostsTable.views));
+    if (rows.length === 0) return FILE_POPULAR_POSTS;
     return rows.map((r) => ({
       slug: r.slug,
       views: r.views,
