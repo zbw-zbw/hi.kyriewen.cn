@@ -107,9 +107,18 @@ async function readDbPostsForLocale(locale: Locale): Promise<Post[]> {
 
 export async function getAllPosts(locale: Locale): Promise<Post[]> {
   if (!shouldReadBlogDb()) return readPostsForLocale(locale);
+
   const dbPosts = await readDbPostsForLocale(locale);
-  if (dbPosts.length === 0) return readPostsForLocale(locale);
-  return dbPosts;
+  const filePosts = readPostsForLocale(locale);
+
+  // Merge: DB posts take priority over file posts with same slug
+  const dbSlugs = new Set(dbPosts.map((p) => p.slug));
+  const uniqueFilePosts = filePosts.filter((p) => !dbSlugs.has(p.slug));
+  const merged = [...dbPosts, ...uniqueFilePosts];
+
+  return merged.sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 }
 
 export async function getPostBySlug(locale: Locale, slug: string): Promise<Post | null> {
