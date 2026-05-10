@@ -86,7 +86,6 @@ export async function GET(req: Request) {
             repo: repo.html_url,
             // Update metrics with latest star count
             metrics: JSON.stringify({
-              stars: repo.stargazers_count,
               ...((() => {
                 try {
                   const existing = existingProjects.find(
@@ -99,7 +98,7 @@ export async function GET(req: Request) {
                   return {};
                 }
               })()),
-              stars: repo.stargazers_count, // override stars
+              stars: repo.stargazers_count,
             }),
             updatedAt: new Date(),
           })
