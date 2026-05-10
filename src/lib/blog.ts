@@ -3,6 +3,9 @@ import path from 'node:path';
 import matter from 'gray-matter';
 import GithubSlugger from 'github-slugger';
 import type { Locale } from '@/i18n/routing';
+import { db } from '@/lib/db';
+import { blogPosts } from '@/lib/db';
+import { eq, and, desc } from 'drizzle-orm';
 
 export interface PostFrontmatter {
   title: string;
@@ -22,6 +25,14 @@ export interface Post extends PostFrontmatter {
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src', 'content', 'blog');
 
+const blogSource = process.env.BLOG_SOURCE; // 'db' | 'file' | undefined
+
+function shouldReadBlogDb(): boolean {
+  if (blogSource === 'file') return false;
+  if (blogSource === 'db') return true;
+  return false; // default: file (until migration is complete)
+}
+
 function calcReadingTime(content: string) {
   const words = content
     .replace(/```[\s\S]*?```/g, '')
@@ -29,6 +40,8 @@ function calcReadingTime(content: string) {
     .filter(Boolean).length;
   return Math.max(1, Math.round(words / 220));
 }
+
+// ── File-based readers (original) ──────────────────────────────
 
 function readPostsForLocale(locale: Locale): Post[] {
   const dir = path.join(CONTENT_ROOT, locale);
@@ -54,13 +67,65 @@ function readPostsForLocale(locale: Locale): Post[] {
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export function getAllPosts(locale: Locale): Post[] {
-  return readPostsForLocale(locale);
+// ── Database readers ───────────────────────────────────────────
+
+function dbRowToPost(row: typeof blogPosts.$inferSelect): Post {
+  const tags: string[] = (() => {
+    try { return JSON.parse(row.tags); } catch { return []; }
+  })();
+  const date = row.publishedAt
+    ? row.publishedAt.toISOString().slice(0, 10)
+    : row.createdAt.toISOString().slice(0, 10);
+  return {
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary ?? '',
+    date,
+    tags,
+    lang: row.lang as Locale,
+    draft: row.draft === 1,
+    locale: row.lang as Locale,
+    content: row.content,
+    readingTime: calcReadingTime(row.content),
+  };
 }
 
-export function getPostBySlug(locale: Locale, slug: string): Post | null {
-  const posts = readPostsForLocale(locale);
-  return posts.find((p) => p.slug === slug) ?? null;
+async function readDbPostsForLocale(locale: Locale): Promise<Post[]> {
+  try {
+    const rows = await db
+      .select()
+      .from(blogPosts)
+      .where(and(eq(blogPosts.lang, locale), eq(blogPosts.draft, 0)))
+      .orderBy(desc(blogPosts.publishedAt));
+    return rows.map(dbRowToPost);
+  } catch {
+    return [];
+  }
+}
+
+// ── Public API (with DB/file switch) ───────────────────────────
+
+export async function getAllPosts(locale: Locale): Promise<Post[]> {
+  if (!shouldReadBlogDb()) return readPostsForLocale(locale);
+  return readDbPostsForLocale(locale);
+}
+
+export async function getPostBySlug(locale: Locale, slug: string): Promise<Post | null> {
+  if (!shouldReadBlogDb()) {
+    const posts = readPostsForLocale(locale);
+    return posts.find((p) => p.slug === slug) ?? null;
+  }
+  try {
+    const rows = await db
+      .select()
+      .from(blogPosts)
+      .where(and(eq(blogPosts.slug, slug), eq(blogPosts.lang, locale)))
+      .limit(1);
+    if (rows.length === 0) return null;
+    return dbRowToPost(rows[0]!);
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -72,25 +137,37 @@ export function getPostBySlug(locale: Locale, slug: string): Post | null {
  *
  * 首篇 / 尾篇对应的方向返回 null。
  */
-export function getAdjacentPosts(
+export async function getAdjacentPosts(
   locale: Locale,
   slug: string
-): { previous: Post | null; next: Post | null } {
-  const posts = readPostsForLocale(locale);
+): Promise<{ previous: Post | null; next: Post | null }> {
+  const posts = shouldReadBlogDb()
+    ? await readDbPostsForLocale(locale)
+    : readPostsForLocale(locale);
   const index = posts.findIndex((p) => p.slug === slug);
   if (index === -1) return { previous: null, next: null };
-
   return {
-    previous: posts[index + 1] ?? null, // 更旧
-    next: posts[index - 1] ?? null, // 更新
+    previous: posts[index + 1] ?? null,
+    next: posts[index - 1] ?? null,
   };
 }
 
-export function getAllPostSlugs(): { locale: Locale; slug: string }[] {
-  const locales: Locale[] = ['en', 'zh'];
-  return locales.flatMap((locale) =>
-    readPostsForLocale(locale).map((p) => ({ locale, slug: p.slug }))
-  );
+export async function getAllPostSlugs(): Promise<{ locale: Locale; slug: string }[]> {
+  if (!shouldReadBlogDb()) {
+    const locales: Locale[] = ['en', 'zh'];
+    return locales.flatMap((locale) =>
+      readPostsForLocale(locale).map((p) => ({ locale, slug: p.slug }))
+    );
+  }
+  try {
+    const rows = await db
+      .select({ slug: blogPosts.slug, lang: blogPosts.lang })
+      .from(blogPosts)
+      .where(eq(blogPosts.draft, 0));
+    return rows.map((r) => ({ locale: r.lang as Locale, slug: r.slug }));
+  } catch {
+    return [];
+  }
 }
 
 export interface TocEntry {

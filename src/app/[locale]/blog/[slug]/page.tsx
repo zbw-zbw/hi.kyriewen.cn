@@ -96,7 +96,7 @@ function buildOgUrl(title: string, summary: string) {
 }
 
 export async function generateStaticParams() {
-  return getAllPostSlugs();
+  return await getAllPostSlugs();
 }
 
 export async function generateMetadata({
@@ -105,7 +105,7 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale; slug: string }>;
 }): Promise<Metadata> {
   const { locale, slug } = await params;
-  const post = getPostBySlug(locale, slug);
+  const post = await getPostBySlug(locale, slug);
   if (!post) return {};
 
   const url = buildPostUrl(locale, slug);
@@ -149,12 +149,12 @@ export default async function BlogPostPage({
 
   const t = await getTranslations('blog.page');
   const tMsg = await getTranslations('message');
-  const post = getPostBySlug(locale, slug);
+  const post = await getPostBySlug(locale, slug);
   if (!post) notFound();
 
   const url = buildPostUrl(locale, slug);
   const toc = extractToc(post.content);
-  const { previous, next } = getAdjacentPosts(locale, slug);
+  const { previous, next } = await getAdjacentPosts(locale, slug);
 
   // 评论 + 登录态
   const session = await auth().catch(() => null);

@@ -30,7 +30,7 @@ export default async function HomePage({
   const t = await getTranslations('home');
 
   const projects = getFeaturedProjects();
-  const allPostsForLocale = getAllPosts(locale);
+  const allPostsForLocale = await getAllPosts(locale);
   const latestPosts = allPostsForLocale.slice(0, 3);
 
   // 热门博客：从数据库 page_views 表读取真实浏览量，取 Top 3

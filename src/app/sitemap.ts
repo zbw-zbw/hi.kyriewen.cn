@@ -25,7 +25,7 @@ function localized(path: string) {
   });
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.flatMap((path) =>
@@ -49,7 +49,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     })
   );
 
-  const postEntries: MetadataRoute.Sitemap = getAllPostSlugs().map(
+  const slugs = await getAllPostSlugs();
+  const postEntries: MetadataRoute.Sitemap = slugs.map(
     ({ locale, slug }) => ({
       url: `${SITE_URL}${locale === routing.defaultLocale ? '' : `/${locale}`}/blog/${slug}`,
       lastModified: now,

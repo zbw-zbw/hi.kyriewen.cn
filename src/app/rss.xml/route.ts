@@ -22,8 +22,8 @@ function escapeXml(unsafe: string) {
 }
 
 export async function GET() {
-  const enPosts = getAllPosts('en');
-  const zhPosts = getAllPosts('zh');
+  const enPosts = await getAllPosts('en');
+  const zhPosts = await getAllPosts('zh');
   const allPosts = [
     ...enPosts.map((p) => ({ ...p, url: `${SITE_URL}/blog/${p.slug}` })),
     ...zhPosts.map((p) => ({ ...p, url: `${SITE_URL}/zh/blog/${p.slug}` })),

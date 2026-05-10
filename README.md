@@ -90,31 +90,62 @@ src/
 └── styles/              # Global CSS
 ```
 
+## 🏗️ Monorepo Structure
+
+This project uses a **pnpm workspace** monorepo:
+
+```
+hi.kyriewen.cn/
+├── src/                     # Main site (Next.js)
+├── apps/
+│   └── admin/               # Admin dashboard (Next.js, port 3001)
+└── packages/
+    ├── db/                  # Shared Drizzle ORM schema & client
+    └── storage/             # Cloudflare R2 storage client
+```
+
+### Admin Dashboard (`apps/admin`)
+
+A separate Next.js application for content management, deployed to `admin.kyriewen.cn`.
+
+**Features:**
+- GitHub OAuth login with admin whitelist (`ADMIN_GITHUB_IDS`)
+- CRUD for all 7 content types (Social Links, Popular Posts, Now, Timeline, Photos, Projects, Uses)
+- Blog post editor with CodeMirror 6 (MDX syntax highlighting + live preview)
+- Image upload via Cloudflare R2
+- Responsive sidebar layout with shadcn/ui
+
+**Running the admin app:**
+
+```bash
+pnpm --filter admin dev    # http://localhost:3001
+pnpm --filter admin build  # Production build
+```
+
+**Admin environment variables:**
+
+| Variable | Description |
+| --- | --- |
+| `ADMIN_GITHUB_IDS` | Comma-separated GitHub user IDs allowed to access admin |
+| `R2_ACCOUNT_ID` | Cloudflare R2 account ID |
+| `R2_ACCESS_KEY_ID` | R2 API token access key |
+| `R2_SECRET_ACCESS_KEY` | R2 API token secret |
+| `R2_BUCKET_NAME` | R2 bucket name |
+| `R2_PUBLIC_URL` | Public URL for R2 assets (via CF custom domain) |
+
+### Content Migration Strategy
+
+The main site uses a **progressive migration** approach via `src/lib/content-loader.ts`:
+- Default: reads from static `.ts` files under `src/content/`
+- Set `CONTENT_SOURCE=db` to switch to database reads
+- Automatic fallback to files if database is empty or unavailable
+
 ## 🗺️ Roadmap
 
-### Phase 2 — Admin Dashboard (Planned)
-
-Currently ~40 pieces of content data are hardcoded in 7 files under `src/content/`:
-
-| File | Data | Count |
-| --- | --- | --- |
-| `projects.ts` | Product showcase | 6 projects |
-| `now.ts` | Now page items | 3 items |
-| `photos.ts` | Photo gallery | 6 photos |
-| `timeline.ts` | Timeline events | 8 events |
-| `uses.ts` | Hardware/software/services | 12 items |
-| `popular.ts` | Popular posts | 1 post |
-| `social.ts` | Social links | 4 links |
-
-**Plan**: Build a separate admin dashboard (to keep the open-source main site clean) that provides:
-- CRUD for all content types above
-- API-driven content management (move from hardcoded `.ts` files to database)
-- Image upload and management
-- Blog post editor (MDX)
-- Newsletter subscriber management (via Resend API)
-- Analytics overview
-
-This ensures the main site remains open-source and clean, while the admin system handles all content operations.
+- [x] Phase 1 — Main site (shipped)
+- [x] Phase 2 — Admin dashboard (code complete, pending deployment)
+- [ ] Phase 3 — Newsletter subscriber management
+- [ ] Phase 4 — Analytics overview
 
 ## 📝 License
 

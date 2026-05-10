@@ -21,7 +21,7 @@ const url = /[?&]sslmode=/i.test(rawUrl)
   : `${rawUrl}${rawUrl.includes('?') ? '&' : '?'}sslmode=require`;
 
 export default {
-  schema: './src/lib/db/schema.ts',
+  schema: './packages/db/src/schema.ts',
   out: './drizzle',
   dialect: 'postgresql',
   // 显式指定 driver 为未定义 → 让 drizzle-kit 使用 pg (node-postgres)

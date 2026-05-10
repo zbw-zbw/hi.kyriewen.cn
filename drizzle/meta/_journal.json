@@ -15,6 +15,13 @@
       "when": 1778296163655,
       "tag": "0001_exotic_loki",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778381228338,
+      "tag": "0002_bent_sunfire",
+      "breakpoints": true
     }
   ]
 }

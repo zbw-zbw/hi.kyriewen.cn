@@ -27,7 +27,8 @@ export default async function BlogIndexPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('blog.page');
-  const posts = getAllPosts(locale).map((p) => ({
+  const allPosts = await getAllPosts(locale);
+  const posts = allPosts.map((p) => ({
     slug: p.slug,
     title: p.title,
     summary: p.summary,

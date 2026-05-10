@@ -1,0 +1,715 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
+import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
+
+/* ── Types ───────────────────────────────────────────────────── */
+interface UsesSection {
+  id: number;
+  sectionId: string;
+  titleEn: string;
+  titleZh: string;
+  sortOrder: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+interface UsesItem {
+  id: number;
+  sectionId: number;
+  name: string;
+  url: string | null;
+  noteEn: string | null;
+  noteZh: string | null;
+  rating: number | null;
+  verdictEn: string | null;
+  verdictZh: string | null;
+  since: string | null;
+  sortOrder: number;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+}
+
+interface SectionFormData {
+  sectionId: string;
+  titleEn: string;
+  titleZh: string;
+  sortOrder: number;
+}
+
+interface ItemFormData {
+  name: string;
+  url: string;
+  noteEn: string;
+  noteZh: string;
+  rating: number;
+  verdictEn: string;
+  verdictZh: string;
+  since: string;
+  sortOrder: number;
+}
+
+const EMPTY_SECTION_FORM: SectionFormData = {
+  sectionId: '',
+  titleEn: '',
+  titleZh: '',
+  sortOrder: 0,
+};
+
+const EMPTY_ITEM_FORM: ItemFormData = {
+  name: '',
+  url: '',
+  noteEn: '',
+  noteZh: '',
+  rating: 3,
+  verdictEn: '',
+  verdictZh: '',
+  since: '',
+  sortOrder: 0,
+};
+
+/* ── Component ───────────────────────────────────────────────── */
+export default function UsesManager({
+  sections,
+  items,
+}: {
+  sections: UsesSection[];
+  items: UsesItem[];
+}) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  // Section state
+  const [showSectionForm, setShowSectionForm] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<number | null>(null);
+  const [sectionForm, setSectionForm] = useState<SectionFormData>(EMPTY_SECTION_FORM);
+  const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
+
+  // Item state
+  const [showItemFormFor, setShowItemFormFor] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [itemForm, setItemForm] = useState<ItemFormData>(EMPTY_ITEM_FORM);
+  const [itemLangTab, setItemLangTab] = useState<Record<number, 'en' | 'zh'>>({});
+
+  /* ── Section Handlers ────────────────────────────────────────── */
+  const toggleCollapse = useCallback((id: number) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const openCreateSection = useCallback(() => {
+    setEditingSectionId(null);
+    setSectionForm(EMPTY_SECTION_FORM);
+    setShowSectionForm(true);
+  }, []);
+
+  const openEditSection = useCallback((section: UsesSection) => {
+    setEditingSectionId(section.id);
+    setSectionForm({
+      sectionId: section.sectionId,
+      titleEn: section.titleEn,
+      titleZh: section.titleZh,
+      sortOrder: section.sortOrder,
+    });
+    setShowSectionForm(true);
+  }, []);
+
+  const handleSectionSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      setLoading(true);
+      try {
+        const isEdit = editingSectionId !== null;
+        const url = isEdit ? `/api/uses/${editingSectionId}` : '/api/uses';
+        const method = isEdit ? 'PATCH' : 'POST';
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sectionForm),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Request failed');
+        }
+
+        toast.success(isEdit ? 'Section updated' : 'Section created');
+        setShowSectionForm(false);
+        setSectionForm(EMPTY_SECTION_FORM);
+        setEditingSectionId(null);
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [editingSectionId, sectionForm, router],
+  );
+
+  const handleDeleteSection = useCallback(
+    async (id: number) => {
+      if (!confirm('Delete this section and all its items?')) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/uses/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        toast.success('Section deleted');
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router],
+  );
+
+  /* ── Item Handlers ───────────────────────────────────────────── */
+  const openCreateItem = useCallback((sectionId: number) => {
+    setEditingItemId(null);
+    setItemForm(EMPTY_ITEM_FORM);
+    setShowItemFormFor(sectionId);
+  }, []);
+
+  const openEditItem = useCallback((item: UsesItem) => {
+    setEditingItemId(item.id);
+    setItemForm({
+      name: item.name,
+      url: item.url || '',
+      noteEn: item.noteEn || '',
+      noteZh: item.noteZh || '',
+      rating: item.rating ?? 3,
+      verdictEn: item.verdictEn || '',
+      verdictZh: item.verdictZh || '',
+      since: item.since || '',
+      sortOrder: item.sortOrder,
+    });
+    setShowItemFormFor(item.sectionId);
+  }, []);
+
+  const handleItemSubmit = useCallback(
+    async (e: React.FormEvent, sectionId: number) => {
+      e.preventDefault();
+      setLoading(true);
+      try {
+        const isEdit = editingItemId !== null;
+        const url = isEdit ? `/api/uses/items/${editingItemId}` : '/api/uses/items';
+        const method = isEdit ? 'PATCH' : 'POST';
+
+        const payload = isEdit
+          ? { ...itemForm, rating: Number(itemForm.rating) }
+          : { ...itemForm, sectionId, rating: Number(itemForm.rating) };
+
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || 'Request failed');
+        }
+
+        toast.success(isEdit ? 'Item updated' : 'Item created');
+        setShowItemFormFor(null);
+        setItemForm(EMPTY_ITEM_FORM);
+        setEditingItemId(null);
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [editingItemId, itemForm, router],
+  );
+
+  const handleDeleteItem = useCallback(
+    async (id: number) => {
+      if (!confirm('Delete this item?')) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/uses/items/${id}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Delete failed');
+        toast.success('Item deleted');
+        router.refresh();
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Failed');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [router],
+  );
+
+  /* ── Render helpers ──────────────────────────────────────────── */
+  const renderStars = (rating: number | null) => {
+    if (!rating) return null;
+    return (
+      <span className="text-yellow-500">
+        {'★'.repeat(rating)}
+        {'☆'.repeat(5 - rating)}
+      </span>
+    );
+  };
+
+  const getLangTab = (itemId: number): 'en' | 'zh' => {
+    return itemLangTab[itemId] || 'en';
+  };
+
+  /* ── Render ──────────────────────────────────────────────────── */
+  return (
+    <div className="space-y-4">
+      {/* New Section Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={openCreateSection}
+          disabled={loading}
+          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        >
+          + New Section
+        </button>
+      </div>
+
+      {/* Section Form */}
+      {showSectionForm && (
+        <form
+          onSubmit={handleSectionSubmit}
+          className="rounded-lg border border-border bg-card p-4 space-y-3"
+        >
+          <h3 className="font-semibold">
+            {editingSectionId ? 'Edit Section' : 'New Section'}
+          </h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Section ID
+              </label>
+              <input
+                type="text"
+                value={sectionForm.sectionId}
+                onChange={(e) =>
+                  setSectionForm({ ...sectionForm, sectionId: e.target.value })
+                }
+                placeholder="e.g. hardware"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Sort Order
+              </label>
+              <input
+                type="number"
+                value={sectionForm.sortOrder}
+                onChange={(e) =>
+                  setSectionForm({ ...sectionForm, sortOrder: Number(e.target.value) })
+                }
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Title (EN)
+              </label>
+              <input
+                type="text"
+                value={sectionForm.titleEn}
+                onChange={(e) =>
+                  setSectionForm({ ...sectionForm, titleEn: e.target.value })
+                }
+                placeholder="Hardware"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                required
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                Title (ZH)
+              </label>
+              <input
+                type="text"
+                value={sectionForm.titleZh}
+                onChange={(e) =>
+                  setSectionForm({ ...sectionForm, titleZh: e.target.value })
+                }
+                placeholder="硬件"
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                required
+              />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : editingSectionId ? 'Update' : 'Create'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowSectionForm(false);
+                setEditingSectionId(null);
+              }}
+              className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Sections List */}
+      {sections.length === 0 && !showSectionForm && (
+        <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
+          No sections yet. Click &quot;+ New Section&quot; to get started.
+        </div>
+      )}
+
+      {sections.map((section) => {
+        const sectionItems = items.filter((i) => i.sectionId === section.id);
+        const isCollapsed = collapsedSections.has(section.id);
+
+        return (
+          <div
+            key={section.id}
+            className="rounded-lg border border-border bg-card overflow-hidden"
+          >
+            {/* Section Header */}
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <button
+                onClick={() => toggleCollapse(section.id)}
+                className="flex items-center gap-2 text-left"
+              >
+                <span className="text-muted-foreground">
+                  {isCollapsed ? '▶' : '▼'}
+                </span>
+                <div>
+                  <span className="font-semibold">{section.titleEn}</span>
+                  <span className="mx-2 text-muted-foreground">/</span>
+                  <span className="text-muted-foreground">{section.titleZh}</span>
+                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    {section.sectionId}
+                  </span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    ({sectionItems.length} items)
+                  </span>
+                </div>
+              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => openEditSection(section)}
+                  className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDeleteSection(section.id)}
+                  disabled={loading}
+                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+
+            {/* Section Body */}
+            {!isCollapsed && (
+              <div className="p-4 space-y-3">
+                {/* Items Table */}
+                {sectionItems.length > 0 && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border text-left text-xs text-muted-foreground">
+                          <th className="pb-2 pr-3 font-medium">Name</th>
+                          <th className="pb-2 pr-3 font-medium">Rating</th>
+                          <th className="pb-2 pr-3 font-medium">Since</th>
+                          <th className="pb-2 pr-3 font-medium">Note / Verdict</th>
+                          <th className="pb-2 font-medium">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {sectionItems.map((item) => {
+                          const lang = getLangTab(item.id);
+                          const note = lang === 'en' ? item.noteEn : item.noteZh;
+                          const verdict = lang === 'en' ? item.verdictEn : item.verdictZh;
+
+                          return (
+                            <tr key={item.id}>
+                              <td className="py-2 pr-3">
+                                {item.url ? (
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {item.name}
+                                  </a>
+                                ) : (
+                                  item.name
+                                )}
+                              </td>
+                              <td className="py-2 pr-3">{renderStars(item.rating)}</td>
+                              <td className="py-2 pr-3 text-muted-foreground">
+                                {item.since || '—'}
+                              </td>
+                              <td className="py-2 pr-3 max-w-xs">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <button
+                                    onClick={() =>
+                                      setItemLangTab((prev) => ({
+                                        ...prev,
+                                        [item.id]: 'en',
+                                      }))
+                                    }
+                                    className={`rounded px-1.5 py-0.5 text-xs ${
+                                      lang === 'en'
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                        : 'text-muted-foreground hover:bg-muted'
+                                    }`}
+                                  >
+                                    EN
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      setItemLangTab((prev) => ({
+                                        ...prev,
+                                        [item.id]: 'zh',
+                                      }))
+                                    }
+                                    className={`rounded px-1.5 py-0.5 text-xs ${
+                                      lang === 'zh'
+                                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
+                                        : 'text-muted-foreground hover:bg-muted'
+                                    }`}
+                                  >
+                                    ZH
+                                  </button>
+                                </div>
+                                <p className="truncate text-xs text-muted-foreground">
+                                  {note || '—'}
+                                </p>
+                                {verdict && (
+                                  <p className="truncate text-xs italic text-muted-foreground">
+                                    Verdict: {verdict}
+                                  </p>
+                                )}
+                              </td>
+                              <td className="py-2">
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => openEditItem(item)}
+                                    className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteItem(item.id)}
+                                    disabled={loading}
+                                    className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {sectionItems.length === 0 && showItemFormFor !== section.id && (
+                  <p className="text-sm text-muted-foreground">No items yet.</p>
+                )}
+
+                {/* Item Form */}
+                {showItemFormFor === section.id && (
+                  <form
+                    onSubmit={(e) => handleItemSubmit(e, section.id)}
+                    className="rounded-md border border-border bg-background p-4 space-y-3"
+                  >
+                    <h4 className="text-sm font-semibold">
+                      {editingItemId ? 'Edit Item' : 'New Item'}
+                    </h4>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Name *
+                        </label>
+                        <input
+                          type="text"
+                          value={itemForm.name}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, name: e.target.value })
+                          }
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          URL
+                        </label>
+                        <input
+                          type="url"
+                          value={itemForm.url}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, url: e.target.value })
+                          }
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Rating (1-5)
+                        </label>
+                        <select
+                          value={itemForm.rating}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, rating: Number(e.target.value) })
+                          }
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        >
+                          {[1, 2, 3, 4, 5].map((v) => (
+                            <option key={v} value={v}>
+                              {v} — {'★'.repeat(v)}{'☆'.repeat(5 - v)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Since (YYYY-MM)
+                        </label>
+                        <input
+                          type="month"
+                          value={itemForm.since}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, since: e.target.value })
+                          }
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Sort Order
+                        </label>
+                        <input
+                          type="number"
+                          value={itemForm.sortOrder}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, sortOrder: Number(e.target.value) })
+                          }
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Note (EN)
+                        </label>
+                        <textarea
+                          value={itemForm.noteEn}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, noteEn: e.target.value })
+                          }
+                          rows={2}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Note (ZH)
+                        </label>
+                        <textarea
+                          value={itemForm.noteZh}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, noteZh: e.target.value })
+                          }
+                          rows={2}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Verdict (EN)
+                        </label>
+                        <textarea
+                          value={itemForm.verdictEn}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, verdictEn: e.target.value })
+                          }
+                          rows={2}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                          Verdict (ZH)
+                        </label>
+                        <textarea
+                          value={itemForm.verdictZh}
+                          onChange={(e) =>
+                            setItemForm({ ...itemForm, verdictZh: e.target.value })
+                          }
+                          rows={2}
+                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {loading ? 'Saving...' : editingItemId ? 'Update' : 'Create'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowItemFormFor(null);
+                          setEditingItemId(null);
+                        }}
+                        className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* Add Item Button */}
+                {showItemFormFor !== section.id && (
+                  <button
+                    onClick={() => openCreateItem(section.id)}
+                    disabled={loading}
+                    className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground hover:border-blue-400 hover:text-blue-600 disabled:opacity-50"
+                  >
+                    + Add Item
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}

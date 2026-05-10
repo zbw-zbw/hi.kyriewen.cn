@@ -94,7 +94,8 @@ export default async function LocaleLayout({
   setRequestLocale(locale);
 
   // 服务端读取博客列表并投影成客户端可用的搜索条目（剥掉正文、只留元数据）
-  const searchablePosts: SearchablePost[] = getAllPosts(locale as Locale).map(
+  const allPosts = await getAllPosts(locale as Locale);
+  const searchablePosts: SearchablePost[] = allPosts.map(
     (p) => ({
       slug: p.slug,
       title: p.title,
