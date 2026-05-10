@@ -28,8 +28,8 @@ function parseFrontmatter(raw: string): { frontmatter: Frontmatter; content: str
 
   if (!match) return { frontmatter: {}, content: raw };
 
-  const fmBlock = match[1];
-  const content = match[2];
+  const fmBlock = match[1] ?? '';
+  const content = match[2] ?? '';
   const fm: Frontmatter = {};
 
   for (const line of fmBlock.split('\n')) {
