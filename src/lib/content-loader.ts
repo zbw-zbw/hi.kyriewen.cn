@@ -72,7 +72,7 @@ const source = process.env.CONTENT_SOURCE; // 'db' | 'file' | undefined
 function shouldReadDb(): boolean {
   if (source === 'file') return false;
   if (source === 'db') return true;
-  return false; // default: file (until migration is complete)
+  return true; // default: try db first, each function has try-catch fallback to file
 }
 
 // ═══════════════════════════════════════════════════════════════
