@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, and } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { blogPosts } from '@repo/db/schema';
 
@@ -8,19 +8,31 @@ export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/blog — 查询所有 blogPosts，按 updatedAt 降序
- * 支持可选查询参数 ?lang=en|zh 过滤
+ * 支持可选查询参数 ?lang=en|zh 和 ?slug=xxx 过滤
  */
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const lang = searchParams.get('lang');
+    const slug = searchParams.get('slug');
 
-    const query = db.select().from(blogPosts);
-
-    const rows =
-      lang === 'en' || lang === 'zh'
-        ? await query.where(eq(blogPosts.lang, lang)).orderBy(desc(blogPosts.updatedAt))
-        : await query.orderBy(desc(blogPosts.updatedAt));
+    let rows;
+    if (lang && slug) {
+      rows = await db.select().from(blogPosts)
+        .where(and(eq(blogPosts.lang, lang), eq(blogPosts.slug, slug)))
+        .orderBy(desc(blogPosts.updatedAt));
+    } else if (lang) {
+      rows = await db.select().from(blogPosts)
+        .where(eq(blogPosts.lang, lang))
+        .orderBy(desc(blogPosts.updatedAt));
+    } else if (slug) {
+      rows = await db.select().from(blogPosts)
+        .where(eq(blogPosts.slug, slug))
+        .orderBy(desc(blogPosts.updatedAt));
+    } else {
+      rows = await db.select().from(blogPosts)
+        .orderBy(desc(blogPosts.updatedAt));
+    }
 
     const parsed = rows.map((row) => ({
       ...row,

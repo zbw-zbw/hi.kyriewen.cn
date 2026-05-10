@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { ImageUploader } from '@/components/image-uploader';
+import { TranslateButton } from '@/components/translate-button';
 
 /* ── Constants ───────────────────────────────────────────────── */
 const CATEGORY_OPTIONS = ['chrome-extension', 'web-app', 'library'] as const;
@@ -397,18 +398,27 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                 </div>
               ) : (
                 <div className="grid gap-4">
-                  <label className="space-y-1.5">
-                    <span className={labelClass}>Tagline (ZH)</span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={labelClass}>Tagline (ZH)</span>
+                      <TranslateButton text={form.taglineZh} type="title" onTranslated={(v) => { updateField('taglineEn', v); setCopyTab('en'); }} />
+                    </div>
                     <input type="text" value={form.taglineZh} onChange={(e) => updateField('taglineZh', e.target.value)} className={inputClass} placeholder="简短标语" />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className={labelClass}>Description (ZH)</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={labelClass}>Description (ZH)</span>
+                      <TranslateButton text={form.descriptionZh} type="description" onTranslated={(v) => { updateField('descriptionEn', v); setCopyTab('en'); }} />
+                    </div>
                     <textarea value={form.descriptionZh} onChange={(e) => updateField('descriptionZh', e.target.value)} rows={3} className={inputClass} placeholder="项目描述..." />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className={labelClass}>Case Study (ZH)</span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className={labelClass}>Case Study (ZH)</span>
+                      <TranslateButton text={form.caseStudyZh} type="article" onTranslated={(v) => { updateField('caseStudyEn', v); setCopyTab('en'); }} />
+                    </div>
                     <textarea value={form.caseStudyZh} onChange={(e) => updateField('caseStudyZh', e.target.value)} rows={4} className={inputClass} placeholder="详细案例（Markdown）..." />
-                  </label>
+                  </div>
                 </div>
               )}
             </fieldset>

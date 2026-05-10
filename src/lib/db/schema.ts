@@ -314,6 +314,9 @@ export const blogPosts = pgTable(
     lang: varchar('lang', { length: 8 }).notNull().default('en'),
     draft: integer('draft').notNull().default(1),
     coverImage: text('cover_image'),
+    source: varchar('source', { length: 32 }),
+    sourceId: varchar('source_id', { length: 256 }),
+    sourceUrl: text('source_url'),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
@@ -322,6 +325,7 @@ export const blogPosts = pgTable(
     uniqueIndex('blog_posts_slug_lang_idx').on(table.slug, table.lang),
     index('blog_posts_lang_idx').on(table.lang),
     index('blog_posts_published_idx').on(table.publishedAt),
+    index('blog_posts_source_id_idx').on(table.sourceId),
   ]
 );
 

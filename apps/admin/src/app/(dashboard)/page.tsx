@@ -3,13 +3,18 @@ import {
   guestbookMessages,
   statsSnapshot,
   pageViews,
+  blogPosts,
+  projects,
+  newsletterIssues,
 } from '@repo/db/schema';
-import { desc, count, sql } from 'drizzle-orm';
+import { desc, count, sql, eq } from 'drizzle-orm';
 import {
   FolderKanban,
   FileText,
   MessageSquare,
   Eye,
+  Mail,
+  Rss,
 } from 'lucide-react';
 
 async function getStats() {
@@ -22,6 +27,23 @@ async function getStats() {
       .select({ total: sql<number>`coalesce(sum(${pageViews.views}), 0)` })
       .from(pageViews);
 
+    const [postCount] = await db
+      .select({ count: count() })
+      .from(blogPosts);
+
+    const [publishedPostCount] = await db
+      .select({ count: count() })
+      .from(blogPosts)
+      .where(eq(blogPosts.draft, 0));
+
+    const [projectCount] = await db
+      .select({ count: count() })
+      .from(projects);
+
+    const [newsletterCount] = await db
+      .select({ count: count() })
+      .from(newsletterIssues);
+
     const latestSnapshot = await db
       .select()
       .from(statsSnapshot)
@@ -31,10 +53,14 @@ async function getStats() {
     return {
       messages: messageCount?.count ?? 0,
       totalViews: viewCount?.total ?? 0,
+      posts: postCount?.count ?? 0,
+      publishedPosts: publishedPostCount?.count ?? 0,
+      projects: projectCount?.count ?? 0,
+      newsletters: newsletterCount?.count ?? 0,
       snapshot: latestSnapshot[0] ?? null,
     };
   } catch {
-    return { messages: 0, totalViews: 0, snapshot: null };
+    return { messages: 0, totalViews: 0, posts: 0, publishedPosts: 0, projects: 0, newsletters: 0, snapshot: null };
   }
 }
 
@@ -43,28 +69,40 @@ export default async function DashboardPage() {
 
   const cards = [
     {
-      label: 'Content Items',
-      value: '~40',
-      description: '7 content types (hardcoded)',
-      icon: FolderKanban,
-    },
-    {
       label: 'Blog Posts',
-      value: '—',
-      description: 'MDX files (file system)',
+      value: String(stats.posts),
+      description: `${stats.publishedPosts} published, ${stats.posts - stats.publishedPosts} drafts`,
       icon: FileText,
     },
     {
-      label: 'Guestbook Messages',
+      label: 'Projects',
+      value: String(stats.projects),
+      description: 'Total projects',
+      icon: FolderKanban,
+    },
+    {
+      label: 'Guestbook',
       value: String(stats.messages),
       description: 'Total messages',
       icon: MessageSquare,
     },
     {
-      label: 'Total Page Views',
+      label: 'Page Views',
       value: stats.totalViews.toLocaleString(),
       description: 'All pages combined',
       icon: Eye,
+    },
+    {
+      label: 'Newsletters',
+      value: String(stats.newsletters),
+      description: 'Issues sent',
+      icon: Mail,
+    },
+    {
+      label: 'Subscribers',
+      value: String(stats.snapshot?.newsletterSubscribers ?? 0),
+      description: 'Newsletter subscribers',
+      icon: Rss,
     },
   ];
 
