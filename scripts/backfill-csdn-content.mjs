@@ -10,7 +10,7 @@
  *   node scripts/backfill-csdn-content.mjs --juejin  # Juejin only
  */
 
-const ADMIN_API = 'https://admin.hi.kyriewen.cn';
+const ADMIN_API = 'https://admin.kyriewen.cn';
 const sourceArg = process.argv[2]; // --csdn or --juejin or undefined
 
 // ── HTML → Markdown ──────────────────────────────────────────────────
