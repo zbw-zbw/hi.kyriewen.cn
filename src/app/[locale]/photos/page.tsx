@@ -4,7 +4,7 @@ import { HeroProse } from '@/components/hero-prose';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { SectionHeading } from '@/components/section-heading';
 import { PhotoGrid } from '@/components/photo-grid';
-import { getPhotosByYear, PHOTOS } from '@/content/photos';
+import { getPhotosByYear, getPhotos } from '@/lib/content-loader';
 import type { Locale } from '@/i18n/routing';
 
 export async function generateMetadata({
@@ -25,7 +25,8 @@ export default async function PhotosPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const groups = getPhotosByYear();
+  const groups = await getPhotosByYear();
+  const PHOTOS = await getPhotos();
   const isZh = locale === 'zh';
 
   return (

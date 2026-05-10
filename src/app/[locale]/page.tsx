@@ -7,8 +7,7 @@ import { ScrollReveal } from '@/components/scroll-reveal';
 import { ProductCard } from '@/components/product-card';
 import { SectionHeading } from '@/components/section-heading';
 import { EmailLink } from '@/components/email-link';
-import { getFeaturedProjects } from '@/content/projects';
-import { SOCIAL_LINKS } from '@/content/social';
+import { getFeaturedProjects, getSocialLinks } from '@/lib/content-loader';
 import { getAllPosts } from '@/lib/blog';
 import { formatDate } from '@/lib/utils';
 import { db, pageViews } from '@/lib/db';
@@ -29,7 +28,8 @@ export default async function HomePage({
 
   const t = await getTranslations('home');
 
-  const projects = getFeaturedProjects();
+  const projects = await getFeaturedProjects();
+  const socialLinks = await getSocialLinks();
   const allPostsForLocale = await getAllPosts(locale);
   const latestPosts = allPostsForLocale.slice(0, 3);
 
@@ -239,7 +239,7 @@ export default async function HomePage({
           title={t('connect.title')}
         />
         <div className="flex flex-wrap gap-x-6 gap-y-3">
-          {SOCIAL_LINKS.map(({ name, href, Icon, isEmail }) =>
+          {socialLinks.map(({ name, href, Icon, isEmail }) =>
             isEmail ? (
               <span
                 key={name}

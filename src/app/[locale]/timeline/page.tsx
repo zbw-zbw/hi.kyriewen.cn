@@ -1,6 +1,6 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { getTimelineByYear } from '@/content/timeline';
+import { getTimelineByYear } from '@/lib/content-loader';
 import { HeroProse } from '@/components/hero-prose';
 import { ReadingProgress } from '@/components/reading-progress';
 import { ScrollReveal } from '@/components/scroll-reveal';
@@ -34,7 +34,7 @@ export default async function TimelinePage({
   setRequestLocale(locale);
   const t = await getTranslations('timeline.page');
 
-  const groups = getTimelineByYear(locale);
+  const groups = await getTimelineByYear(locale);
 
   return (
     <>

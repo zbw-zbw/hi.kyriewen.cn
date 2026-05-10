@@ -7,13 +7,14 @@ import { buttonVariants } from '@/components/ui/button';
 import { SectionHeading } from '@/components/section-heading';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { ReadingProgress } from '@/components/reading-progress';
-import { PROJECTS, type Project } from '@/content/projects';
+import { getProjects, getProjectBySlug, type Project } from '@/lib/content-loader';
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
 
 /* ── Static Generation ── */
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const PROJECTS = await getProjects();
   return PROJECTS.map((p) => ({ slug: p.slug }));
 }
 
@@ -23,7 +24,7 @@ export async function generateMetadata({
   params: Promise<{ locale: Locale; slug: string }>;
 }) {
   const { locale, slug } = await params;
-  const project = PROJECTS.find((p) => p.slug === slug);
+  const project = await getProjectBySlug(slug);
   if (!project) return {};
 
   const title = `${project.name} — ${project.tagline[locale]}`;
@@ -44,7 +45,7 @@ export default async function ProjectDetailPage({
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
-  const project = PROJECTS.find((p) => p.slug === slug);
+  const project = await getProjectBySlug(slug);
   if (!project) notFound();
 
   const t = await getTranslations('projects.detail');

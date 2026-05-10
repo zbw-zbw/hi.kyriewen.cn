@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
-import { NOW_ITEMS, NOW_UPDATED_AT } from '@/content/now';
+import { getNowItems, getNowUpdatedAt } from '@/lib/content-loader';
+import type { NowItem } from '@/lib/content-loader';
 import { LastfmWidget } from '@/components/lastfm-widget';
 import { HeroProse } from '@/components/hero-prose';
 import { ScrollReveal } from '@/components/scroll-reveal';
@@ -34,6 +35,8 @@ export default async function NowPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const NOW_ITEMS = await getNowItems();
+  const NOW_UPDATED_AT = await getNowUpdatedAt();
 
   const t = await getTranslations('now.page');
 

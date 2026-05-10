@@ -5,7 +5,7 @@ import { ProductCard } from '@/components/product-card';
 import { ProjectsFilter } from '@/components/projects-filter';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { SectionHeading } from '@/components/section-heading';
-import { PROJECTS } from '@/content/projects';
+import { getProjects } from '@/lib/content-loader';
 import { fetchRepoStats } from '@/lib/github';
 import type { Locale } from '@/i18n/routing';
 
@@ -30,6 +30,8 @@ export default async function ProjectsPage({
   setRequestLocale(locale);
 
   const tp = await getTranslations('projects.page');
+
+  const PROJECTS = await getProjects();
 
   const projectsWithStats = await Promise.all(
     PROJECTS.map(async (project) => {

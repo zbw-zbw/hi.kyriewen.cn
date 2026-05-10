@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { ArrowUpRight, Star } from 'lucide-react';
-import { USES, formatSince } from '@/content/uses';
+import { getUses, formatSince } from '@/lib/content-loader';
 import { HeroProse } from '@/components/hero-prose';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { SectionHeading } from '@/components/section-heading';
@@ -48,6 +48,7 @@ export default async function UsesPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const USES = await getUses();
   const t = await getTranslations('uses.page');
 
   return (
