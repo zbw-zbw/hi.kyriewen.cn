@@ -7,41 +7,29 @@ import { SectionHeading } from '@/components/section-heading';
 import { NewsletterForm } from '@/components/newsletter-form';
 import { Card } from '@/components/ui/card';
 import type { Locale } from '@/i18n/routing';
+import { db } from '@/lib/db';
+import { newsletterIssues } from '@/lib/db/schema';
+import { desc } from 'drizzle-orm';
 
 export const metadata: Metadata = {
   title: 'Subscribe',
 };
 
-/**
- * Mock 数据：最近发出的几期邮件标题。
- * 真实接入 Resend / Buttondown 后改成 server fetch。
- */
-const RECENT_ISSUES: Array<{
-  date: string;
-  title: { en: string; zh: string };
-}> = [
-  {
-    date: '2026-04-30',
-    title: {
-      en: 'Issue #03 — Building in public, 90 days in',
-      zh: '第 03 期 —— 公开造物的 90 天复盘',
-    },
-  },
-  {
-    date: '2026-03-31',
-    title: {
-      en: 'Issue #02 — Why I rewrote my site in Next.js 15',
-      zh: '第 02 期 —— 为什么我用 Next.js 15 重写了个人站',
-    },
-  },
-  {
-    date: '2026-02-28',
-    title: {
-      en: 'Issue #01 — Hello, indie life',
-      zh: '第 01 期 —— 你好，独立开发',
-    },
-  },
-];
+async function getRecentIssues() {
+  try {
+    const rows = await db
+      .select({
+        subject: newsletterIssues.subject,
+        sentAt: newsletterIssues.sentAt,
+      })
+      .from(newsletterIssues)
+      .orderBy(desc(newsletterIssues.sentAt))
+      .limit(3);
+    return rows.filter((r) => r.sentAt !== null);
+  } catch {
+    return [];
+  }
+}
 
 export default async function SubscribePage({
   params,
@@ -52,6 +40,7 @@ export default async function SubscribePage({
   setRequestLocale(locale);
   const t = await getTranslations('subscribe.page');
   const isZh = locale === 'zh';
+  const recentIssues = await getRecentIssues();
 
   // Tailwind perks 数组：next-intl 的 plural 不太适合数组，直接 raw 取
   const perks = (
@@ -130,33 +119,30 @@ export default async function SubscribePage({
       </ScrollReveal>
 
       {/* ── 最近三期 ── */}
-      <ScrollReveal delay={0.2}>
-        <SectionHeading
-          index="02"
-          eyebrow={isZh ? '往期' : 'Archive'}
-          title={isZh ? '最近三期' : 'Recent issues'}
-        />
-        <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--card)]">
-          {RECENT_ISSUES.map((issue) => (
-            <li
-              key={issue.date}
-              className="flex items-baseline justify-between gap-4 p-4"
-            >
-              <span className="text-sm font-medium">
-                {issue.title[locale]}
-              </span>
-              <time className="shrink-0 font-mono text-xs text-[var(--muted)]">
-                {issue.date}
-              </time>
-            </li>
-          ))}
-        </ul>
-        <p className="mt-3 text-xs text-[var(--muted)]">
-          {isZh
-            ? '* 历史邮件归档功能开发中，敬请期待。'
-            : '* Full archive coming soon.'}
-        </p>
-      </ScrollReveal>
+      {recentIssues.length > 0 && (
+        <ScrollReveal delay={0.2}>
+          <SectionHeading
+            index="02"
+            eyebrow={isZh ? '往期' : 'Archive'}
+            title={isZh ? '最近三期' : 'Recent issues'}
+          />
+          <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--card)]">
+            {recentIssues.map((issue) => (
+              <li
+                key={issue.sentAt!.toISOString()}
+                className="flex items-baseline justify-between gap-4 p-4"
+              >
+                <span className="text-sm font-medium">
+                  {issue.subject}
+                </span>
+                <time className="shrink-0 font-mono text-xs text-[var(--muted)]">
+                  {issue.sentAt!.toISOString().slice(0, 10)}
+                </time>
+              </li>
+            ))}
+          </ul>
+        </ScrollReveal>
+      )}
     </div>
   );
 }

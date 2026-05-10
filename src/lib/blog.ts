@@ -30,7 +30,7 @@ const blogSource = process.env.BLOG_SOURCE; // 'db' | 'file' | undefined
 function shouldReadBlogDb(): boolean {
   if (blogSource === 'file') return false;
   if (blogSource === 'db') return true;
-  return false; // default: file (until migration is complete)
+  return true; // default: try db first, fallback to file
 }
 
 function calcReadingTime(content: string) {
@@ -107,7 +107,9 @@ async function readDbPostsForLocale(locale: Locale): Promise<Post[]> {
 
 export async function getAllPosts(locale: Locale): Promise<Post[]> {
   if (!shouldReadBlogDb()) return readPostsForLocale(locale);
-  return readDbPostsForLocale(locale);
+  const dbPosts = await readDbPostsForLocale(locale);
+  if (dbPosts.length === 0) return readPostsForLocale(locale);
+  return dbPosts;
 }
 
 export async function getPostBySlug(locale: Locale, slug: string): Promise<Post | null> {
@@ -121,10 +123,16 @@ export async function getPostBySlug(locale: Locale, slug: string): Promise<Post 
       .from(blogPosts)
       .where(and(eq(blogPosts.slug, slug), eq(blogPosts.lang, locale)))
       .limit(1);
-    if (rows.length === 0) return null;
+    if (rows.length === 0) {
+      // fallback to file
+      const posts = readPostsForLocale(locale);
+      return posts.find((p) => p.slug === slug) ?? null;
+    }
     return dbRowToPost(rows[0]!);
   } catch {
-    return null;
+    // fallback to file on db error
+    const posts = readPostsForLocale(locale);
+    return posts.find((p) => p.slug === slug) ?? null;
   }
 }
 
@@ -153,20 +161,22 @@ export async function getAdjacentPosts(
 }
 
 export async function getAllPostSlugs(): Promise<{ locale: Locale; slug: string }[]> {
-  if (!shouldReadBlogDb()) {
+  const fileFallback = () => {
     const locales: Locale[] = ['en', 'zh'];
     return locales.flatMap((locale) =>
       readPostsForLocale(locale).map((p) => ({ locale, slug: p.slug }))
     );
-  }
+  };
+  if (!shouldReadBlogDb()) return fileFallback();
   try {
     const rows = await db
       .select({ slug: blogPosts.slug, lang: blogPosts.lang })
       .from(blogPosts)
       .where(eq(blogPosts.draft, 0));
+    if (rows.length === 0) return fileFallback();
     return rows.map((r) => ({ locale: r.lang as Locale, slug: r.slug }));
   } catch {
-    return [];
+    return fileFallback();
   }
 }
 

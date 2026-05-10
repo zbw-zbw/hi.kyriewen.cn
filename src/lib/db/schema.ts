@@ -325,6 +325,25 @@ export const blogPosts = pgTable(
   ]
 );
 
+/**
+ * Newsletter 期刊记录
+ */
+export const newsletterIssues = pgTable(
+  'newsletter_issues',
+  {
+    id: serial('id').primaryKey(),
+    subject: varchar('subject', { length: 512 }).notNull(),
+    previewText: text('preview_text'),
+    htmlContent: text('html_content').notNull(),
+    sentAt: timestamp('sent_at', { withTimezone: true }),
+    recipientCount: integer('recipient_count').notNull().default(0),
+    resendBroadcastId: varchar('resend_broadcast_id', { length: 128 }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('newsletter_issues_sent_idx').on(table.sentAt)]
+);
+
 // ─── Type Exports ────────────────────────────────────────────────
 
 export type GuestbookMessage = typeof guestbookMessages.$inferSelect;
@@ -354,3 +373,5 @@ export type PopularPostRow = typeof popularPosts.$inferSelect;
 export type NewPopularPostRow = typeof popularPosts.$inferInsert;
 export type BlogPostRow = typeof blogPosts.$inferSelect;
 export type NewBlogPostRow = typeof blogPosts.$inferInsert;
+export type NewsletterIssueRow = typeof newsletterIssues.$inferSelect;
+export type NewNewsletterIssueRow = typeof newsletterIssues.$inferInsert;

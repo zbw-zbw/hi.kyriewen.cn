@@ -8,6 +8,14 @@
     {
       "path": "/api/cron/chrome-stats",
       "schedule": "5 0 * * *"
+    },
+    {
+      "path": "/api/cron/sync-projects",
+      "schedule": "10 0 * * *"
+    },
+    {
+      "path": "/api/cron/sync-newsletter",
+      "schedule": "15 0 * * *"
     }
   ],
   "headers": [

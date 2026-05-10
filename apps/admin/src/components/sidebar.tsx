@@ -12,6 +12,9 @@ import {
   Link2,
   TrendingUp,
   FileText,
+  MessageSquare,
+  Mail,
+  Database,
   LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -26,6 +29,9 @@ const navItems = [
   { href: '/uses', label: 'Uses', icon: Wrench },
   { href: '/social', label: 'Social Links', icon: Link2 },
   { href: '/popular', label: 'Popular Posts', icon: TrendingUp },
+  { href: '/guestbook', label: 'Guestbook', icon: MessageSquare },
+  { href: '/newsletter', label: 'Newsletter', icon: Mail },
+  { href: '/seed', label: 'Seed Data', icon: Database },
 ];
 
 export function Sidebar() {
