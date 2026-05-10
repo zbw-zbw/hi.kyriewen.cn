@@ -51,7 +51,7 @@ function parseRssItems(xml: string): RssItem[] {
 function extractCdata(xml: string, tag: string): string {
   const cdataRe = new RegExp(`<${tag}>\\s*<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>\\s*</${tag}>`, 'i');
   const cdataMatch = cdataRe.exec(xml);
-  if (cdataMatch) return cdataMatch[1].trim();
+  if (cdataMatch) return (cdataMatch[1] ?? '').trim();
   return extractTag(xml, tag);
 }
 
@@ -59,7 +59,7 @@ function extractCdata(xml: string, tag: string): string {
 function extractTag(xml: string, tag: string): string {
   const re = new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`, 'i');
   const m = re.exec(xml);
-  return m ? m[1].trim() : '';
+  return m ? (m[1] ?? '').trim() : '';
 }
 
 /* ------------------------------------------------------------------ */
@@ -201,8 +201,8 @@ function htmlToMarkdown(html: string): string {
       const cells: string[] = [];
       const cellRe = /<(?:td|th)[^>]*>([\s\S]*?)<\/(?:td|th)>/gi;
       let cellMatch: RegExpExecArray | null;
-      while ((cellMatch = cellRe.exec(rowMatch[1])) !== null) {
-        cells.push(strip(cellMatch[1]).trim());
+      while ((cellMatch = cellRe.exec(rowMatch[1] ?? '')) !== null) {
+        cells.push(strip(cellMatch[1] ?? '').trim());
       }
       if (cells.length > 0) {
         rows.push(`| ${cells.join(' | ')} |`);
@@ -255,7 +255,7 @@ function decodeEntities(text: string): string {
 function slugify(title: string, articleUrl: string): string {
   // Extract the numeric article ID from CSDN URL
   const idMatch = articleUrl.match(/\/details\/(\d+)/);
-  const articleId = idMatch ? idMatch[1] : '';
+  const articleId = idMatch ? (idMatch[1] ?? '') : '';
 
   // Try to build a readable prefix from the title
   const englishParts = title
@@ -319,7 +319,7 @@ export async function GET(req: Request) {
     for (const article of articles) {
       // Extract article ID from URL
       const idMatch = article.link.match(/\/details\/(\d+)/);
-      const articleId = idMatch ? idMatch[1] : '';
+      const articleId = idMatch?.[1] ?? '';
 
       if (!articleId) {
         skipped++;
