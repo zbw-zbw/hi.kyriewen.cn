@@ -179,6 +179,17 @@ export function BlogEditor({ post }: BlogEditorProps) {
       }
 
       toast.success('Post published!');
+
+      // Auto-translate if Chinese article
+      if (lang === 'zh') {
+        toast.info('正在自动翻译英文版…');
+        try {
+          await autoTranslateToEnglish();
+        } catch {
+          toast.error('自动翻译失败，可稍后手动翻译');
+        }
+      }
+
       router.push('/blog');
       router.refresh();
     } catch (error) {
@@ -188,7 +199,76 @@ export function BlogEditor({ post }: BlogEditorProps) {
     }
   }
 
-  // Auto-translate: save current zh post, then create/update en version
+  // Shared translate logic used by both auto-publish and manual translate
+  async function autoTranslateToEnglish() {
+    const markdownContent = await htmlToMarkdown(editorHtml);
+    const textsToTranslate = [
+      { text: title, type: 'title' as const, field: 'title' },
+      ...(summary ? [{ text: summary, type: 'description' as const, field: 'summary' }] : []),
+      ...(markdownContent
+        ? [{ text: markdownContent, type: 'article' as const, field: 'content' }]
+        : []),
+    ];
+
+    const translateRes = await fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: textsToTranslate }),
+    });
+
+    if (!translateRes.ok) {
+      const err = await translateRes.json().catch(() => ({}));
+      throw new Error(err.error ?? 'Translation failed');
+    }
+
+    const { results } = await translateRes.json();
+    const translated: Record<string, string> = {};
+    for (const r of results) {
+      if (r.field) translated[r.field] = r.translated;
+    }
+
+    const enBody = {
+      slug: slug.trim(),
+      title: translated.title ?? title,
+      summary: translated.summary ?? summary ?? null,
+      content: translated.content ?? markdownContent,
+      tags: tagsInput
+        .split(',')
+        .map((t: string) => t.trim())
+        .filter(Boolean),
+      lang: 'en',
+      draft: 1,
+      coverImage: coverImage.trim() || null,
+    };
+
+    const checkRes = await fetch(`/api/blog?lang=en&slug=${encodeURIComponent(slug.trim())}`);
+    let method = 'POST';
+    let url = '/api/blog';
+
+    if (checkRes.ok) {
+      const existing = await checkRes.json();
+      const posts = existing.data ?? existing.posts ?? [];
+      if (posts.length > 0) {
+        method = 'PATCH';
+        url = `/api/blog/${posts[0].id}`;
+      }
+    }
+
+    const saveRes = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(enBody),
+    });
+
+    if (!saveRes.ok) {
+      const err = await saveRes.json().catch(() => ({}));
+      throw new Error(err.error ?? 'Failed to save English version');
+    }
+
+    toast.success('已自动创建英文版草稿');
+  }
+
+  // Manual translate button handler — reuses autoTranslateToEnglish
   async function handleTranslate() {
     if (lang !== 'zh') {
       toast.error('Auto-translate only works for Chinese articles.');
@@ -201,74 +281,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
 
     setTranslating(true);
     try {
-      // 1. Translate title, summary, content in batch
-      const markdownContent = await htmlToMarkdown(editorHtml);
-      const textsToTranslate = [
-        { text: title, type: 'title' as const, field: 'title' },
-        ...(summary ? [{ text: summary, type: 'description' as const, field: 'summary' }] : []),
-        ...(markdownContent
-          ? [{ text: markdownContent, type: 'article' as const, field: 'content' }]
-          : []),
-      ];
-
-      const translateRes = await fetch('/api/translate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: textsToTranslate }),
-      });
-
-      if (!translateRes.ok) {
-        const err = await translateRes.json().catch(() => ({}));
-        throw new Error(err.error ?? 'Translation failed');
-      }
-
-      const { results } = await translateRes.json();
-      const translated: Record<string, string> = {};
-      for (const r of results) {
-        if (r.field) translated[r.field] = r.translated;
-      }
-
-      // 2. Create or update English version
-      const enBody = {
-        slug: slug.trim(),
-        title: translated.title ?? title,
-        summary: translated.summary ?? summary ?? null,
-        content: translated.content ?? markdownContent,
-        tags: tagsInput
-          .split(',')
-          .map((t: string) => t.trim())
-          .filter(Boolean),
-        lang: 'en',
-        draft: 1, // Always create as draft for review
-        coverImage: coverImage.trim() || null,
-      };
-
-      // Try to find existing English version
-      const checkRes = await fetch(`/api/blog?lang=en&slug=${encodeURIComponent(slug.trim())}`);
-      let method = 'POST';
-      let url = '/api/blog';
-
-      if (checkRes.ok) {
-        const existing = await checkRes.json();
-        const posts = existing.data ?? existing.posts ?? [];
-        if (posts.length > 0) {
-          method = 'PATCH';
-          url = `/api/blog/${posts[0].id}`;
-        }
-      }
-
-      const saveRes = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(enBody),
-      });
-
-      if (!saveRes.ok) {
-        const err = await saveRes.json().catch(() => ({}));
-        throw new Error(err.error ?? 'Failed to save English version');
-      }
-
-      toast.success('English version created/updated as draft!');
+      await autoTranslateToEnglish();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Translation failed');
     } finally {
