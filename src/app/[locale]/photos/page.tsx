@@ -23,27 +23,23 @@ export async function generateMetadata({
 export default async function PhotosPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations({ locale, namespace: 'photos.page' });
 
   const groups = await getPhotosByYear();
   const PHOTOS = await getPhotos();
-  const isZh = locale === 'zh';
 
   return (
     <div>
-      <HeroProse eyebrow={isZh ? '照片 · 旅行足迹' : 'Photos · Travel'}>
-        <p>
-          {isZh
-            ? '一些路上的瞬间。占位图来自 Unsplash，会陆续替换为我自己拍的。'
-            : 'Moments from the road. Placeholders from Unsplash for now — will be swapped with my own gradually.'}
-        </p>
+      <HeroProse eyebrow={t('heroEyebrow')}>
+        <p>{t('heroBody')}</p>
       </HeroProse>
 
       {groups.map(({ year, photos }, gi) => (
         <ScrollReveal as="section" key={year} className="mt-[var(--space-section)]">
           <SectionHeading
             index={String(gi + 1).padStart(2, '0')}
-            eyebrow={isZh ? `${year} 年` : String(year)}
-            title={isZh ? `${year} 年的瞬间` : `Moments from ${year}`}
+            eyebrow={t('yearEyebrow', { year })}
+            title={t('yearTitle', { year })}
           />
           <PhotoGrid photos={photos} allPhotos={PHOTOS} locale={locale} />
         </ScrollReveal>

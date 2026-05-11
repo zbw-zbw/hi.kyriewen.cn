@@ -35,7 +35,6 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('subscribe.page');
-  const isZh = locale === 'zh';
   const recentIssues = await getRecentIssues();
 
   // Tailwind perks 数组：next-intl 的 plural 不太适合数组，直接 raw 取
@@ -65,11 +64,7 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
 
       {/* ── 我承诺什么 ── */}
       <ScrollReveal delay={0.1}>
-        <SectionHeading
-          index="01"
-          eyebrow={isZh ? '承诺' : 'Promise'}
-          title={isZh ? '你会得到什么' : "What you'll get"}
-        />
+        <SectionHeading index="01" eyebrow={t('promiseEyebrow')} title={t('promiseTitle')} />
         <ul className="space-y-3">
           {perks.map((perk, i) => (
             <li key={i} className="flex items-start gap-3">
@@ -85,18 +80,18 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
         <div className="grid gap-3 sm:grid-cols-3">
           <PromiseCard
             icon={<Mail className="h-4 w-4" />}
-            title={isZh ? '每月一封' : 'Once a month'}
-            desc={isZh ? '从不打扰，节奏稳定。' : 'Steady cadence, never noisy.'}
+            title={t('promiseOnceTitle')}
+            desc={t('promiseOnceDesc')}
           />
           <PromiseCard
             icon={<ShieldCheck className="h-4 w-4" />}
-            title={isZh ? '不卖名单' : 'No list selling'}
-            desc={isZh ? '邮箱仅用于发邮件。' : 'Your email is used solely to send the letter.'}
+            title={t('promiseNoSellTitle')}
+            desc={t('promiseNoSellDesc')}
           />
           <PromiseCard
             icon={<Sparkles className="h-4 w-4" />}
-            title={isZh ? '一键退订' : 'One-click unsubscribe'}
-            desc={isZh ? '每封邮件底部都有退订链接。' : 'Every email includes an unsubscribe link.'}
+            title={t('promiseUnsubTitle')}
+            desc={t('promiseUnsubDesc')}
           />
         </div>
       </ScrollReveal>
@@ -104,11 +99,7 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
       {/* ── 最近三期 ── */}
       {recentIssues.length > 0 && (
         <ScrollReveal delay={0.2}>
-          <SectionHeading
-            index="02"
-            eyebrow={isZh ? '往期' : 'Archive'}
-            title={isZh ? '最近三期' : 'Recent issues'}
-          />
+          <SectionHeading index="02" eyebrow={t('archiveEyebrow')} title={t('archiveTitle')} />
           <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--card)]">
             {recentIssues.map((issue) => (
               <li

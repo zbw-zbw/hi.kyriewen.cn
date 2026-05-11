@@ -197,6 +197,14 @@
     "italicSample": "斜体",
     "linkSample": "链接"
   },
+  "photos": {
+    "page": {
+      "heroEyebrow": "照片 · 旅行足迹",
+      "heroBody": "一些路上的瞬间。占位图来自 Unsplash，会陆续替换为我自己拍的。",
+      "yearEyebrow": "{year} 年",
+      "yearTitle": "{year} 年的瞬间"
+    }
+  },
   "subscribe": {
     "page": {
       "metaTitle": "订阅 Newsletter",
@@ -208,7 +216,17 @@
         "精选阅读清单与开发小技巧",
         "下一个项目的抢先预告"
       ],
-      "footnote": "由 Resend 提供支持，你的邮箱不会被泄露。"
+      "footnote": "由 Resend 提供支持，你的邮箱不会被泄露。",
+      "promiseEyebrow": "承诺",
+      "promiseTitle": "你会得到什么",
+      "promiseOnceTitle": "每月一封",
+      "promiseOnceDesc": "从不打扰，节奏稳定。",
+      "promiseNoSellTitle": "不卖名单",
+      "promiseNoSellDesc": "邮箱仅用于发邮件。",
+      "promiseUnsubTitle": "一键退订",
+      "promiseUnsubDesc": "每封邮件底部都有退订链接。",
+      "archiveEyebrow": "往期",
+      "archiveTitle": "最近三期"
     }
   },
   "footer": {
@@ -239,7 +257,12 @@
     "error": "出错了，请重试。",
     "emptyHint": "问我关于我的产品、技术栈、博客或任何事！",
     "comingSoon": "即将上线",
-    "comingSoonDesc": "AI 对话正在配置中，敬请期待！"
+    "comingSoonDesc": "AI 对话正在配置中，敬请期待！",
+    "send": "发送",
+    "openAssistant": "打开 AI 助手",
+    "close": "关闭",
+    "sendFailed": "消息发送失败，请稍后重试。",
+    "replyFailed": "抱歉，回复失败了，请重试。"
   },
   "common": {
     "loading": "加载中...",

@@ -53,7 +53,6 @@ function MarkdownBubble({ text }: { text: string }) {
 
 export default function AskPage() {
   const locale = useLocale();
-  const isZh = locale === 'zh';
   const t = useTranslations('ask');
 
   const [input, setInput] = useState('');
@@ -191,7 +190,7 @@ export default function AskPage() {
           type="submit"
           disabled={isStreaming || !input.trim()}
           className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-          aria-label={isZh ? '发送' : 'Send'}
+          aria-label={t('send')}
         >
           <Send className="h-4 w-4" />
         </button>

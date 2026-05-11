@@ -1,25 +1,10 @@
 'use client';
 
-import {
-  type FormEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport, type UIMessage } from 'ai';
 import { useLocale, useTranslations } from 'next-intl';
-import {
-  Send,
-  Bot,
-  User,
-  Loader2,
-  X,
-  AlertCircle,
-  Sparkles,
-  MessageCircle,
-} from 'lucide-react';
+import { Send, Bot, User, Loader2, X, AlertCircle, Sparkles, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 function getMessageText(message: UIMessage): string {
@@ -54,7 +39,7 @@ function MarkdownBubble({ text }: { text: string }) {
   if (!html) return <p className="whitespace-pre-wrap">{text}</p>;
   return (
     <div
-      className="prose-kw text-sm [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+      className="prose-kw text-sm [&_ol]:my-1 [&_p]:my-1 [&_ul]:my-1"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -62,7 +47,6 @@ function MarkdownBubble({ text }: { text: string }) {
 
 export function AiChatBubble() {
   const locale = useLocale();
-  const isZh = locale === 'zh';
   const t = useTranslations('ask');
 
   const [isOpen, setIsOpen] = useState(false);
@@ -77,17 +61,10 @@ export function AiChatBubble() {
   const { messages, sendMessage, status } = useChat({
     transport: new TextStreamChatTransport({ api: '/api/chat' }),
     onError: (err: Error) => {
-      if (
-        err.message?.includes('503') ||
-        err.message?.includes('not configured')
-      ) {
+      if (err.message?.includes('503') || err.message?.includes('not configured')) {
         setApiUnavailable(true);
       } else {
-        setErrorMessage(
-          isZh
-            ? '消息发送失败，请稍后重试。'
-            : 'Failed to send message. Please try again.'
-        );
+        setErrorMessage(t('sendFailed'));
       }
     },
   });
@@ -144,14 +121,10 @@ export function AiChatBubble() {
       try {
         await sendMessage({ text });
       } catch {
-        setErrorMessage(
-          isZh
-            ? '消息发送失败，请稍后重试。'
-            : 'Failed to send message. Please try again.'
-        );
+        setErrorMessage(t('sendFailed'));
       }
     },
-    [input, isStreaming, sendMessage, isZh]
+    [input, isStreaming, sendMessage, t],
   );
 
   return (
@@ -162,9 +135,9 @@ export function AiChatBubble() {
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
           'fixed right-5 bottom-20 z-50 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full shadow-lg transition-all duration-300',
-          'bg-[var(--accent)] text-[var(--accent-fg)] hover:scale-105 hover:shadow-xl'
+          'bg-[var(--accent)] text-[var(--accent-fg)] hover:scale-105 hover:shadow-xl',
         )}
-        aria-label={isZh ? '打开 AI 助手' : 'Open AI Assistant'}
+        aria-label={t('openAssistant')}
       >
         <MessageCircle className="h-5 w-5" />
       </button>
@@ -176,7 +149,7 @@ export function AiChatBubble() {
           style={keyboardOffset > 0 ? { bottom: `${keyboardOffset + 16}px` } : undefined}
           className={cn(
             'fixed right-5 z-50 flex w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl',
-            keyboardOffset > 0 ? 'h-[min(360px,50dvh)]' : 'bottom-[8.5rem] h-[min(480px,60dvh)]'
+            keyboardOffset > 0 ? 'h-[min(360px,50dvh)]' : 'bottom-[8.5rem] h-[min(480px,60dvh)]',
           )}
         >
           {/* 头部 */}
@@ -190,7 +163,7 @@ export function AiChatBubble() {
               type="button"
               onClick={() => setIsOpen(false)}
               className="ml-auto inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]"
-              aria-label={isZh ? '关闭' : 'Close'}
+              aria-label={t('close')}
             >
               <X className="h-4 w-4" />
             </button>
@@ -202,28 +175,23 @@ export function AiChatBubble() {
               <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
                 <Sparkles className="h-8 w-8 text-[var(--accent)]" />
                 <p className="text-sm font-medium">{t('comingSoon')}</p>
-                <p className="max-w-[240px] text-xs text-[var(--muted)]">
-                  {t('comingSoonDesc')}
-                </p>
+                <p className="max-w-[240px] text-xs text-[var(--muted)]">{t('comingSoonDesc')}</p>
               </div>
             ) : messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-3 py-8 text-center">
                 <Bot className="h-10 w-10 text-[var(--border)]" />
-                <p className="max-w-[240px] text-xs text-[var(--muted)]">
-                  {t('emptyHint')}
-                </p>
+                <p className="max-w-[240px] text-xs text-[var(--muted)]">{t('emptyHint')}</p>
               </div>
             ) : (
               messages.map((message) => {
                 const text = getMessageText(message);
-                const isEmpty =
-                  message.role === 'assistant' && !text.trim();
+                const isEmpty = message.role === 'assistant' && !text.trim();
                 return (
                   <div
                     key={message.id}
                     className={cn(
                       'flex gap-2',
-                      message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                      message.role === 'user' ? 'flex-row-reverse' : 'flex-row',
                     )}
                   >
                     <div
@@ -231,7 +199,7 @@ export function AiChatBubble() {
                         'flex h-7 w-7 shrink-0 items-center justify-center rounded-full',
                         message.role === 'user'
                           ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                          : 'bg-[var(--card)] text-[var(--muted)]'
+                          : 'bg-[var(--card)] text-[var(--muted)]',
                       )}
                     >
                       {message.role === 'user' ? (
@@ -245,15 +213,11 @@ export function AiChatBubble() {
                         'max-w-[75%] rounded-2xl px-3 py-2 text-sm leading-relaxed',
                         message.role === 'user'
                           ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                          : 'bg-[var(--card)] text-[var(--card-fg)]'
+                          : 'bg-[var(--card)] text-[var(--card-fg)]',
                       )}
                     >
                       {isEmpty ? (
-                        <p className="italic text-[var(--muted)]">
-                          {isZh
-                            ? '抱歉，回复失败了，请重试。'
-                            : 'Sorry, something went wrong. Please try again.'}
-                        </p>
+                        <p className="text-[var(--muted)] italic">{t('replyFailed')}</p>
                       ) : message.role === 'assistant' ? (
                         <MarkdownBubble text={text} />
                       ) : (
@@ -265,16 +229,17 @@ export function AiChatBubble() {
               })
             )}
 
-            {isStreaming && (() => {
-              const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
-              const hasText = lastAssistant && getMessageText(lastAssistant).trim();
-              return !hasText;
-            })() && (
-              <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>{t('thinking')}</span>
-              </div>
-            )}
+            {isStreaming &&
+              (() => {
+                const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
+                const hasText = lastAssistant && getMessageText(lastAssistant).trim();
+                return !hasText;
+              })() && (
+                <div className="flex items-center gap-2 text-xs text-[var(--muted)]">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>{t('thinking')}</span>
+                </div>
+              )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -305,7 +270,7 @@ export function AiChatBubble() {
                 type="submit"
                 disabled={isStreaming || !input.trim()}
                 className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-[var(--accent)] text-[var(--accent-fg)] transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label={isZh ? '发送' : 'Send'}
+                aria-label={t('send')}
               >
                 <Send className="h-3.5 w-3.5" />
               </button>

@@ -197,6 +197,14 @@
     "italicSample": "italic",
     "linkSample": "link"
   },
+  "photos": {
+    "page": {
+      "heroEyebrow": "Photos · Travel",
+      "heroBody": "Moments from the road. Placeholders from Unsplash for now — will be swapped with my own gradually.",
+      "yearEyebrow": "{year}",
+      "yearTitle": "Moments from {year}"
+    }
+  },
   "subscribe": {
     "page": {
       "metaTitle": "Subscribe",
@@ -208,7 +216,17 @@
         "Curated reading list and dev tips",
         "First look at things I'm shipping next"
       ],
-      "footnote": "Powered by Resend. Your email stays private."
+      "footnote": "Powered by Resend. Your email stays private.",
+      "promiseEyebrow": "Promise",
+      "promiseTitle": "What you'll get",
+      "promiseOnceTitle": "Once a month",
+      "promiseOnceDesc": "Steady cadence, never noisy.",
+      "promiseNoSellTitle": "No list selling",
+      "promiseNoSellDesc": "Your email is used solely to send the letter.",
+      "promiseUnsubTitle": "One-click unsubscribe",
+      "promiseUnsubDesc": "Every email includes an unsubscribe link.",
+      "archiveEyebrow": "Archive",
+      "archiveTitle": "Recent issues"
     }
   },
   "footer": {
@@ -239,7 +257,12 @@
     "error": "Something went wrong. Please try again.",
     "emptyHint": "Ask me about my projects, tech stack, blog posts, or anything else!",
     "comingSoon": "Coming Soon",
-    "comingSoonDesc": "AI Chat is being set up. Check back soon!"
+    "comingSoonDesc": "AI Chat is being set up. Check back soon!",
+    "send": "Send",
+    "openAssistant": "Open AI Assistant",
+    "close": "Close",
+    "sendFailed": "Failed to send message. Please try again.",
+    "replyFailed": "Sorry, something went wrong. Please try again."
   },
   "common": {
     "loading": "Loading...",
