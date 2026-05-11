@@ -1,8 +1,8 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Github, Twitter, Mail, Rss, MessageSquare } from 'lucide-react';
-import { Link } from '@/i18n/navigation';
+import { Github, Twitter, Mail, Rss } from 'lucide-react';
+import { EmailLink } from '@/components/email-link';
 import type { SerializableSocialLink } from '@/lib/content-loader';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -43,14 +43,7 @@ export function Footer({ socialLinks }: { socialLinks: SerializableSocialLink[] 
                   })()}
                 </a>
               ))}
-            <Link
-              href="/guestbook"
-              aria-label="Guestbook"
-              title="Guestbook"
-              className="cursor-pointer transition-colors hover:text-[var(--fg)]"
-            >
-              <MessageSquare className="h-4 w-4" />
-            </Link>
+            <EmailLink variant="pill" />
           </div>
         </div>
       </div>

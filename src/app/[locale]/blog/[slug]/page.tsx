@@ -165,7 +165,7 @@ export default async function BlogPostPage({
       <div className="relative -mt-10 flex gap-10 sm:-mt-14 lg:justify-center">
         <article className="min-w-0 flex-1 lg:max-w-2xl">
           {/* 吸顶 header 区域：返回按钮 + 标题 + 元信息 + 标签 */}
-          <div className="sticky top-14 z-10 bg-[var(--bg)] pt-6 pb-8">
+          <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-8 sm:-mx-6 sm:px-6">
             <Link
               href="/blog"
               className="mb-1 inline-flex items-center gap-1.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]"

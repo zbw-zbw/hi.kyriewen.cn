@@ -229,35 +229,30 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
       <ScrollReveal as="section" className="mt-[var(--space-section)] pb-8">
         <SectionHeading index="05" eyebrow={t('connect.eyebrow')} title={t('connect.title')} />
         <div className="flex flex-wrap gap-x-6 gap-y-3">
-          {socialLinks.map((link) => {
-            const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-              Github,
-              Twitter,
-              Mail,
-              Rss,
-            };
-            const Icon = iconMap[link.iconName] ?? Mail;
-            return link.isEmail ? (
-              <span
-                key={link.name}
-                className="group inline-flex items-center gap-2 text-sm text-[var(--muted)]"
-              >
-                <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
-                <EmailLink variant="inline" label={link.handle ?? link.name} />
-              </span>
-            ) : (
-              <a
-                key={link.name}
-                href={link.href}
-                target={link.href.startsWith('http') ? '_blank' : undefined}
-                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className="group inline-flex cursor-pointer items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
-              >
-                <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
-                <span>{link.name}</span>
-              </a>
-            );
-          })}
+          {socialLinks
+            .filter((link) => !link.isEmail)
+            .map((link) => {
+              const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+                Github,
+                Twitter,
+                Mail,
+                Rss,
+              };
+              const Icon = iconMap[link.iconName] ?? Mail;
+              return (
+                <a
+                  key={link.name}
+                  href={link.href}
+                  target={link.href.startsWith('http') ? '_blank' : undefined}
+                  rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  className="group inline-flex cursor-pointer items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+                >
+                  <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
+                  <span>{link.name}</span>
+                </a>
+              );
+            })}
+          <EmailLink variant="inline" label="Email" />
         </div>
       </ScrollReveal>
     </div>

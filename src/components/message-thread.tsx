@@ -271,10 +271,10 @@ function MessageItem({
         const data = (await r.json()) as { liked?: boolean; count?: number };
         if (typeof data.liked === 'boolean' && typeof data.count === 'number') {
           onLikeChange(data.liked, data.count);
+          toast.success(data.liked ? t('liked') : t('unliked'));
         }
       })
       .catch(() => {
-        // 回滚
         onLikeChange(isLiked, likeCount);
         toast.error(tCommon('error'));
       });

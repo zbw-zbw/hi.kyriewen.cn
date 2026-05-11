@@ -35,6 +35,7 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('subscribe.page');
+  const isZh = locale === 'zh';
   const recentIssues = await getRecentIssues();
 
   // Tailwind perks 数组：next-intl 的 plural 不太适合数组，直接 raw 取
@@ -97,9 +98,9 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
       </ScrollReveal>
 
       {/* ── 最近三期 ── */}
-      {recentIssues.length > 0 && (
-        <ScrollReveal delay={0.2}>
-          <SectionHeading index="02" eyebrow={t('archiveEyebrow')} title={t('archiveTitle')} />
+      <ScrollReveal delay={0.2}>
+        <SectionHeading index="02" eyebrow={t('archiveEyebrow')} title={t('archiveTitle')} />
+        {recentIssues.length > 0 ? (
           <ul className="divide-y divide-[var(--border)] rounded-lg border border-[var(--border)] bg-[var(--card)]">
             {recentIssues.map((issue) => (
               <li
@@ -113,8 +114,16 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
               </li>
             ))}
           </ul>
-        </ScrollReveal>
-      )}
+        ) : (
+          <div className="rounded-lg border border-dashed border-[var(--border)] bg-[var(--card)] p-8 text-center">
+            <p className="text-sm text-[var(--muted-fg)]">
+              {isZh
+                ? '第一期正在酝酿中，敬请期待 ✍️'
+                : 'The first issue is brewing — stay tuned ✍️'}
+            </p>
+          </div>
+        )}
+      </ScrollReveal>
     </div>
   );
 }

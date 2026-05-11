@@ -62,7 +62,7 @@ export default async function ProjectDetailPage({
 
       <article className="-mt-10 pb-20 sm:-mt-14">
         {/* ── Sticky Header: 返回按钮 + Hero 标题 + CTA 按钮 固定吸顶 ── */}
-        <div className="sticky top-14 z-10 bg-[var(--bg)] pt-6 pb-8">
+        <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-8 sm:-mx-6 sm:px-6">
           <Link
             href="/projects"
             className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"

@@ -190,6 +190,8 @@
     "confirmDelete": "确定删除这条留言吗？此操作不可撤销。",
     "reply": "回复",
     "like": "点赞",
+    "liked": "已点赞 ❤️",
+    "unliked": "已取消点赞",
     "needLogin": "登录后即可点赞。",
     "previewEmpty": "暂无内容预览。",
     "mdHint": "支持 Markdown",

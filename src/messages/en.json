@@ -190,6 +190,8 @@
     "confirmDelete": "Delete this message? This cannot be undone.",
     "reply": "Reply",
     "like": "Like",
+    "liked": "Liked ❤️",
+    "unliked": "Unliked",
     "needLogin": "Sign in with GitHub to like this.",
     "previewEmpty": "Nothing to preview.",
     "mdHint": "Markdown supported",
