@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useCallback } from 'react';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { Trash2, Loader2, MessageSquare, Filter } from 'lucide-react';
+import { Trash2, Loader2, MessageSquare, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ConfirmDialog } from '@/components/confirm-dialog';
 
 interface Message {
   id: number;
@@ -31,17 +32,19 @@ export default function GuestbookManager({
   const [page, setPage] = useState(1);
   const [loading, startTransition] = useTransition();
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
 
   const fetchMessages = (type: FilterType, p: number) => {
     startTransition(async () => {
       try {
-        const res = await fetch(
-          `/api/guestbook?type=${type}&page=${p}&limit=50`
-        );
+        const res = await fetch(`/api/guestbook?type=${type}&page=${p}&limit=50`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
         setMessages(data.data);
         setTotal(data.pagination.total);
+        setSelectedIds(new Set());
       } catch (err) {
         toast.error(String(err));
       }
@@ -54,8 +57,7 @@ export default function GuestbookManager({
     fetchMessages(type, 1);
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Delete this message and all its replies?')) return;
+  const executeDelete = useCallback(async (id: number) => {
     setDeletingId(id);
     try {
       const res = await fetch(`/api/guestbook/${id}`, { method: 'DELETE' });
@@ -63,64 +65,185 @@ export default function GuestbookManager({
       if (!res.ok) throw new Error(data.error);
       setMessages((prev) => prev.filter((m) => m.id !== id && m.parentId !== id));
       setTotal((prev) => prev - 1);
+    } finally {
+      setDeletingId(null);
+    }
+  }, []);
+
+  const handleDeleteConfirm = useCallback(async () => {
+    if (deleteTarget === null) return;
+    try {
+      await executeDelete(deleteTarget);
       toast.success('Message deleted');
     } catch (err) {
       toast.error(String(err));
     } finally {
-      setDeletingId(null);
+      setDeleteTarget(null);
     }
-  };
+  }, [deleteTarget, executeDelete]);
+
+  const handleBatchDeleteConfirm = useCallback(async () => {
+    setBatchDeleteOpen(false);
+    const ids = Array.from(selectedIds);
+    let successCount = 0;
+    for (const id of ids) {
+      try {
+        await executeDelete(id);
+        successCount++;
+      } catch {
+        // continue
+      }
+    }
+    toast.success(`Deleted ${successCount} of ${ids.length} messages`);
+    setSelectedIds(new Set());
+  }, [selectedIds, executeDelete]);
 
   const handlePageChange = (p: number) => {
     setPage(p);
     fetchMessages(filter, p);
   };
 
-  const totalPages = Math.ceil(total / 50);
+  const toggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    const allSelected = messages.length > 0 && messages.every((m) => selectedIds.has(m.id));
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(messages.map((m) => m.id)));
+    }
+  }, [messages, selectedIds]);
+
+  const allSelected = messages.length > 0 && messages.every((m) => selectedIds.has(m.id));
+  const totalPages = Math.max(1, Math.ceil(total / 50));
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      {/* Filter tabs */}
-      <div className="flex shrink-0 items-center gap-2">
-        <Filter className="h-4 w-4 text-muted-foreground" />
-        {(['all', 'guestbook', 'blog'] as FilterType[]).map((type) => (
-          <button
-            key={type}
-            type="button"
-            onClick={() => handleFilter(type)}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-              filter === type
-                ? 'bg-primary text-primary-foreground'
-                : 'bg-muted text-muted-foreground hover:bg-accent'
-            }`}
-          >
-            {type === 'all' ? 'All' : type === 'guestbook' ? 'Guestbook' : 'Blog Comments'}
-          </button>
-        ))}
-        <span className="ml-auto text-xs text-muted-foreground">
-          {total} messages
-        </span>
+      {/* Filter tabs + batch actions */}
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Filter className="text-muted-foreground h-4 w-4" />
+          {(['all', 'guestbook', 'blog'] as FilterType[]).map((type) => (
+            <button
+              key={type}
+              type="button"
+              onClick={() => handleFilter(type)}
+              className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                filter === type
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent'
+              }`}
+            >
+              {type === 'all' ? 'All' : type === 'guestbook' ? 'Guestbook' : 'Blog Comments'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Select all */}
+          <label className="text-muted-foreground inline-flex cursor-pointer items-center gap-1.5 text-xs">
+            <span
+              role="checkbox"
+              aria-checked={allSelected}
+              tabIndex={0}
+              onClick={toggleSelectAll}
+              onKeyDown={(e) => {
+                if (e.key === ' ' || e.key === 'Enter') {
+                  e.preventDefault();
+                  toggleSelectAll();
+                }
+              }}
+              className={`inline-flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                allSelected
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background hover:border-ring'
+              }`}
+            >
+              {allSelected && (
+                <svg
+                  className="h-3 w-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={3}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+            </span>
+            Select All
+          </label>
+
+          {selectedIds.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setBatchDeleteOpen(true)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete ({selectedIds.size})
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages list (scrollable) */}
       {loading ? (
         <div className="flex flex-1 items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
         </div>
       ) : messages.length === 0 ? (
-        <div className="flex-1 rounded-lg border bg-card p-8 text-center">
-          <MessageSquare className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">No messages found.</p>
+        <div className="bg-card flex-1 rounded-lg border p-8 text-center">
+          <MessageSquare className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+          <p className="text-muted-foreground text-sm">No messages found.</p>
         </div>
       ) : (
         <div className="min-h-0 flex-1 space-y-2 overflow-auto">
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex items-start gap-3 rounded-lg border bg-card p-4 ${
+              className={`hover:bg-muted/30 flex items-start gap-3 rounded-lg border p-4 transition-colors ${
                 msg.parentId ? 'ml-8 border-dashed' : ''
-              }`}
+              } ${selectedIds.has(msg.id) ? 'border-primary/50 bg-muted/20' : 'bg-card'}`}
             >
+              {/* Checkbox */}
+              <span
+                role="checkbox"
+                aria-checked={selectedIds.has(msg.id)}
+                tabIndex={0}
+                onClick={() => toggleSelect(msg.id)}
+                onKeyDown={(e) => {
+                  if (e.key === ' ' || e.key === 'Enter') {
+                    e.preventDefault();
+                    toggleSelect(msg.id);
+                  }
+                }}
+                className={`mt-1 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
+                  selectedIds.has(msg.id)
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-background hover:border-ring'
+                }`}
+              >
+                {selectedIds.has(msg.id) && (
+                  <svg
+                    className="h-3 w-3"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={3}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                )}
+              </span>
+
               {/* Avatar */}
               {msg.avatar ? (
                 <Image
@@ -132,13 +255,13 @@ export default function GuestbookManager({
                   unoptimized
                 />
               ) : (
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                <div className="bg-muted flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium">
                   {msg.name.charAt(0).toUpperCase()}
                 </div>
               )}
 
               {/* Content */}
-              <div className="flex-1 min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">{msg.name}</span>
                   {msg.postSlug && (
@@ -147,25 +270,23 @@ export default function GuestbookManager({
                     </span>
                   )}
                   {msg.parentId && (
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                    <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
                       reply
                     </span>
                   )}
-                  <time className="ml-auto text-xs text-muted-foreground">
+                  <time className="text-muted-foreground ml-auto text-xs">
                     {new Date(msg.createdAt).toLocaleString()}
                   </time>
                 </div>
-                <p className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
-                  {msg.body}
-                </p>
+                <p className="text-muted-foreground mt-1 text-sm whitespace-pre-wrap">{msg.body}</p>
               </div>
 
               {/* Delete */}
               <button
                 type="button"
-                onClick={() => handleDelete(msg.id)}
+                onClick={() => setDeleteTarget(msg.id)}
                 disabled={deletingId === msg.id}
-                className="shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive shrink-0 rounded-md p-1.5 transition-colors disabled:opacity-50"
               >
                 {deletingId === msg.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -179,8 +300,8 @@ export default function GuestbookManager({
       )}
 
       {/* Pagination (sticky bottom) */}
-      <div className="flex shrink-0 items-center justify-between border-t border-border pt-3">
-        <span className="text-sm text-muted-foreground">
+      <div className="border-border flex shrink-0 items-center justify-between border-t pt-3">
+        <span className="text-muted-foreground text-sm">
           Page {page} of {totalPages} · {total} messages
         </span>
         <div className="flex gap-1">
@@ -188,20 +309,42 @@ export default function GuestbookManager({
             type="button"
             onClick={() => handlePageChange(page - 1)}
             disabled={page <= 1}
-            className="rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:opacity-50"
+            className="border-border hover:bg-accent inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
-            Previous
+            <ChevronLeft className="h-4 w-4" /> Prev
           </button>
           <button
             type="button"
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages}
-            className="rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:opacity-50"
+            className="border-border hover:bg-accent inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
-            Next
+            Next <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      {/* Single delete confirm */}
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title="Delete Message"
+        description="Are you sure you want to delete this message and all its replies? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
+
+      {/* Batch delete confirm */}
+      <ConfirmDialog
+        open={batchDeleteOpen}
+        title="Batch Delete"
+        description={`Are you sure you want to delete ${selectedIds.size} selected messages? This action cannot be undone.`}
+        confirmLabel={`Delete ${selectedIds.size} Messages`}
+        variant="danger"
+        onConfirm={handleBatchDeleteConfirm}
+        onCancel={() => setBatchDeleteOpen(false)}
+      />
     </div>
   );
 }

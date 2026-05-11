@@ -15,11 +15,41 @@ interface SyncTask {
 }
 
 const SYNC_TASKS: SyncTask[] = [
-  { id: 'github-stats', name: 'GitHub Stats', description: 'Sync GitHub stars, followers & repo stats', path: '/api/cron/github-stats', schedule: '0 0 * * *' },
-  { id: 'chrome-stats', name: 'Chrome Stats', description: 'Sync Chrome extension user counts', path: '/api/cron/chrome-stats', schedule: '5 0 * * *' },
-  { id: 'sync-projects', name: 'Sync Projects', description: 'Sync GitHub repos to projects table', path: '/api/cron/sync-projects', schedule: '10 0 * * *' },
-  { id: 'sync-newsletter', name: 'Sync Newsletter', description: 'Sync newsletter subscriber count', path: '/api/cron/sync-newsletter', schedule: '15 0 * * *' },
-  { id: 'sync-articles', name: 'Sync Articles', description: 'Sync articles from CSDN & Juejin', path: '/api/cron/sync-articles', schedule: '20 0 * * *' },
+  {
+    id: 'github-stats',
+    name: 'GitHub Stats',
+    description: 'Sync GitHub stars, followers & repo stats',
+    path: '/api/cron/github-stats',
+    schedule: '0 0 * * *',
+  },
+  {
+    id: 'chrome-stats',
+    name: 'Chrome Stats',
+    description: 'Sync Chrome extension user counts',
+    path: '/api/cron/chrome-stats',
+    schedule: '5 0 * * *',
+  },
+  {
+    id: 'sync-projects',
+    name: 'Sync Projects',
+    description: 'Sync GitHub repos to projects table',
+    path: '/api/cron/sync-projects',
+    schedule: '10 0 * * *',
+  },
+  {
+    id: 'sync-newsletter',
+    name: 'Sync Newsletter',
+    description: 'Sync newsletter subscriber count',
+    path: '/api/cron/sync-newsletter',
+    schedule: '15 0 * * *',
+  },
+  {
+    id: 'sync-articles',
+    name: 'Sync Articles',
+    description: 'Sync articles from CSDN & Juejin',
+    path: '/api/cron/sync-articles',
+    schedule: '20 0 * * *',
+  },
 ];
 
 /**
@@ -45,18 +75,30 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: `Unknown task: ${taskId}` }, { status: 404 });
     }
 
-    const url = `${MAIN_SITE}${task.path}`;
-    const headers: Record<string, string> = {};
-    if (CRON_SECRET) {
-      headers['Authorization'] = `Bearer ${CRON_SECRET}`;
+    if (!CRON_SECRET) {
+      return NextResponse.json(
+        {
+          error:
+            'CRON_SECRET not configured. Add it to Admin project env vars in Vercel Dashboard.',
+        },
+        { status: 500 },
+      );
     }
 
-    const response = await fetch(url, { method: 'GET', headers });
+    const url = `${MAIN_SITE}${task.path}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${CRON_SECRET}` },
+    });
 
     if (!response.ok) {
       const text = await response.text().catch(() => '');
+      const hint =
+        response.status === 401
+          ? ' — Check that CRON_SECRET matches between main site and admin.'
+          : '';
       return NextResponse.json(
-        { error: `Sync failed: HTTP ${response.status}`, details: text },
+        { error: `Sync failed: HTTP ${response.status}${hint}`, details: text },
         { status: 502 },
       );
     }

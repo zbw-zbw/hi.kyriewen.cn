@@ -33,50 +33,108 @@ const TASK_ICONS: Record<string, React.ComponentType<{ className?: string }>> = 
 };
 
 const TASKS: SyncTask[] = [
-  { id: 'github-stats', name: 'GitHub Stats', description: 'Sync GitHub stars, followers & repo stats', path: '/api/cron/github-stats', schedule: 'Daily 00:00 UTC' },
-  { id: 'chrome-stats', name: 'Chrome Stats', description: 'Sync Chrome extension user counts', path: '/api/cron/chrome-stats', schedule: 'Daily 00:05 UTC' },
-  { id: 'sync-projects', name: 'Sync Projects', description: 'Sync GitHub repos to projects table', path: '/api/cron/sync-projects', schedule: 'Daily 00:10 UTC' },
-  { id: 'sync-newsletter', name: 'Sync Newsletter', description: 'Sync newsletter subscriber count', path: '/api/cron/sync-newsletter', schedule: 'Daily 00:15 UTC' },
-  { id: 'sync-articles', name: 'Sync Articles', description: 'Sync articles from CSDN & Juejin', path: '/api/cron/sync-articles', schedule: 'Daily 00:20 UTC' },
+  {
+    id: 'github-stats',
+    name: 'GitHub Stats',
+    description: 'Sync GitHub stars, followers & repo stats',
+    path: '/api/cron/github-stats',
+    schedule: 'Daily 00:00 UTC',
+  },
+  {
+    id: 'chrome-stats',
+    name: 'Chrome Stats',
+    description: 'Sync Chrome extension user counts',
+    path: '/api/cron/chrome-stats',
+    schedule: 'Daily 00:05 UTC',
+  },
+  {
+    id: 'sync-projects',
+    name: 'Sync Projects',
+    description: 'Sync GitHub repos to projects table',
+    path: '/api/cron/sync-projects',
+    schedule: 'Daily 00:10 UTC',
+  },
+  {
+    id: 'sync-newsletter',
+    name: 'Sync Newsletter',
+    description: 'Sync newsletter subscriber count',
+    path: '/api/cron/sync-newsletter',
+    schedule: 'Daily 00:15 UTC',
+  },
+  {
+    id: 'sync-articles',
+    name: 'Sync Articles',
+    description: 'Sync articles from CSDN & Juejin',
+    path: '/api/cron/sync-articles',
+    schedule: 'Daily 00:20 UTC',
+  },
 ];
 
 type TaskStatus = 'idle' | 'running' | 'success' | 'error';
+type ArticleSource = 'csdn' | 'juejin';
 
 export function SyncCenter() {
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>({});
   const [taskResults, setTaskResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
+  const [articleSources, setArticleSources] = useState<Set<ArticleSource>>(
+    new Set(['csdn', 'juejin']),
+  );
 
-  const triggerTask = useCallback(async (taskId: string) => {
-    setTaskStatuses((prev) => ({ ...prev, [taskId]: 'running' }));
-    setTaskResults((prev) => ({ ...prev, [taskId]: '' }));
-
-    try {
-      const response = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error ?? `HTTP ${response.status}`);
+  const toggleArticleSource = useCallback((source: ArticleSource) => {
+    setArticleSources((prev) => {
+      const next = new Set(prev);
+      if (next.has(source)) {
+        if (next.size <= 1) {
+          toast.error('At least one source must be selected');
+          return prev;
+        }
+        next.delete(source);
+      } else {
+        next.add(source);
       }
-
-      const data = await response.json();
-      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
-      setTaskResults((prev) => ({
-        ...prev,
-        [taskId]: JSON.stringify(data.result, null, 2).slice(0, 200),
-      }));
-      toast.success(`${taskId} completed`);
-    } catch (error) {
-      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setTaskResults((prev) => ({ ...prev, [taskId]: message }));
-      toast.error(`${taskId} failed: ${message}`);
-    }
+      return next;
+    });
   }, []);
+
+  const triggerTask = useCallback(
+    async (taskId: string) => {
+      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'running' }));
+      setTaskResults((prev) => ({ ...prev, [taskId]: '' }));
+
+      try {
+        const body: Record<string, unknown> = { taskId };
+        if (taskId === 'sync-articles') {
+          body.sources = Array.from(articleSources);
+        }
+
+        const response = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error ?? `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
+        setTaskResults((prev) => ({
+          ...prev,
+          [taskId]: JSON.stringify(data.result, null, 2).slice(0, 200),
+        }));
+        toast.success(`${taskId} completed`);
+      } catch (error) {
+        setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        setTaskResults((prev) => ({ ...prev, [taskId]: message }));
+        toast.error(`${taskId} failed: ${message}`);
+      }
+    },
+    [articleSources],
+  );
 
   const triggerAll = useCallback(async () => {
     setRunningAll(true);
@@ -96,7 +154,7 @@ export function SyncCenter() {
       case 'error':
         return <XCircle className="h-5 w-5 text-red-500" />;
       default:
-        return <Clock className="h-5 w-5 text-muted-foreground" />;
+        return <Clock className="text-muted-foreground h-5 w-5" />;
     }
   }
 
@@ -104,13 +162,11 @@ export function SyncCenter() {
     <div className="space-y-4">
       {/* Run All button */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          {TASKS.length} sync tasks configured
-        </p>
+        <p className="text-muted-foreground text-sm">{TASKS.length} sync tasks configured</p>
         <button
           onClick={triggerAll}
           disabled={runningAll}
-          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
         >
           {runningAll ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -127,45 +183,94 @@ export function SyncCenter() {
           const status = taskStatuses[task.id] ?? 'idle';
           const result = taskResults[task.id];
           const TaskIcon = TASK_ICONS[task.id] ?? RefreshCw;
+          const isArticleSync = task.id === 'sync-articles';
 
           return (
             <div
               key={task.id}
-              className="flex items-center gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-muted/30"
+              className="border-border hover:bg-muted/30 rounded-lg border p-4 transition-colors"
             >
-              {/* Icon */}
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                <TaskIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-
-              {/* Info */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold">{task.name}</h3>
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    {task.schedule}
-                  </span>
+              <div className="flex items-center gap-4">
+                {/* Icon */}
+                <div className="bg-muted flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
+                  <TaskIcon className="text-muted-foreground h-5 w-5" />
                 </div>
-                <p className="text-xs text-muted-foreground">{task.description}</p>
-                {result && (
-                  <p className={`mt-1 truncate text-xs ${status === 'error' ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}>
-                    {result}
-                  </p>
-                )}
+
+                {/* Info */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold">{task.name}</h3>
+                    <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium">
+                      {task.schedule}
+                    </span>
+                  </div>
+                  <p className="text-muted-foreground text-xs">{task.description}</p>
+                  {result && (
+                    <p
+                      className={`mt-1 truncate text-xs ${status === 'error' ? 'text-red-500' : 'text-green-600 dark:text-green-400'}`}
+                    >
+                      {result}
+                    </p>
+                  )}
+                </div>
+
+                {/* Status + Action */}
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(status)}
+                  <button
+                    onClick={() => triggerTask(task.id)}
+                    disabled={status === 'running' || runningAll}
+                    className="border-border hover:bg-accent inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+                  >
+                    <Play className="h-3.5 w-3.5" />
+                    Run
+                  </button>
+                </div>
               </div>
 
-              {/* Status + Action */}
-              <div className="flex items-center gap-3">
-                {getStatusIcon(status)}
-                <button
-                  onClick={() => triggerTask(task.id)}
-                  disabled={status === 'running' || runningAll}
-                  className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent disabled:opacity-50"
-                >
-                  <Play className="h-3.5 w-3.5" />
-                  Run
-                </button>
-              </div>
+              {/* Article source toggles */}
+              {isArticleSync && (
+                <div className="mt-3 ml-14 flex items-center gap-3">
+                  <span className="text-muted-foreground text-xs">Sources:</span>
+                  {(['csdn', 'juejin'] as ArticleSource[]).map((source) => (
+                    <label
+                      key={source}
+                      className="inline-flex cursor-pointer items-center gap-1.5 text-xs"
+                    >
+                      <span
+                        role="checkbox"
+                        aria-checked={articleSources.has(source)}
+                        tabIndex={0}
+                        onClick={() => toggleArticleSource(source)}
+                        onKeyDown={(e) => {
+                          if (e.key === ' ' || e.key === 'Enter') {
+                            e.preventDefault();
+                            toggleArticleSource(source);
+                          }
+                        }}
+                        className={`inline-flex h-4 w-4 items-center justify-center rounded border transition-colors ${
+                          articleSources.has(source)
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border bg-background hover:border-ring'
+                        }`}
+                      >
+                        {articleSources.has(source) && (
+                          <svg
+                            className="h-3 w-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={3}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </span>
+                      <span className="font-medium">{source === 'csdn' ? 'CSDN' : '掘金'}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}
