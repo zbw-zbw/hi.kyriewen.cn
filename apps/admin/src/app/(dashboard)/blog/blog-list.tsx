@@ -153,7 +153,7 @@ export function BlogList({ posts }: BlogListProps) {
     }
     setSelectedIds(new Set());
     router.refresh();
-  }, [selectedIds, executeDelete, router]);
+  }, [selectedIds, router]);
 
   function formatDate(date: Date | string | null): string {
     if (!date) return '—';
