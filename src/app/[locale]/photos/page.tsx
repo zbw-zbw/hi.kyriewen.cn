@@ -7,6 +7,9 @@ import { PhotoGrid } from '@/components/photo-grid';
 import { getPhotosByYear, getPhotos } from '@/lib/content-loader';
 import type { Locale } from '@/i18n/routing';
 
+// Revalidate every 60s so admin-uploaded photos appear quickly
+export const revalidate = 60;
+
 export async function generateMetadata({
   params,
 }: {
@@ -17,11 +20,7 @@ export async function generateMetadata({
   return { title: t('photos') };
 }
 
-export default async function PhotosPage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}) {
+export default async function PhotosPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -40,11 +39,7 @@ export default async function PhotosPage({
       </HeroProse>
 
       {groups.map(({ year, photos }, gi) => (
-        <ScrollReveal
-          as="section"
-          key={year}
-          className="mt-[var(--space-section)]"
-        >
+        <ScrollReveal as="section" key={year} className="mt-[var(--space-section)]">
           <SectionHeading
             index={String(gi + 1).padStart(2, '0')}
             eyebrow={isZh ? `${year} 年` : String(year)}
@@ -56,4 +51,3 @@ export default async function PhotosPage({
     </div>
   );
 }
-
