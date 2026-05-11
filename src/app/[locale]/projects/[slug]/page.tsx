@@ -61,8 +61,8 @@ export default async function ProjectDetailPage({
       <ReadingProgress />
 
       <article className="-mt-10 pb-20 sm:-mt-14">
-        {/* ── Sticky Header: 返回按钮 + Hero 标题区域固定吸顶 ── */}
-        <div className="sticky top-14 z-10 bg-[var(--bg)] pt-4 pb-4">
+        {/* ── Sticky Header: 返回按钮 + Hero 标题 + CTA 按钮 固定吸顶 ── */}
+        <div className="sticky top-14 z-10 bg-[var(--bg)] pt-4 pb-6">
           <Link
             href="/projects"
             className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
@@ -85,11 +85,8 @@ export default async function ProjectDetailPage({
           <p className="mt-3 max-w-2xl text-lg leading-relaxed text-[var(--muted-fg)] sm:text-xl">
             {project.tagline[locale]}
           </p>
-        </div>
 
-        {/* ── Hero: CTA + Image（滚动区域） ── */}
-        <ScrollReveal as="section">
-          {/* CTA Buttons */}
+          {/* CTA Buttons（吸顶区域内） */}
           <div className="mt-4 flex flex-wrap gap-3">
             {project.live && (
               <a
@@ -126,6 +123,12 @@ export default async function ProjectDetailPage({
             )}
           </div>
 
+          {/* 底部渐变遮罩，消除吸顶区域与下方内容的硬分界线 */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 translate-y-full bg-gradient-to-b from-[var(--bg)] to-transparent" />
+        </div>
+
+        {/* ── Hero: Image（滚动区域） ── */}
+        <ScrollReveal as="section">
           {/* Hero Image */}
           {project.heroImage && (
             <div className="mt-12 overflow-hidden rounded-[var(--radius-2xl)] border border-[var(--border)] shadow-[var(--shadow-elevated)]">

@@ -1,16 +1,30 @@
 'use client';
 
-import { useEffect, useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
-import { Heart, Reply, Pencil, Trash2, X, Check } from 'lucide-react';
+import {
+  Heart,
+  Reply,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  Bold,
+  Italic,
+  Code,
+  Link2,
+  Eye,
+  EyeOff,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { cn, formatDate } from '@/lib/utils';
 import { renderSafeMarkdown } from '@/lib/markdown';
 import type { GuestbookMessage } from '@/lib/db';
 import { MessageComposer } from '@/components/message-composer';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { Button } from '@/components/ui/button';
 
 export interface MessageThreadProps {
   /** 服务端预取的全部留言（含子回复，平铺一维） */
@@ -48,12 +62,8 @@ export function MessageThread({
     : null;
 
   // likes 客户端状态（基于 initialLikes 初始化，乐观更新）
-  const [likeCounts, setLikeCounts] = useState<Record<string, number>>(
-    initialLikes?.counts ?? {}
-  );
-  const [likedSet, setLikedSet] = useState<Set<string>>(
-    new Set(initialLikes?.mine ?? [])
-  );
+  const [likeCounts, setLikeCounts] = useState<Record<string, number>>(initialLikes?.counts ?? {});
+  const [likedSet, setLikedSet] = useState<Set<string>>(new Set(initialLikes?.mine ?? []));
 
   // 当前正在回复的 messageId（null = 没在回复任何条）
   const [replyTo, setReplyTo] = useState<number | null>(null);
@@ -96,11 +106,7 @@ export function MessageThread({
   }, [messages, initialLikes]);
 
   if (messages.length === 0) {
-    return (
-      <p className="text-sm text-[var(--muted)]">
-        {postSlug ? t('emptyPost') : t('empty')}
-      </p>
-    );
+    return <p className="text-sm text-[var(--muted)]">{postSlug ? t('emptyPost') : t('empty')}</p>;
   }
 
   return (
@@ -125,9 +131,7 @@ export function MessageThread({
             isEditing={editingId === m.id}
             onStartEdit={() => setEditingId(m.id)}
             onCancelEdit={() => setEditingId(null)}
-            onReplyToggle={() =>
-              setReplyTo((cur) => (cur === m.id ? null : m.id))
-            }
+            onReplyToggle={() => setReplyTo((cur) => (cur === m.id ? null : m.id))}
             t={t}
             tCommon={tCommon}
           />
@@ -158,9 +162,7 @@ export function MessageThread({
                     isEditing={editingId === child.id}
                     onStartEdit={() => setEditingId(child.id)}
                     onCancelEdit={() => setEditingId(null)}
-                    onReplyToggle={() =>
-                      setReplyTo((cur) => (cur === m.id ? null : m.id))
-                    }
+                    onReplyToggle={() => setReplyTo((cur) => (cur === m.id ? null : m.id))}
                     t={t}
                     tCommon={tCommon}
                     isReply
@@ -179,9 +181,7 @@ export function MessageThread({
                 parentId={m.id}
                 user={replyUser}
                 showAuthPrompt={false}
-                placeholder={
-                  locale === 'zh' ? `回复 @${m.name}…` : `Reply to @${m.name}…`
-                }
+                placeholder={locale === 'zh' ? `回复 @${m.name}…` : `Reply to @${m.name}…`}
                 onPosted={() => setReplyTo(null)}
                 onCancel={() => setReplyTo(null)}
                 compact
@@ -196,10 +196,7 @@ export function MessageThread({
 
 /* ────────────────────────────────────────────────────────────────────────── */
 
-function findRootParent(
-  msg: GuestbookMessage,
-  all: GuestbookMessage[]
-): number {
+function findRootParent(msg: GuestbookMessage, all: GuestbookMessage[]): number {
   let current: GuestbookMessage | undefined = msg;
   // 防止循环引用：最多回溯 5 次
   for (let i = 0; i < 5 && current?.parentId != null; i++) {
@@ -245,7 +242,9 @@ function MessageItem({
   const { data: session } = useSession();
   const [pending, startTransition] = useTransition();
   const [editBody, setEditBody] = useState(message.body);
+  const [editPreview, setEditPreview] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
   const isAuthor = !!currentUserId && currentUserId === message.userId;
 
   // Markdown HTML（cached）
@@ -321,7 +320,7 @@ function MessageItem({
     <div
       className={cn(
         'flex gap-3 rounded-lg border border-[var(--border)] bg-[var(--card)] p-4',
-        isReply && 'bg-transparent'
+        isReply && 'bg-transparent',
       )}
     >
       {message.avatar && (
@@ -330,10 +329,7 @@ function MessageItem({
           alt={message.name}
           width={36}
           height={36}
-          className={cn(
-            'h-9 w-9 flex-shrink-0 rounded-full',
-            isReply && 'h-7 w-7'
-          )}
+          className={cn('h-9 w-9 flex-shrink-0 rounded-full', isReply && 'h-7 w-7')}
           unoptimized
         />
       )}
@@ -349,44 +345,23 @@ function MessageItem({
             }
           >
             {formatDate(message.createdAt, locale)}
-            {message.updatedAt && (
-              <span className="ml-1 italic">· {t('edited')}</span>
-            )}
+            {message.updatedAt && <span className="ml-1 italic">· {t('edited')}</span>}
           </time>
         </div>
 
         {/* body / 编辑器 */}
         {isEditing ? (
-          <div className="space-y-2">
-            <textarea
-              value={editBody}
-              onChange={(e) => setEditBody(e.target.value)}
-              maxLength={1000}
-              rows={3}
-              disabled={pending}
-              className="w-full resize-none rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--ring)]"
-            />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleEditSave}
-                disabled={pending || !editBody.trim()}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-md bg-[var(--fg)] px-2 py-1 text-xs text-[var(--bg)] transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                <Check className="h-3 w-3" />
-                {t('save')}
-              </button>
-              <button
-                type="button"
-                onClick={onCancelEdit}
-                disabled={pending}
-                className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
-              >
-                <X className="h-3 w-3" />
-                {t('cancel')}
-              </button>
-            </div>
-          </div>
+          <EditComposer
+            body={editBody}
+            onChange={setEditBody}
+            textareaRef={editTextareaRef}
+            preview={editPreview}
+            onTogglePreview={() => setEditPreview((v) => !v)}
+            onSave={handleEditSave}
+            onCancel={onCancelEdit}
+            pending={pending}
+            t={t}
+          />
         ) : (
           <div
             className="prose-message text-sm leading-relaxed [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-3 [&_blockquote]:text-[var(--muted-fg)] [&_code]:rounded [&_code]:bg-[var(--bg)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] [&_p]:my-1 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-[var(--bg)] [&_pre]:p-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0"
@@ -402,13 +377,11 @@ function MessageItem({
               onClick={handleLike}
               className={cn(
                 'inline-flex cursor-pointer items-center gap-1 transition-colors hover:text-[var(--accent)]',
-                isLiked && 'text-[var(--accent)]'
+                isLiked && 'text-[var(--accent)]',
               )}
               aria-label={t('like')}
             >
-              <Heart
-                className={cn('h-3.5 w-3.5', isLiked && 'fill-current')}
-              />
+              <Heart className={cn('h-3.5 w-3.5', isLiked && 'fill-current')} />
               {likeCount > 0 && <span>{likeCount}</span>}
             </button>
 
@@ -446,7 +419,9 @@ function MessageItem({
                 <ConfirmDialog
                   open={showDeleteConfirm}
                   title={t('confirmDelete')}
-                  description={locale === 'zh' ? '删除后无法恢复。' : 'This action cannot be undone.'}
+                  description={
+                    locale === 'zh' ? '删除后无法恢复。' : 'This action cannot be undone.'
+                  }
                   confirmLabel={t('delete')}
                   cancelLabel={tCommon('cancel')}
                   variant="danger"
@@ -459,5 +434,151 @@ function MessageItem({
         )}
       </div>
     </div>
+  );
+}
+
+/* ── EditComposer: 编辑留言的富文本编辑器（对齐回复区 MessageComposer 的样式） ── */
+
+function EditComposer({
+  body,
+  onChange,
+  textareaRef,
+  preview,
+  onTogglePreview,
+  onSave,
+  onCancel,
+  pending,
+  t,
+}: {
+  body: string;
+  onChange: (value: string) => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>;
+  preview: boolean;
+  onTogglePreview: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+  pending: boolean;
+  t: ReturnType<typeof useTranslations<'message'>>;
+}) {
+  const insertMarkdown = (before: string, after: string = before, sample = '') => {
+    const ta = textareaRef.current;
+    if (!ta) {
+      onChange(`${body}${before}${sample}${after}`);
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    const selected = body.slice(start, end) || sample;
+    const next = body.slice(0, start) + before + selected + after + body.slice(end);
+    onChange(next);
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + before.length, start + before.length + selected.length);
+    });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="overflow-hidden rounded-md border border-[var(--border)]">
+        {/* 工具栏 */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-2 py-1.5">
+          <div className="flex items-center gap-0.5">
+            <ToolbarBtn onClick={() => insertMarkdown('**', '**', t('boldSample'))} label="Bold">
+              <Bold className="h-3.5 w-3.5" />
+            </ToolbarBtn>
+            <ToolbarBtn onClick={() => insertMarkdown('*', '*', t('italicSample'))} label="Italic">
+              <Italic className="h-3.5 w-3.5" />
+            </ToolbarBtn>
+            <ToolbarBtn onClick={() => insertMarkdown('`', '`', 'code')} label="Code">
+              <Code className="h-3.5 w-3.5" />
+            </ToolbarBtn>
+            <ToolbarBtn
+              onClick={() => insertMarkdown('[', '](https://)', t('linkSample'))}
+              label="Link"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+            </ToolbarBtn>
+          </div>
+          <button
+            type="button"
+            onClick={onTogglePreview}
+            className="inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--fg)]"
+          >
+            {preview ? (
+              <>
+                <EyeOff className="h-3 w-3" />
+                {t('edit')}
+              </>
+            ) : (
+              <>
+                <Eye className="h-3 w-3" />
+                {t('preview')}
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* 编辑区 / 预览区 */}
+        {preview ? (
+          <div
+            className="min-h-[80px] bg-[var(--card)] p-3 text-sm [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-3 [&_blockquote]:text-[var(--muted-fg)] [&_code]:rounded [&_code]:bg-[var(--bg)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] [&_p]:my-1"
+            dangerouslySetInnerHTML={{
+              __html: body.trim()
+                ? renderSafeMarkdown(body)
+                : `<p class="text-[var(--muted)]">${t('previewEmpty')}</p>`,
+            }}
+          />
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={body}
+            onChange={(e) => onChange(e.target.value)}
+            maxLength={1000}
+            rows={3}
+            disabled={pending}
+            className="w-full resize-none border-0 bg-[var(--card)] p-3 text-sm outline-none"
+          />
+        )}
+      </div>
+
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs text-[var(--muted)]">
+          {body.length}/1000 · {t('mdHint')}
+        </span>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={pending}>
+            <X className="h-3 w-3" />
+            {t('cancel')}
+          </Button>
+          <Button size="sm" onClick={onSave} disabled={pending || !body.trim()}>
+            <Check className="h-3 w-3" />
+            {t('save')}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ToolbarBtn({
+  onClick,
+  label,
+  children,
+}: {
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded text-[var(--muted)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--fg)]"
+    >
+      {children}
+    </button>
   );
 }

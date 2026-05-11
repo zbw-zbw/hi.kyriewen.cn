@@ -8,6 +8,7 @@ import { ProductCard } from '@/components/product-card';
 import { SectionHeading } from '@/components/section-heading';
 import { EmailLink } from '@/components/email-link';
 import { getFeaturedProjects, getSocialLinks } from '@/lib/content-loader';
+import { fetchRepoStats } from '@/lib/github';
 import { getAllPosts } from '@/lib/blog';
 import { formatDate } from '@/lib/utils';
 import { db, pageViews } from '@/lib/db';
@@ -18,35 +19,37 @@ import type { Locale } from '@/i18n/routing';
 const LINK_CLASS =
   'cursor-pointer underline decoration-[var(--border)] decoration-1 underline-offset-4 transition-colors hover:decoration-[var(--accent)] hover:text-[var(--accent)]';
 
-export default async function HomePage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}) {
+export default async function HomePage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
   const t = await getTranslations('home');
 
-  const projects = await getFeaturedProjects();
+  const rawProjects = await getFeaturedProjects();
   const socialLinks = await getSocialLinks();
+
+  // 为首页精选作品获取 GitHub stars（对齐产品页卡片）
+  const projects = await Promise.all(
+    rawProjects.map(async (project) => {
+      const stats = project.repo ? await fetchRepoStats(project.repo).catch(() => null) : null;
+      return { ...project, _stars: stats?.stars as number | undefined };
+    }),
+  );
   const allPostsForLocale = await getAllPosts(locale);
   const latestPosts = allPostsForLocale.slice(0, 3);
 
   // 热门博客：从数据库 page_views 表读取真实浏览量，取 Top 3
-  let popularPosts: { post: (typeof allPostsForLocale)[number]; views: number; trend?: 'up' | 'flat' | 'down' }[] = [];
+  let popularPosts: {
+    post: (typeof allPostsForLocale)[number];
+    views: number;
+    trend?: 'up' | 'flat' | 'down';
+  }[] = [];
   try {
-    const topViews = await db
-      .select()
-      .from(pageViews)
-      .orderBy(desc(pageViews.views))
-      .limit(5);
+    const topViews = await db.select().from(pageViews).orderBy(desc(pageViews.views)).limit(5);
     popularPosts = topViews
       .map((row) => {
         // slug 格式为 "blog/hello-world"，需去掉 "blog/" 前缀匹配文章
-        const blogSlug = row.slug.startsWith('blog/')
-          ? row.slug.slice(5)
-          : row.slug;
+        const blogSlug = row.slug.startsWith('blog/') ? row.slug.slice(5) : row.slug;
         const post = allPostsForLocale.find((x) => x.slug === blogSlug);
         return post ? { post, views: row.views, trend: 'up' as const } : null;
       })
@@ -75,8 +78,7 @@ export default async function HomePage({
 
         {/* 第二段：正在听（独立段落，与"折腾过程"拆开） */}
         <p className="mt-6">
-          {t('hero.proseListening')}{' '}
-          <NowPlayingInline fallback="music" />
+          {t('hero.proseListening')} <NowPlayingInline fallback="music" />
           {locale === 'zh' ? '。' : '.'}
         </p>
 
@@ -87,8 +89,7 @@ export default async function HomePage({
             {locale === 'en' ? 'my blog' : '博客'}
           </Link>
           {locale === 'zh' ? '。' : '. '}
-          {t('hero.proseConnect')}{' '}
-          <EmailLink variant="inline" />
+          {t('hero.proseConnect')} <EmailLink variant="inline" />
           {locale === 'zh' ? '。' : '.'}
         </p>
       </HeroProse>
@@ -113,11 +114,7 @@ export default async function HomePage({
         <div className="grid gap-4 sm:grid-cols-2">
           {projects.map((project, i) => (
             <ScrollReveal key={project.slug} delay={i * 0.08}>
-              <ProductCard
-                project={project}
-                locale={locale}
-                highlighted
-              />
+              <ProductCard project={project} locale={locale} stars={project._stars} highlighted />
             </ScrollReveal>
           ))}
         </div>
@@ -140,15 +137,13 @@ export default async function HomePage({
           }
         />
         {latestPosts.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">
-            {t('writing.empty')}
-          </p>
+          <p className="text-sm text-[var(--muted)]">{t('writing.empty')}</p>
         ) : (
           <ul className="group/list">
             {latestPosts.map((post) => (
               <li
                 key={post.slug}
-                className="border-b border-[var(--border)] transition-opacity last:border-0 group-hover/list:opacity-50 hover:!opacity-100"
+                className="border-b border-[var(--border)] transition-opacity group-hover/list:opacity-50 last:border-0 hover:!opacity-100"
               >
                 <Link
                   href={`/blog/${post.slug}`}
@@ -212,11 +207,7 @@ export default async function HomePage({
 
       {/* ── FIG 04 — What I'm Doing Now ── */}
       <ScrollReveal as="section" className="mt-[var(--space-section)]">
-        <SectionHeading
-          index="04"
-          eyebrow={t('now.eyebrow')}
-          title={t('now.title')}
-        />
+        <SectionHeading index="04" eyebrow={t('now.eyebrow')} title={t('now.title')} />
         <p className="max-w-prose text-base leading-relaxed text-[var(--muted-fg)]">
           {locale === 'zh'
             ? '我正在打造的产品、正在学习的技术、正在读的书、正在听的音乐 —— 都在 /now 页面持续更新。'
@@ -233,11 +224,7 @@ export default async function HomePage({
 
       {/* ── FIG 05 — Connect ── */}
       <ScrollReveal as="section" className="mt-[var(--space-section)] pb-8">
-        <SectionHeading
-          index="05"
-          eyebrow={t('connect.eyebrow')}
-          title={t('connect.title')}
-        />
+        <SectionHeading index="05" eyebrow={t('connect.eyebrow')} title={t('connect.title')} />
         <div className="flex flex-wrap gap-x-6 gap-y-3">
           {socialLinks.map(({ name, href, Icon, isEmail }) =>
             isEmail ? (
@@ -259,7 +246,7 @@ export default async function HomePage({
                 <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
                 <span>{name}</span>
               </a>
-            )
+            ),
           )}
         </div>
       </ScrollReveal>
