@@ -41,6 +41,19 @@
   }
 }
 
+/* Global interactive element styles */
+button,
+select,
+input[type='checkbox'],
+input[type='radio'] {
+  cursor: pointer;
+}
+
+/* Table rows with hover should show pointer */
+tr:hover {
+  cursor: default;
+}
+
 body {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',

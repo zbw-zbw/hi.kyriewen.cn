@@ -16,6 +16,7 @@ import {
   Mail,
   Database,
   LogOut,
+  RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -60,6 +61,7 @@ const navGroups: NavGroup[] = [
   {
     title: 'System',
     items: [
+      { href: '/sync', label: 'Sync Center', icon: RefreshCw },
       { href: '/seed', label: 'Seed Data', icon: Database },
     ],
   },

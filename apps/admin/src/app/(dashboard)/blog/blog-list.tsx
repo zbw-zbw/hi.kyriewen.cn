@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, RefreshCw, Loader2 } from 'lucide-react';
 
 interface BlogPost {
   id: number;
@@ -53,6 +53,28 @@ export function BlogList({ posts }: BlogListProps) {
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const handleSyncArticles = useCallback(async () => {
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId: 'sync-articles' }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error ?? 'Sync failed');
+      }
+      toast.success('Articles synced! Refresh to see new posts.');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Sync failed');
+    } finally {
+      setSyncing(false);
+    }
+  }, [router]);
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
@@ -110,9 +132,9 @@ export function BlogList({ posts }: BlogListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
           {/* Language filter */}
           <div className="flex gap-1 rounded-md border border-border p-1">
@@ -154,18 +176,30 @@ export function BlogList({ posts }: BlogListProps) {
           </span>
         </div>
 
-        {/* New post button */}
-        <button
-          onClick={() => router.push('/blog/new')}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          <Plus className="h-4 w-4" />
-          New Post
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Sync articles button */}
+          <button
+            onClick={handleSyncArticles}
+            disabled={syncing}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm font-medium transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            {syncing ? 'Syncing...' : 'Sync Articles'}
+          </button>
+
+          {/* New post button */}
+          <button
+            onClick={() => router.push('/blog/new')}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4" />
+            New Post
+          </button>
+        </div>
       </div>
 
-      {/* Table */}
-      <div className="overflow-hidden rounded-lg border border-border">
+      {/* Table (scrollable area) */}
+      <div className="min-h-0 flex-1 overflow-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/50">
@@ -256,30 +290,28 @@ export function BlogList({ posts }: BlogListProps) {
         </table>
       </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">
-            Page {safePage} of {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-              disabled={safePage <= 1}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:opacity-50"
-            >
-              <ChevronLeft className="h-4 w-4" /> Prev
-            </button>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-              disabled={safePage >= totalPages}
-              className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:opacity-50"
-            >
-              Next <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+      {/* Pagination (sticky bottom) */}
+      <div className="flex shrink-0 items-center justify-between border-t border-border pt-3">
+        <span className="text-sm text-muted-foreground">
+          Page {safePage} of {totalPages} · {filteredPosts.length} posts
+        </span>
+        <div className="flex gap-1">
+          <button
+            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            disabled={safePage <= 1}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            <ChevronLeft className="h-4 w-4" /> Prev
+          </button>
+          <button
+            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage >= totalPages}
+            className="inline-flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent disabled:opacity-50"
+          >
+            Next <ChevronRight className="h-4 w-4" />
+          </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }

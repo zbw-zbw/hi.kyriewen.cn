@@ -78,9 +78,9 @@ export default function GuestbookManager({
   const totalPages = Math.ceil(total / 50);
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Filter tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
         <Filter className="h-4 w-4 text-muted-foreground" />
         {(['all', 'guestbook', 'blog'] as FilterType[]).map((type) => (
           <button
@@ -101,18 +101,18 @@ export default function GuestbookManager({
         </span>
       </div>
 
-      {/* Messages list */}
+      {/* Messages list (scrollable) */}
       {loading ? (
-        <div className="flex items-center justify-center py-8">
+        <div className="flex flex-1 items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       ) : messages.length === 0 ? (
-        <div className="rounded-lg border bg-card p-8 text-center">
+        <div className="flex-1 rounded-lg border bg-card p-8 text-center">
           <MessageSquare className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">No messages found.</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="min-h-0 flex-1 space-y-2 overflow-auto">
           {messages.map((msg) => (
             <div
               key={msg.id}
@@ -174,30 +174,30 @@ export default function GuestbookManager({
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
+      {/* Pagination (sticky bottom) */}
+      <div className="flex shrink-0 items-center justify-between border-t border-border pt-3">
+        <span className="text-sm text-muted-foreground">
+          Page {page} of {totalPages} · {total} messages
+        </span>
+        <div className="flex gap-1">
           <button
             type="button"
             onClick={() => handlePageChange(page - 1)}
             disabled={page <= 1}
-            className="rounded-md border px-3 py-1.5 text-xs disabled:opacity-50"
+            className="rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:opacity-50"
           >
             Previous
           </button>
-          <span className="text-xs text-muted-foreground">
-            Page {page} of {totalPages}
-          </span>
           <button
             type="button"
             onClick={() => handlePageChange(page + 1)}
             disabled={page >= totalPages}
-            className="rounded-md border px-3 py-1.5 text-xs disabled:opacity-50"
+            className="rounded-md border px-3 py-1.5 text-xs transition-colors hover:bg-accent disabled:opacity-50"
           >
             Next
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 }
