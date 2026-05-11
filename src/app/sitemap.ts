@@ -1,26 +1,13 @@
 import type { MetadataRoute } from 'next';
 import { routing } from '@/i18n/routing';
 import { getAllPostSlugs } from '@/lib/blog';
+import { getNavigationItems } from '@/lib/content-loader';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hi.kyriewen.cn';
 
-const STATIC_PATHS = [
-  '',
-  '/projects',
-  '/blog',
-  '/now',
-  '/stats',
-  '/timeline',
-  '/uses',
-  '/photos',
-  '/guestbook',
-  '/subscribe',
-];
-
 function localized(path: string) {
   return routing.locales.map((locale) => {
-    const prefix =
-      locale === routing.defaultLocale ? '' : `/${locale}`;
+    const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
     return `${SITE_URL}${prefix}${path}`;
   });
 }
@@ -28,10 +15,15 @@ function localized(path: string) {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
-  const staticEntries: MetadataRoute.Sitemap = STATIC_PATHS.flatMap((path) =>
+  // 从数据库/fallback 动态获取导航项生成静态路径
+  const navItems = await getNavigationItems();
+  const staticPaths = navItems
+    .filter((item) => item.visible)
+    .map((item) => (item.href === '/' ? '' : item.href));
+
+  const staticEntries: MetadataRoute.Sitemap = staticPaths.flatMap((path) =>
     routing.locales.map((locale) => {
-      const prefix =
-        locale === routing.defaultLocale ? '' : `/${locale}`;
+      const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
       return {
         url: `${SITE_URL}${prefix}${path}`,
         lastModified: now,
@@ -42,22 +34,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             routing.locales.map((l) => [
               l,
               `${SITE_URL}${l === routing.defaultLocale ? '' : `/${l}`}${path}`,
-            ])
+            ]),
           ),
         },
       };
-    })
+    }),
   );
 
   const slugs = await getAllPostSlugs();
-  const postEntries: MetadataRoute.Sitemap = slugs.map(
-    ({ locale, slug }) => ({
-      url: `${SITE_URL}${locale === routing.defaultLocale ? '' : `/${locale}`}/blog/${slug}`,
-      lastModified: now,
-      changeFrequency: 'monthly' as const,
-      priority: 0.6,
-    })
-  );
+  const postEntries: MetadataRoute.Sitemap = slugs.map(({ locale, slug }) => ({
+    url: `${SITE_URL}${locale === routing.defaultLocale ? '' : `/${locale}`}/blog/${slug}`,
+    lastModified: now,
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
 
   void localized;
   return [...staticEntries, ...postEntries];

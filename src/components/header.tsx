@@ -9,20 +9,7 @@ import { AccentSwitcher } from '@/components/accent-switcher';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { MobileNav } from '@/components/mobile-nav';
 import { cn } from '@/lib/utils';
-
-/** 所有导航项 — 按实用性排序，首页放第一位 */
-const NAV_ITEMS = [
-  { href: '/', key: 'home' },
-  { href: '/projects', key: 'projects' },
-  { href: '/blog', key: 'blog' },
-  { href: '/now', key: 'now' },
-  { href: '/guestbook', key: 'guestbook' },
-  { href: '/photos', key: 'photos' },
-  { href: '/stats', key: 'stats' },
-  { href: '/timeline', key: 'timeline' },
-  { href: '/uses', key: 'uses' },
-  { href: '/subscribe', key: 'subscribe' },
-] as const;
+import type { NavigationItem, SocialLink } from '@/lib/content-loader';
 
 /** 触发 ⌘K 命令面板 */
 function triggerCommandMenu() {
@@ -34,7 +21,13 @@ function triggerCommandMenu() {
   document.dispatchEvent(event);
 }
 
-export function Header() {
+export function Header({
+  navItems,
+  socialLinks,
+}: {
+  navItems: NavigationItem[];
+  socialLinks: SocialLink[];
+}) {
   const t = useTranslations('nav');
   const tSite = useTranslations('site');
   const pathname = usePathname();
@@ -44,8 +37,7 @@ export function Header() {
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
   }, []);
 
-  const isActive = (href: string) =>
-    href === '/' ? pathname === '/' : pathname.startsWith(href);
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[var(--border)] bg-[color-mix(in_srgb,var(--bg)_85%,transparent)] backdrop-blur-md">
@@ -60,22 +52,21 @@ export function Header() {
         </Link>
 
         {/* 桌面端导航：全部展开，首页在第一位 */}
-        <nav
-          className="hidden items-center gap-0.5 text-sm md:flex"
-          aria-label="Main navigation"
-        >
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'cursor-pointer rounded-md px-2 py-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]',
-                isActive(item.href) && 'text-[var(--fg)]'
-              )}
-            >
-              {t(item.key)}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-0.5 text-sm md:flex" aria-label="Main navigation">
+          {navItems
+            .filter((item) => item.visible)
+            .map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'cursor-pointer rounded-md px-2 py-1.5 text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)]',
+                  isActive(item.href) && 'text-[var(--fg)]',
+                )}
+              >
+                {t(item.key)}
+              </Link>
+            ))}
         </nav>
 
         {/* 右侧工具栏 — gap-2 统一间距 */}
@@ -101,7 +92,7 @@ export function Header() {
           <AccentSwitcher />
           <LocaleSwitcher />
           <ThemeToggle />
-          <MobileNav />
+          <MobileNav navItems={navItems} socialLinks={socialLinks} />
         </div>
       </div>
     </header>

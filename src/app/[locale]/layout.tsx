@@ -7,10 +7,7 @@ import { Toaster } from 'sonner';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { ThemeProvider } from '@/components/theme-provider';
-import {
-  ThemeAccentProvider,
-  ThemeAccentScript,
-} from '@/components/theme-accent-provider';
+import { ThemeAccentProvider, ThemeAccentScript } from '@/components/theme-accent-provider';
 import { Spotlight } from '@/components/spotlight';
 import { Header } from '@/components/header';
 import { Footer } from '@/components/footer';
@@ -19,6 +16,7 @@ import { AiChatBubble } from '@/components/ai-chat-bubble';
 import { CommandMenu, type SearchablePost } from '@/components/command-menu';
 import { PersonJsonLd, WebSiteJsonLd } from '@/components/json-ld';
 import { getAllPosts } from '@/lib/blog';
+import { getNavigationItems, getSocialLinks } from '@/lib/content-loader';
 import { routing, type Locale } from '@/i18n/routing';
 
 const geistSans = Geist({
@@ -93,17 +91,18 @@ export default async function LocaleLayout({
   }
   setRequestLocale(locale);
 
+  // 服务端预加载导航 + 社交链接（传递给 Client Component）
+  const [navItems, socialLinks] = await Promise.all([getNavigationItems(), getSocialLinks()]);
+
   // 服务端读取博客列表并投影成客户端可用的搜索条目（剥掉正文、只留元数据）
   const allPosts = await getAllPosts(locale as Locale);
-  const searchablePosts: SearchablePost[] = allPosts.map(
-    (p) => ({
-      slug: p.slug,
-      title: p.title,
-      summary: p.summary,
-      tags: p.tags,
-      date: p.date,
-    })
-  );
+  const searchablePosts: SearchablePost[] = allPosts.map((p) => ({
+    slug: p.slug,
+    title: p.title,
+    summary: p.summary,
+    tags: p.tags,
+    date: p.date,
+  }));
 
   return (
     <html
@@ -126,20 +125,22 @@ export default async function LocaleLayout({
             <NextIntlClientProvider>
               <Spotlight />
               <div className="relative z-10 flex min-h-screen flex-col">
-                <Header />
+                <Header navItems={navItems} socialLinks={socialLinks} />
                 <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10 sm:px-6 sm:py-14">
                   {children}
                 </main>
-                <Footer />
+                <Footer socialLinks={socialLinks} />
               </div>
-              <CommandMenu posts={searchablePosts} />
+              <CommandMenu posts={searchablePosts} navItems={navItems} socialLinks={socialLinks} />
               <AiChatBubble />
               <ScrollToTop />
               <Toaster position="bottom-right" theme="system" />
             </NextIntlClientProvider>
           </ThemeAccentProvider>
         </ThemeProvider>
-        <PersonJsonLd />
+        <PersonJsonLd
+          sameAs={socialLinks.filter((l) => l.href.startsWith('http')).map((l) => l.href)}
+        />
         <WebSiteJsonLd />
         <Analytics />
         <SpeedInsights />

@@ -1,6 +1,6 @@
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hi.kyriewen.cn';
 
-export function PersonJsonLd() {
+export function PersonJsonLd({ sameAs }: { sameAs?: string[] }) {
   const data = {
     '@context': 'https://schema.org',
     '@type': 'Person',
@@ -8,16 +8,10 @@ export function PersonJsonLd() {
     url: SITE_URL,
     image: `${SITE_URL}/og`,
     jobTitle: 'Frontend Developer & Indie Hacker',
-    sameAs: [
-      'https://github.com/zbw-zbw',
-      'https://x.com/kyriewen',
-    ],
+    sameAs: sameAs ?? ['https://github.com/zbw-zbw', 'https://x.com/kyriewen'],
   };
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
   );
 }
 
@@ -34,10 +28,7 @@ export function WebSiteJsonLd() {
     },
   };
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
   );
 }
 
@@ -68,9 +59,6 @@ export function BlogPostingJsonLd({
     mainEntityOfPage: url,
   };
   return (
-    <script
-      type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
-    />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
   );
 }

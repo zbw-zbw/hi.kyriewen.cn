@@ -19,8 +19,10 @@ import {
   usesItems as usesItemsTable,
   socialLinks as socialLinksTable,
   popularPosts as popularPostsTable,
+  navigationItems as navigationItemsTable,
+  i18nMessages as i18nMessagesTable,
 } from '@/lib/db';
-import { asc, desc } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 
 // ── File-based imports (fallback) ───────────────────────────────
 import {
@@ -47,16 +49,8 @@ import {
   getTimelineByYear as fileGetTimelineByYear,
   type TimelineEvent,
 } from '@/content/timeline';
-import {
-  USES as FILE_USES,
-  formatSince,
-  type UsesSection,
-  type UsesItem,
-} from '@/content/uses';
-import {
-  SOCIAL_LINKS as FILE_SOCIAL_LINKS,
-  type SocialLink,
-} from '@/content/social';
+import { USES as FILE_USES, formatSince, type UsesSection, type UsesItem } from '@/content/uses';
+import { SOCIAL_LINKS as FILE_SOCIAL_LINKS, type SocialLink } from '@/content/social';
 import {
   POPULAR_POSTS as FILE_POPULAR_POSTS,
   getTopPosts as fileGetTopPosts,
@@ -64,7 +58,17 @@ import {
 } from '@/content/popular';
 
 // Re-export types for consumers
-export type { Project, ProjectCategory, NowItem, Photo, TimelineEvent, UsesSection, UsesItem, SocialLink, PopularPost };
+export type {
+  Project,
+  ProjectCategory,
+  NowItem,
+  Photo,
+  TimelineEvent,
+  UsesSection,
+  UsesItem,
+  SocialLink,
+  PopularPost,
+};
 export { formatSince };
 
 const source = process.env.CONTENT_SOURCE; // 'db' | 'file' | undefined
@@ -113,7 +117,10 @@ function rowToProject(row: Record<string, unknown>): Project {
     name: row.name as string,
     category: row.category as ProjectCategory,
     tagline: { en: (row.taglineEn as string) ?? '', zh: (row.taglineZh as string) ?? '' },
-    description: { en: (row.descriptionEn as string) ?? '', zh: (row.descriptionZh as string) ?? '' },
+    description: {
+      en: (row.descriptionEn as string) ?? '',
+      zh: (row.descriptionZh as string) ?? '',
+    },
     stack: safeJsonParse(row.stack as string, []),
     repo: (row.repo as string) || undefined,
     live: (row.live as string) || undefined,
@@ -125,9 +132,10 @@ function rowToProject(row: Record<string, unknown>): Project {
     heroImage: (row.heroImage as string) || undefined,
     gallery: row.gallery ? safeJsonParse(row.gallery as string, []) : undefined,
     coverVideo: (row.coverVideo as string) || undefined,
-    caseStudy: (row.caseStudyEn || row.caseStudyZh)
-      ? { en: (row.caseStudyEn as string) ?? '', zh: (row.caseStudyZh as string) ?? '' }
-      : undefined,
+    caseStudy:
+      row.caseStudyEn || row.caseStudyZh
+        ? { en: (row.caseStudyEn as string) ?? '', zh: (row.caseStudyZh as string) ?? '' }
+        : undefined,
     colorTheme: (row.colorTheme as string) || undefined,
     metrics: row.metrics ? safeJsonParse(row.metrics as string, undefined) : undefined,
     changelog: row.changelog ? safeJsonParse(row.changelog as string, undefined) : undefined,
@@ -193,9 +201,7 @@ export async function getPhotos(): Promise<Photo[]> {
       height: r.height,
       location: r.location ?? undefined,
       takenAt: r.takenAt,
-      story: (r.storyEn || r.storyZh)
-        ? { en: r.storyEn ?? '', zh: r.storyZh ?? '' }
-        : undefined,
+      story: r.storyEn || r.storyZh ? { en: r.storyEn ?? '', zh: r.storyZh ?? '' } : undefined,
       exif: r.exif ? safeJsonParse(r.exif, undefined) : undefined,
     }));
   } catch {
@@ -224,14 +230,18 @@ export async function getPhotosByYear(): Promise<Array<{ year: number; photos: P
 export async function getTimeline(): Promise<TimelineEvent[]> {
   if (!shouldReadDb()) return FILE_TIMELINE;
   try {
-    const rows = await db.select().from(timelineEventsTable).orderBy(desc(timelineEventsTable.date));
+    const rows = await db
+      .select()
+      .from(timelineEventsTable)
+      .orderBy(desc(timelineEventsTable.date));
     if (rows.length === 0) return FILE_TIMELINE;
     return rows.map((r) => ({
       date: r.date,
       title: { en: r.titleEn, zh: r.titleZh },
-      description: (r.descriptionEn || r.descriptionZh)
-        ? { en: r.descriptionEn ?? '', zh: r.descriptionZh ?? '' }
-        : undefined,
+      description:
+        r.descriptionEn || r.descriptionZh
+          ? { en: r.descriptionEn ?? '', zh: r.descriptionZh ?? '' }
+          : undefined,
       type: r.type as TimelineEvent['type'],
       url: r.url ?? undefined,
     }));
@@ -254,9 +264,7 @@ export async function getTimelineByYear(locale: 'en' | 'zh') {
     .sort(([a], [b]) => b - a)
     .map(([year, events]) => ({
       year,
-      events: events.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      ),
+      events: events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
     }));
 }
 
@@ -267,7 +275,10 @@ export async function getTimelineByYear(locale: 'en' | 'zh') {
 export async function getUses(): Promise<UsesSection[]> {
   if (!shouldReadDb()) return FILE_USES;
   try {
-    const sections = await db.select().from(usesSectionsTable).orderBy(asc(usesSectionsTable.sortOrder));
+    const sections = await db
+      .select()
+      .from(usesSectionsTable)
+      .orderBy(asc(usesSectionsTable.sortOrder));
     if (sections.length === 0) return FILE_USES;
     const items = await db.select().from(usesItemsTable).orderBy(asc(usesItemsTable.sortOrder));
 
@@ -281,9 +292,10 @@ export async function getUses(): Promise<UsesSection[]> {
           url: i.url ?? undefined,
           note: { en: i.noteEn, zh: i.noteZh },
           rating: i.rating as UsesItem['rating'],
-          verdict: (i.verdictEn || i.verdictZh)
-            ? { en: i.verdictEn ?? '', zh: i.verdictZh ?? '' }
-            : undefined,
+          verdict:
+            i.verdictEn || i.verdictZh
+              ? { en: i.verdictEn ?? '', zh: i.verdictZh ?? '' }
+              : undefined,
           since: i.since ?? undefined,
         })),
     }));
@@ -301,7 +313,10 @@ export async function getSocialLinks(): Promise<SocialLink[]> {
   try {
     const { Github, Twitter, Mail, Rss } = await import('lucide-react');
     const iconMap: Record<string, typeof Github> = {
-      Github, Twitter, Mail, Rss,
+      Github,
+      Twitter,
+      Mail,
+      Rss,
     };
     const rows = await db.select().from(socialLinksTable).orderBy(asc(socialLinksTable.sortOrder));
     if (rows.length === 0) return FILE_SOCIAL_LINKS;
@@ -350,4 +365,93 @@ function safeJsonParse<T>(str: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Navigation Items
+// ═══════════════════════════════════════════════════════════════
+
+/** 本地 fallback 导航数据 */
+const FILE_NAV_ITEMS: NavigationItem[] = [
+  { href: '/', key: 'home', sortOrder: 0, visible: true },
+  { href: '/projects', key: 'projects', sortOrder: 1, visible: true },
+  { href: '/blog', key: 'blog', sortOrder: 2, visible: true },
+  { href: '/now', key: 'now', sortOrder: 3, visible: true },
+  { href: '/guestbook', key: 'guestbook', sortOrder: 4, visible: true },
+  { href: '/photos', key: 'photos', sortOrder: 5, visible: true },
+  { href: '/stats', key: 'stats', sortOrder: 6, visible: true },
+  { href: '/timeline', key: 'timeline', sortOrder: 7, visible: true },
+  { href: '/uses', key: 'uses', sortOrder: 8, visible: true },
+  { href: '/subscribe', key: 'subscribe', sortOrder: 9, visible: true },
+];
+
+export interface NavigationItem {
+  href: string;
+  key: string;
+  sortOrder: number;
+  visible: boolean;
+}
+
+export async function getNavigationItems(): Promise<NavigationItem[]> {
+  if (!shouldReadDb()) return FILE_NAV_ITEMS;
+  try {
+    const rows = await db
+      .select()
+      .from(navigationItemsTable)
+      .orderBy(asc(navigationItemsTable.sortOrder));
+    if (rows.length === 0) return FILE_NAV_ITEMS;
+    return rows.map((r) => ({
+      href: r.href,
+      key: r.key,
+      sortOrder: r.sortOrder,
+      visible: r.visible === 1,
+    }));
+  } catch {
+    return FILE_NAV_ITEMS;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// i18n Message Overrides
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * 从数据库读取指定 locale 的 i18n 覆盖文案。
+ * 返回一个嵌套对象结构，可与本地 JSON 做深度合并。
+ */
+export async function getI18nOverrides(locale: string): Promise<Record<string, unknown>> {
+  if (!shouldReadDb()) return {};
+  try {
+    const rows = await db
+      .select()
+      .from(i18nMessagesTable)
+      .where(eq(i18nMessagesTable.locale, locale));
+    if (rows.length === 0) return {};
+
+    // 将扁平的 namespace + key 转换为嵌套对象
+    // e.g. { namespace: 'home', key: 'hero.eyebrow', value: '...' }
+    //   → { home: { hero: { eyebrow: '...' } } }
+    const result: Record<string, unknown> = {};
+    for (const row of rows) {
+      const path = `${row.namespace}.${row.key}`;
+      setNestedValue(result, path, row.value);
+    }
+    return result;
+  } catch {
+    return {};
+  }
+}
+
+/** 通过点分路径设置嵌套对象值 */
+function setNestedValue(obj: Record<string, unknown>, path: string, value: unknown) {
+  const keys = path.split('.');
+  let current = obj;
+  for (let i = 0; i < keys.length - 1; i++) {
+    const k = keys[i]!;
+    if (!(k in current) || typeof current[k] !== 'object' || current[k] === null) {
+      current[k] = {};
+    }
+    current = current[k] as Record<string, unknown>;
+  }
+  current[keys[keys.length - 1]!] = value;
 }

@@ -1,16 +1,10 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { Github, Twitter, Rss } from 'lucide-react';
 import { EmailLink } from '@/components/email-link';
+import type { SocialLink } from '@/lib/content-loader';
 
-const SOCIAL = [
-  { href: 'https://github.com/zbw-zbw', label: 'GitHub', Icon: Github },
-  { href: 'https://x.com/kyriewen', label: 'Twitter / X', Icon: Twitter },
-  { href: '/rss.xml', label: 'RSS', Icon: Rss },
-];
-
-export function Footer() {
+export function Footer({ socialLinks }: { socialLinks: SocialLink[] }) {
   const t = useTranslations('footer');
   const year = new Date().getFullYear();
 
@@ -23,17 +17,17 @@ export function Footer() {
             <p>{t('copyright', { year })}</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            {SOCIAL.map(({ href, label, Icon }) => (
+            {socialLinks.map((link) => (
               <a
-                key={href}
-                href={href}
-                target={href.startsWith('http') ? '_blank' : undefined}
-                rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                aria-label={label}
-                title={label}
+                key={link.href}
+                href={link.href}
+                target={link.href.startsWith('http') ? '_blank' : undefined}
+                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                aria-label={link.name}
+                title={link.name}
                 className="cursor-pointer transition-colors hover:text-[var(--fg)]"
               >
-                <Icon className="h-4 w-4" />
+                <link.Icon className="h-4 w-4" />
               </a>
             ))}
             <EmailLink variant="pill" />

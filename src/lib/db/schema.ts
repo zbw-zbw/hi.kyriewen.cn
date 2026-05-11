@@ -24,15 +24,13 @@ export const guestbookMessages = pgTable(
     parentId: integer('parent_id'),
     postSlug: varchar('post_slug', { length: 128 }),
     updatedAt: timestamp('updated_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index('guestbook_created_idx').on(table.createdAt),
     index('guestbook_parent_idx').on(table.parentId),
     index('guestbook_post_slug_idx').on(table.postSlug),
-  ]
+  ],
 );
 
 /**
@@ -45,18 +43,12 @@ export const likes = pgTable(
     userId: varchar('user_id', { length: 128 }).notNull(),
     targetType: varchar('target_type', { length: 32 }).notNull(),
     targetId: varchar('target_id', { length: 128 }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('likes_unique_idx').on(
-      table.userId,
-      table.targetType,
-      table.targetId
-    ),
+    uniqueIndex('likes_unique_idx').on(table.userId, table.targetType, table.targetId),
     index('likes_target_idx').on(table.targetType, table.targetId),
-  ]
+  ],
 );
 
 /**
@@ -70,14 +62,10 @@ export const statsSnapshot = pgTable(
     githubStars: integer('github_stars').notNull().default(0),
     githubFollowers: integer('github_followers').notNull().default(0),
     chromeTotalUsers: integer('chrome_total_users').notNull().default(0),
-    newsletterSubscribers: integer('newsletter_subscribers')
-      .notNull()
-      .default(0),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    newsletterSubscribers: integer('newsletter_subscribers').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('stats_date_idx').on(table.date)]
+  (table) => [index('stats_date_idx').on(table.date)],
 );
 
 /**
@@ -91,11 +79,9 @@ export const productStats = pgTable(
     date: date('date').notNull(),
     users: integer('users').notNull().default(0),
     stars: integer('stars').notNull().default(0),
-    createdAt: timestamp('created_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('product_stats_slug_date_idx').on(table.slug, table.date)]
+  (table) => [index('product_stats_slug_date_idx').on(table.slug, table.date)],
 );
 
 /**
@@ -107,11 +93,9 @@ export const pageViews = pgTable(
     id: serial('id').primaryKey(),
     slug: varchar('slug', { length: 256 }).notNull().unique(),
     views: integer('views').notNull().default(0),
-    updatedAt: timestamp('updated_at', { withTimezone: true })
-      .notNull()
-      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [uniqueIndex('page_views_slug_idx').on(table.slug)]
+  (table) => [uniqueIndex('page_views_slug_idx').on(table.slug)],
 );
 
 /**
@@ -151,7 +135,7 @@ export const projects = pgTable(
   (table) => [
     uniqueIndex('projects_slug_idx').on(table.slug),
     index('projects_sort_idx').on(table.sortOrder),
-  ]
+  ],
 );
 
 /**
@@ -169,7 +153,7 @@ export const nowItems = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('now_items_sort_idx').on(table.sortOrder)]
+  (table) => [index('now_items_sort_idx').on(table.sortOrder)],
 );
 
 /**
@@ -202,7 +186,7 @@ export const photos = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('photos_sort_idx').on(table.sortOrder)]
+  (table) => [index('photos_sort_idx').on(table.sortOrder)],
 );
 
 /**
@@ -222,7 +206,7 @@ export const timelineEvents = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('timeline_date_idx').on(table.date)]
+  (table) => [index('timeline_date_idx').on(table.date)],
 );
 
 /**
@@ -239,7 +223,7 @@ export const usesSections = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('uses_sections_sort_idx').on(table.sortOrder)]
+  (table) => [index('uses_sections_sort_idx').on(table.sortOrder)],
 );
 
 /**
@@ -265,7 +249,7 @@ export const usesItems = pgTable(
   (table) => [
     index('uses_items_section_idx').on(table.sectionId),
     index('uses_items_sort_idx').on(table.sortOrder),
-  ]
+  ],
 );
 
 /**
@@ -284,7 +268,7 @@ export const socialLinks = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('social_links_sort_idx').on(table.sortOrder)]
+  (table) => [index('social_links_sort_idx').on(table.sortOrder)],
 );
 
 /**
@@ -326,7 +310,7 @@ export const blogPosts = pgTable(
     index('blog_posts_lang_idx').on(table.lang),
     index('blog_posts_published_idx').on(table.publishedAt),
     index('blog_posts_source_id_idx').on(table.sourceId),
-  ]
+  ],
 );
 
 /**
@@ -345,7 +329,43 @@ export const newsletterIssues = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('newsletter_issues_sent_idx').on(table.sentAt)]
+  (table) => [index('newsletter_issues_sent_idx').on(table.sentAt)],
+);
+
+/**
+ * 导航菜单项
+ */
+export const navigationItems = pgTable(
+  'navigation_items',
+  {
+    id: serial('id').primaryKey(),
+    href: text('href').notNull(),
+    key: varchar('key', { length: 64 }).notNull(),
+    visible: integer('visible').notNull().default(1),
+    sortOrder: integer('sort_order').notNull().default(0),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index('navigation_items_sort_idx').on(table.sortOrder)],
+);
+
+/**
+ * i18n 文案覆盖表（DB 优先级高于本地 JSON）
+ */
+export const i18nMessages = pgTable(
+  'i18n_messages',
+  {
+    id: serial('id').primaryKey(),
+    locale: varchar('locale', { length: 8 }).notNull(),
+    namespace: varchar('namespace', { length: 64 }).notNull(),
+    key: varchar('key', { length: 256 }).notNull(),
+    value: text('value').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('i18n_locale_ns_key_idx').on(table.locale, table.namespace, table.key),
+    index('i18n_locale_idx').on(table.locale),
+  ],
 );
 
 // ─── Type Exports ────────────────────────────────────────────────
@@ -379,3 +399,7 @@ export type BlogPostRow = typeof blogPosts.$inferSelect;
 export type NewBlogPostRow = typeof blogPosts.$inferInsert;
 export type NewsletterIssueRow = typeof newsletterIssues.$inferSelect;
 export type NewNewsletterIssueRow = typeof newsletterIssues.$inferInsert;
+export type NavigationItemRow = typeof navigationItems.$inferSelect;
+export type NewNavigationItemRow = typeof navigationItems.$inferInsert;
+export type I18nMessageRow = typeof i18nMessages.$inferSelect;
+export type NewI18nMessageRow = typeof i18nMessages.$inferInsert;

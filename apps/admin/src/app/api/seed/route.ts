@@ -10,6 +10,8 @@ import {
   usesItems,
   socialLinks,
   popularPosts,
+  navigationItems,
+  i18nMessages,
 } from '@repo/db/schema';
 // drizzle-orm utilities imported as needed
 
@@ -36,7 +38,9 @@ type SeedTable =
   | 'timeline'
   | 'uses'
   | 'social'
-  | 'popular';
+  | 'popular'
+  | 'navigation'
+  | 'i18n';
 
 const ALL_TABLES: SeedTable[] = [
   'projects',
@@ -46,6 +50,8 @@ const ALL_TABLES: SeedTable[] = [
   'uses',
   'social',
   'popular',
+  'navigation',
+  'i18n',
 ];
 
 /**
@@ -84,6 +90,12 @@ export async function POST(req: Request) {
         case 'popular':
           results.popular = await seedPopular();
           break;
+        case 'navigation':
+          results.navigation = await seedNavigation();
+          break;
+        case 'i18n':
+          results.i18n = await seedI18n();
+          break;
         default:
           results[table] = -1; // unknown table
       }
@@ -92,10 +104,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, results });
   } catch (err) {
     console.error('[seed] error', err);
-    return NextResponse.json(
-      { error: String(err) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
 
@@ -269,4 +278,113 @@ async function seedPopular(): Promise<number> {
   }));
   await db.insert(popularPosts).values(rows);
   return rows.length;
+}
+
+// ── Navigation ───────────────────────────────────────────────────
+
+const NAVIGATION_ENTRIES: Array<{ href: string; key: string }> = [
+  { href: '/', key: 'home' },
+  { href: '/projects', key: 'projects' },
+  { href: '/blog', key: 'blog' },
+  { href: '/now', key: 'now' },
+  { href: '/guestbook', key: 'guestbook' },
+  { href: '/photos', key: 'photos' },
+  { href: '/stats', key: 'stats' },
+  { href: '/timeline', key: 'timeline' },
+  { href: '/uses', key: 'uses' },
+  { href: '/subscribe', key: 'subscribe' },
+];
+
+async function seedNavigation(): Promise<number> {
+  await db.delete(navigationItems);
+  const rows = NAVIGATION_ENTRIES.map((entry, index) => ({
+    href: entry.href,
+    key: entry.key,
+    visible: 1,
+    sortOrder: index,
+  }));
+  await db.insert(navigationItems).values(rows);
+  return rows.length;
+}
+
+// ── i18n Messages ────────────────────────────────────────────────
+
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+
+/**
+ * Recursively flatten a nested JSON object into { namespace, key, value } entries.
+ *
+ * Example:
+ *   { "home": { "hero": { "eyebrow": "xxx" } } }
+ *   → { namespace: "home", key: "hero.eyebrow", value: "xxx" }
+ */
+function flattenMessages(
+  obj: Record<string, unknown>,
+  parentKey = '',
+): Array<{ namespace: string; key: string; value: string }> {
+  const results: Array<{ namespace: string; key: string; value: string }> = [];
+
+  for (const [currentKey, currentValue] of Object.entries(obj)) {
+    if (typeof currentValue === 'object' && currentValue !== null && !Array.isArray(currentValue)) {
+      // Recurse into nested object
+      const nested = flattenMessages(
+        currentValue as Record<string, unknown>,
+        parentKey ? `${parentKey}.${currentKey}` : currentKey,
+      );
+      results.push(...nested);
+    } else {
+      // Leaf value — extract namespace (first segment) and remaining key
+      const fullPath = parentKey ? `${parentKey}.${currentKey}` : currentKey;
+      const dotIndex = fullPath.indexOf('.');
+      const namespace = dotIndex === -1 ? fullPath : fullPath.slice(0, dotIndex);
+      const leafKey = dotIndex === -1 ? '' : fullPath.slice(dotIndex + 1);
+
+      results.push({
+        namespace,
+        key: leafKey,
+        value: String(currentValue),
+      });
+    }
+  }
+
+  return results;
+}
+
+async function seedI18n(): Promise<number> {
+  await db.delete(i18nMessages);
+
+  const projectRoot = join(process.cwd(), '..', '..');
+  const locales = ['zh', 'en'] as const;
+  const allRows: Array<{
+    locale: string;
+    namespace: string;
+    key: string;
+    value: string;
+  }> = [];
+
+  for (const locale of locales) {
+    const filePath = join(projectRoot, 'src', 'messages', `${locale}.json`);
+    const raw = readFileSync(filePath, 'utf-8');
+    const json = JSON.parse(raw) as Record<string, unknown>;
+    const entries = flattenMessages(json);
+
+    for (const entry of entries) {
+      allRows.push({
+        locale,
+        namespace: entry.namespace,
+        key: entry.key,
+        value: entry.value,
+      });
+    }
+  }
+
+  // Batch insert in chunks of 100 to avoid overly large statements
+  const chunkSize = 100;
+  for (let offset = 0; offset < allRows.length; offset += chunkSize) {
+    const chunk = allRows.slice(offset, offset + chunkSize);
+    await db.insert(i18nMessages).values(chunk);
+  }
+
+  return allRows.length;
 }

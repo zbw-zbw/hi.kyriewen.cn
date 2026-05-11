@@ -21,16 +21,15 @@ import {
   Twitter,
   BookOpen,
   Image as ImageIcon,
-  Box,
   Palette,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { useRouter } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
-import { PROJECTS } from '@/content/projects';
 import { ACCENTS, useAccent, type Accent } from '@/components/theme-accent-provider';
 import { cn } from '@/lib/utils';
+import type { NavigationItem, SocialLink } from '@/lib/content-loader';
 
 /** 4 个 accent 色的展示色值（与 globals.css [data-accent] 中 light 模式保持一致） */
 const ACCENT_SWATCH: Record<Accent, string> = {
@@ -48,24 +47,29 @@ export interface SearchablePost {
   date: string;
 }
 
-const PAGES = [
-  { href: '/', key: 'home', Icon: Home },
-  { href: '/projects', key: 'projects', Icon: Package },
-  { href: '/blog', key: 'blog', Icon: FileText },
-  { href: '/now', key: 'now', Icon: Activity },
-  { href: '/stats', key: 'stats', Icon: BarChart3 },
-  { href: '/timeline', key: 'timeline', Icon: Clock },
-  { href: '/uses', key: 'uses', Icon: Wrench },
-  { href: '/photos', key: 'photos', Icon: ImageIcon },
-  { href: '/guestbook', key: 'guestbook', Icon: MessageSquare },
-] as const;
+/** key → Icon 映射（用于从 navItems 动态匹配图标） */
+const NAV_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  home: Home,
+  projects: Package,
+  blog: FileText,
+  now: Activity,
+  stats: BarChart3,
+  timeline: Clock,
+  uses: Wrench,
+  photos: ImageIcon,
+  guestbook: MessageSquare,
+  subscribe: BookOpen,
+};
 
-const SOCIAL = [
-  { href: 'https://github.com/zbw-zbw', label: 'GitHub', Icon: Github },
-  { href: 'https://x.com/kyriewen', label: 'Twitter / X', Icon: Twitter },
-];
-
-export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
+export function CommandMenu({
+  posts = [],
+  navItems = [],
+  socialLinks = [],
+}: {
+  posts?: SearchablePost[];
+  navItems?: NavigationItem[];
+  socialLinks?: SocialLink[];
+}) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
@@ -109,39 +113,25 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
             <Command.Empty>{tCmd('noResults')}</Command.Empty>
 
             <Command.Group heading={tCmd('groups.navigation')}>
-              {PAGES.map(({ href, key, Icon }) => (
-                <Command.Item
-                  key={href}
-                  value={`nav ${key} ${tNav(key)}`}
-                  onSelect={() => runAndClose(() => router.push(href))}
-                  onMouseEnter={() => router.prefetch(href)}
-                >
-                  <Icon className="h-4 w-4 text-[var(--muted)]" />
-                  <span>{tNav(key)}</span>
-                </Command.Item>
-              ))}
+              {navItems
+                .filter((item) => item.visible)
+                .map((item) => {
+                  const Icon = NAV_ICON_MAP[item.key] || Home;
+                  return (
+                    <Command.Item
+                      key={item.href}
+                      value={`nav ${item.key} ${tNav(item.key)}`}
+                      onSelect={() => runAndClose(() => router.push(item.href))}
+                      onMouseEnter={() => router.prefetch(item.href)}
+                    >
+                      <Icon className="h-4 w-4 text-[var(--muted)]" />
+                      <span>{tNav(item.key)}</span>
+                    </Command.Item>
+                  );
+                })}
             </Command.Group>
 
-            <Command.Group heading={locale === 'zh' ? '产品' : 'Products'}>
-              {PROJECTS.map((project) => {
-                const href = `/projects/${project.slug}`;
-                const tagline = project.tagline[locale];
-                return (
-                  <Command.Item
-                    key={project.slug}
-                    value={`product ${project.slug} ${project.name} ${tagline}`}
-                    onSelect={() => runAndClose(() => router.push(href))}
-                    onMouseEnter={() => router.prefetch(href)}
-                  >
-                    <Box className="h-4 w-4 text-[var(--muted)]" />
-                    <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate">{project.name}</span>
-                      <span className="truncate text-xs text-[var(--muted)]">{tagline}</span>
-                    </div>
-                  </Command.Item>
-                );
-              })}
-            </Command.Group>
+            {/* 产品搜索已移至导航项，可通过导航到 /projects 查看全部 */}
 
             {posts.length > 0 && (
               <Command.Group heading={tCmd('groups.blog')}>
@@ -243,14 +233,14 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
             </Command.Group>
 
             <Command.Group heading={tCmd('groups.social')}>
-              {SOCIAL.map(({ href, label, Icon }) => (
+              {socialLinks.map((link) => (
                 <Command.Item
-                  key={href}
-                  value={`social ${label}`}
-                  onSelect={() => runAndClose(() => window.open(href, '_blank'))}
+                  key={link.href}
+                  value={`social ${link.name}`}
+                  onSelect={() => runAndClose(() => window.open(link.href, '_blank'))}
                 >
-                  <Icon className="h-4 w-4 text-[var(--muted)]" />
-                  <span>{label}</span>
+                  <link.Icon className="h-4 w-4 text-[var(--muted)]" />
+                  <span>{link.name}</span>
                 </Command.Item>
               ))}
             </Command.Group>
