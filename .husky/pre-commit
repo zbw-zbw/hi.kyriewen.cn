@@ -1,0 +1,8 @@
+# Run prettier on staged files
+pnpm lint-staged
+
+# Run ESLint for main site
+pnpm next lint
+
+# Run ESLint for admin
+cd apps/admin && pnpm next lint

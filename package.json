@@ -12,7 +12,14 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,md,mdx,css}\"",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "prepare": "husky",
+    "lint:all": "next lint && cd apps/admin && next lint"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,css}": [
+      "prettier --write"
+    ]
   },
   "dependencies": {
     "@ai-sdk/openai": "^3.0.63",
@@ -60,6 +67,8 @@
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.4",
     "eslint-config-next": "^15.5.18",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
     "pg": "^8.20.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.8.0",
