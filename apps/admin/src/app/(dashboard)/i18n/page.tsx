@@ -30,8 +30,9 @@ export default function I18nPage() {
     try {
       const response = await fetch(`/api/i18n?locale=${locale}`);
       if (!response.ok) throw new Error('Failed to fetch i18n messages');
-      const data = await response.json();
-      setItems(data);
+      const json = await response.json();
+      const list = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
+      setItems(list);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load data');
     } finally {
