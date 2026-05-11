@@ -5,12 +5,74 @@ import { eq } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
+
+const UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
 function authorize(req: Request) {
   const secret = process.env.CRON_SECRET;
   if (!secret) return true;
   const auth = req.headers.get('authorization');
   return auth === `Bearer ${secret}`;
+}
+
+/* ── HTML → Markdown converter ───────────────────────────────────── */
+
+function stripTags(html: string): string {
+  return html.replace(/<[^>]+>/g, '');
+}
+
+function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)))
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+}
+
+function htmlToMarkdown(html: string): string {
+  let md = html;
+  md = md.replace(
+    /<pre[^>]*><code[^>]*(?:class="[^"]*language-(\w+)[^"]*")?[^>]*>([\s\S]*?)<\/code><\/pre>/gi,
+    (_, lang, code) =>
+      `\n\`\`\`${lang || ''}\n${decodeEntities(code.replace(/<[^>]+>/g, ''))}\n\`\`\`\n`,
+  );
+  md = md.replace(
+    /<h([1-5])[^>]*>([\s\S]*?)<\/h\1>/gi,
+    (_, n, c) => `\n${'#'.repeat(+n)} ${stripTags(c)}\n`,
+  );
+  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\/?>/gi, '![$2]($1)');
+  md = md.replace(/<img[^>]*src="([^"]*)"[^>]*\/?>/gi, '![]($1)');
+  md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>([\s\S]*?)<\/a>/gi, (_, h, t) => {
+    const s = stripTags(t).trim();
+    return s ? `[${s}](${h})` : '';
+  });
+  md = md.replace(/<strong[^>]*>([\s\S]*?)<\/strong>/gi, '**$1**');
+  md = md.replace(/<b[^>]*>([\s\S]*?)<\/b>/gi, '**$1**');
+  md = md.replace(/<em[^>]*>([\s\S]*?)<\/em>/gi, '*$1*');
+  md = md.replace(/<code[^>]*>([\s\S]*?)<\/code>/gi, (_, c) => `\`${decodeEntities(c)}\``);
+  md = md.replace(/<li[^>]*>([\s\S]*?)<\/li>/gi, (_, c) => `- ${stripTags(c).trim()}\n`);
+  md = md.replace(
+    /<blockquote[^>]*>([\s\S]*?)<\/blockquote>/gi,
+    (_, c) =>
+      stripTags(c)
+        .trim()
+        .split('\n')
+        .map((l: string) => `> ${l}`)
+        .join('\n') + '\n',
+  );
+  md = md.replace(/<p[^>]*>([\s\S]*?)<\/p>/gi, (_, c) => `\n${stripTags(c).trim()}\n`);
+  md = md.replace(/<hr[^>]*\/?>/gi, '\n---\n');
+  md = md.replace(/<br[^>]*\/?>/gi, '\n');
+  md = md.replace(/<[^>]+>/g, '');
+  md = decodeEntities(md);
+  md = md.replace(/\n{3,}/g, '\n\n').trim();
+  return md;
 }
 
 /* ── RSS helpers (CSDN) ─────────────────────────────────────────── */
@@ -65,42 +127,128 @@ interface JuejinArticle {
 
 function slugify(title: string, source: string, id: string): string {
   const eng = title
-    .replace(/[^\w\s-]/g, ' ').trim().toLowerCase()
-    .replace(/\s+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+    .replace(/[^\w\s-]/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
   const prefix = eng.length >= 3 ? eng.substring(0, 50) : source;
   return `${prefix}-${id.slice(-10)}`;
+}
+
+/* ── Fetch full article content ──────────────────────────────────── */
+
+async function fetchJuejinContent(articleId: string): Promise<string | null> {
+  try {
+    const res = await fetch('https://api.juejin.cn/content_api/v1/article/detail', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ article_id: articleId }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const markdownBody = data?.data?.article_info?.mark_content;
+    if (markdownBody && markdownBody.length >= 50) return markdownBody;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchCsdnContent(articleUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(articleUrl, {
+      headers: { 'User-Agent': UA, Accept: 'text/html', 'Accept-Language': 'zh-CN,zh;q=0.9' },
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+
+    const startIdx = html.indexOf('id="content_views"');
+    if (startIdx === -1) return null;
+    const tagEnd = html.indexOf('>', startIdx);
+    let body = html.substring(tagEnd + 1);
+
+    const endMarkers = [
+      'id="treeSkill"',
+      'class="hide-article-box"',
+      'class="article-copyright"',
+      'class="blog-tags-box"',
+      'class="article-bar-bottom"',
+      'id="article_bottom_area"',
+    ];
+    for (const marker of endMarkers) {
+      const idx = body.indexOf(marker);
+      if (idx > 0) {
+        let cursor = idx;
+        while (cursor > 0 && body[cursor] !== '<') cursor--;
+        body = body.substring(0, cursor);
+        break;
+      }
+    }
+
+    body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+    const md = htmlToMarkdown(body.trim());
+    return md.length >= 50 ? md : null;
+  } catch {
+    return null;
+  }
 }
 
 /* ── Sync CSDN ───────────────────────────────────────────────────── */
 
 async function syncCsdn(userId: string) {
   const rssRes = await fetch(`https://blog.csdn.net/${userId}/rss/list`, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36' },
+    headers: { 'User-Agent': UA },
   });
   if (!rssRes.ok) throw new Error(`CSDN RSS failed: ${rssRes.status}`);
   const articles = parseRssItems(await rssRes.text());
 
   const existing = new Set(
-    (await db.select({ sourceId: blogPosts.sourceId }).from(blogPosts).where(eq(blogPosts.source, 'csdn')))
-      .map((p) => p.sourceId).filter(Boolean),
+    (
+      await db
+        .select({ sourceId: blogPosts.sourceId })
+        .from(blogPosts)
+        .where(eq(blogPosts.source, 'csdn'))
+    )
+      .map((p) => p.sourceId)
+      .filter(Boolean),
   );
 
-  let imported = 0, skipped = 0;
+  let imported = 0,
+    skipped = 0,
+    contentFailed = 0;
   for (const art of articles) {
     const id = art.link.match(/\/details\/(\d+)/)?.[1] ?? '';
-    if (!id || existing.has(id)) { skipped++; continue; }
+    if (!id || existing.has(id)) {
+      skipped++;
+      continue;
+    }
+
+    // Fetch full article content from detail page
+    const fullContent = await fetchCsdnContent(art.link);
+
     await db.insert(blogPosts).values({
       slug: slugify(art.title, 'csdn', id),
       title: art.title,
       summary: art.description || null,
-      content: art.description || '(Content pending backfill)',
-      tags: '[]', lang: 'zh', draft: 1, coverImage: null,
-      source: 'csdn', sourceId: id, sourceUrl: art.link,
+      content: fullContent || art.description || '',
+      tags: '[]',
+      lang: 'zh',
+      draft: 1,
+      coverImage: null,
+      source: 'csdn',
+      sourceId: id,
+      sourceUrl: art.link,
       publishedAt: art.pubDate ? new Date(art.pubDate) : new Date(),
     });
     imported++;
+    if (!fullContent) contentFailed++;
+
+    // Rate limiting: small delay between requests
+    await new Promise((r) => setTimeout(r, 500));
   }
-  return { source: 'csdn', fetched: articles.length, imported, skipped };
+  return { source: 'csdn', fetched: articles.length, imported, skipped, contentFailed };
 }
 
 /* ── Sync Juejin ─────────────────────────────────────────────────── */
@@ -127,29 +275,51 @@ async function syncJuejin(userId: string) {
   }
 
   const existing = new Set(
-    (await db.select({ sourceId: blogPosts.sourceId }).from(blogPosts).where(eq(blogPosts.source, 'juejin')))
-      .map((p) => p.sourceId).filter(Boolean),
+    (
+      await db
+        .select({ sourceId: blogPosts.sourceId })
+        .from(blogPosts)
+        .where(eq(blogPosts.source, 'juejin'))
+    )
+      .map((p) => p.sourceId)
+      .filter(Boolean),
   );
 
-  let imported = 0, skipped = 0;
+  let imported = 0,
+    skipped = 0,
+    contentFailed = 0;
   for (const art of articles) {
     const id = art.article_info.article_id;
-    if (existing.has(id)) { skipped++; continue; }
+    if (existing.has(id)) {
+      skipped++;
+      continue;
+    }
+
+    // Fetch full Markdown content via detail API
+    const fullContent = await fetchJuejinContent(id);
+
     const tags = (art.tags || []).map((t) => t.tag_name);
     await db.insert(blogPosts).values({
       slug: slugify(art.article_info.title, 'juejin', id),
       title: art.article_info.title,
       summary: art.article_info.brief_content || null,
-      content: art.article_info.brief_content || '(Content pending backfill)',
-      tags: JSON.stringify(tags), lang: 'zh', draft: 1,
+      content: fullContent || art.article_info.brief_content || '',
+      tags: JSON.stringify(tags),
+      lang: 'zh',
+      draft: 1,
       coverImage: art.article_info.cover_image || null,
-      source: 'juejin', sourceId: id,
+      source: 'juejin',
+      sourceId: id,
       sourceUrl: `https://juejin.cn/post/${id}`,
       publishedAt: new Date(parseInt(art.article_info.ctime, 10) * 1000),
     });
     imported++;
+    if (!fullContent) contentFailed++;
+
+    // Rate limiting
+    await new Promise((r) => setTimeout(r, 300));
   }
-  return { source: 'juejin', fetched: articles.length, imported, skipped };
+  return { source: 'juejin', fetched: articles.length, imported, skipped, contentFailed };
 }
 
 /* ── GET handler ─────────────────────────────────────────────────── */
@@ -159,7 +329,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const results: Array<{ source: string; fetched: number; imported: number; skipped: number; error?: string }> = [];
+  const results: Array<{
+    source: string;
+    fetched: number;
+    imported: number;
+    skipped: number;
+    contentFailed?: number;
+    error?: string;
+  }> = [];
 
   // Sync CSDN
   const csdnUser = process.env.CSDN_USER_ID;
@@ -182,7 +359,10 @@ export async function GET(req: Request) {
   }
 
   if (results.length === 0) {
-    return NextResponse.json({ error: 'No source configured (CSDN_USER_ID / JUEJIN_USER_ID)' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'No source configured (CSDN_USER_ID / JUEJIN_USER_ID)' },
+      { status: 500 },
+    );
   }
 
   const total = {
