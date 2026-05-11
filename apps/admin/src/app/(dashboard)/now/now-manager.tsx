@@ -40,24 +40,41 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
   }
 
   const [updatedAt, setUpdatedAt] = useState(getConfigValue('updated_at'));
-  const [buildingEn, setBuildingEn] = useState(
-    getConfigValue('currently_building_en'),
-  );
-  const [buildingZh, setBuildingZh] = useState(
-    getConfigValue('currently_building_zh'),
-  );
+  const [buildingEn, setBuildingEn] = useState(getConfigValue('currently_building_en'));
+  const [buildingZh, setBuildingZh] = useState(getConfigValue('currently_building_zh'));
   const [saving, setSaving] = useState(false);
-  const [configTab, setConfigTab] = useState<'en' | 'zh'>('en');
 
   async function handleSaveConfig() {
     setSaving(true);
     try {
+      // Auto-translate buildingZh → buildingEn
+      let enValue = buildingEn;
+      if (buildingZh.trim()) {
+        try {
+          const trRes = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts: [{ text: buildingZh.trim(), type: 'description' }] }),
+          });
+          if (trRes.ok) {
+            const trData = await trRes.json();
+            const translated = trData.results?.[0]?.translated;
+            if (translated) {
+              enValue = translated;
+              setBuildingEn(translated);
+            }
+          }
+        } catch {
+          /* non-blocking */
+        }
+      }
+
       const response = await fetch('/api/now/config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           updated_at: updatedAt,
-          currently_building_en: buildingEn,
+          currently_building_en: enValue,
           currently_building_zh: buildingZh,
         }),
       });
@@ -72,7 +89,7 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-6">
+    <div className="border-border bg-background rounded-lg border p-6">
       <h3 className="mb-4 text-lg font-semibold">Now Config</h3>
 
       <div className="space-y-4">
@@ -83,64 +100,27 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
             value={updatedAt}
             onChange={(e) => setUpdatedAt(e.target.value)}
             placeholder="e.g. May 2026"
-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
 
-        {/* Tab switcher for currently_building */}
+        {/* Currently Building (ZH only, auto-translate EN on save) */}
         <div>
-          <label className="mb-1 block text-sm font-medium">
-            Currently Building
-          </label>
-          <div className="mb-2 flex gap-1 rounded-md border border-border p-1">
-            <button
-              type="button"
-              onClick={() => setConfigTab('en')}
-              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                configTab === 'en'
-                  ? 'bg-foreground text-background'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfigTab('zh')}
-              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                configTab === 'zh'
-                  ? 'bg-foreground text-background'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              ZH
-            </button>
-          </div>
-
-          {configTab === 'en' ? (
-            <textarea
-              value={buildingEn}
-              onChange={(e) => setBuildingEn(e.target.value)}
-              placeholder="Currently building (English)"
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          ) : (
-            <textarea
-              value={buildingZh}
-              onChange={(e) => setBuildingZh(e.target.value)}
-              placeholder="Currently building (中文)"
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          )}
+          <label className="mb-1 block text-sm font-medium">正在做的事（保存时自动翻译英文）</label>
+          <textarea
+            value={buildingZh}
+            onChange={(e) => setBuildingZh(e.target.value)}
+            placeholder="正在做什么…"
+            rows={3}
+            className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          />
         </div>
 
         <button
           type="button"
           onClick={handleSaveConfig}
           disabled={saving}
-          className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="bg-foreground text-background inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           {saving ? 'Saving…' : 'Save Config'}
@@ -193,87 +173,67 @@ function ItemForm({
     event.preventDefault();
     setSubmitting(true);
     try {
-      await onSubmit(form);
+      // Auto-translate zh → en before submit
+      const updated = { ...form };
+      if (form.labelZh.trim() || form.valueZh.trim()) {
+        try {
+          const texts = [
+            ...(form.labelZh.trim()
+              ? [{ text: form.labelZh.trim(), type: 'title', field: 'labelZh' }]
+              : []),
+            ...(form.valueZh.trim()
+              ? [{ text: form.valueZh.trim(), type: 'short', field: 'valueZh' }]
+              : []),
+          ];
+          const trRes = await fetch('/api/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texts }),
+          });
+          if (trRes.ok) {
+            const trData = await trRes.json();
+            for (const r of trData.results ?? []) {
+              if (r.field === 'labelZh') updated.labelEn = r.translated;
+              if (r.field === 'valueZh') updated.valueEn = r.translated;
+            }
+          }
+        } catch {
+          /* non-blocking */
+        }
+      }
+      await onSubmit(updated);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 rounded-md border border-border p-4">
-      {/* Language tab */}
-      <div className="flex gap-1 rounded-md border border-border p-1">
-        <button
-          type="button"
-          onClick={() => setTab('en')}
-          className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-            tab === 'en'
-              ? 'bg-foreground text-background'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          EN
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('zh')}
-          className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-            tab === 'zh'
-              ? 'bg-foreground text-background'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          ZH
-        </button>
+    <form onSubmit={handleSubmit} className="border-border space-y-4 rounded-md border p-4">
+      {/* ZH only — auto-translate EN on save */}
+      <div className="space-y-3">
+        <div>
+          <label className="mb-1 block text-sm font-medium">标签（保存时自动翻译英文）</label>
+          <input
+            type="text"
+            value={form.labelZh}
+            onChange={(e) => update('labelZh', e.target.value)}
+            required
+            placeholder="中文标签"
+            className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">内容</label>
+          <textarea
+            value={form.valueZh}
+            onChange={(e) => update('valueZh', e.target.value)}
+            required
+            rows={3}
+            placeholder="中文内容"
+            className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          />
+        </div>
       </div>
-
-      {tab === 'en' ? (
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Label (EN)</label>
-            <input
-              type="text"
-              value={form.labelEn}
-              onChange={(e) => update('labelEn', e.target.value)}
-              required
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Value (EN)</label>
-            <textarea
-              value={form.valueEn}
-              onChange={(e) => update('valueEn', e.target.value)}
-              required
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div>
-            <label className="mb-1 block text-sm font-medium">Label (ZH)</label>
-            <input
-              type="text"
-              value={form.labelZh}
-              onChange={(e) => update('labelZh', e.target.value)}
-              required
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Value (ZH)</label>
-            <textarea
-              value={form.valueZh}
-              onChange={(e) => update('valueZh', e.target.value)}
-              required
-              rows={3}
-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </div>
-        </div>
-      )}
 
       <div>
         <label className="mb-1 block text-sm font-medium">Sort Order</label>
@@ -281,7 +241,7 @@ function ItemForm({
           type="number"
           value={form.sortOrder}
           onChange={(e) => update('sortOrder', Number(e.target.value))}
-          className="w-24 rounded-md border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          className="border-border bg-background focus:ring-ring w-24 rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
         />
       </div>
 
@@ -289,7 +249,7 @@ function ItemForm({
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-50"
+          className="bg-foreground text-background inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
           {submitting ? 'Saving…' : submitLabel}
@@ -297,7 +257,7 @@ function ItemForm({
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center gap-2 rounded-md border border-border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+          className="border-border hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
         >
           <X className="h-4 w-4" />
           Cancel
@@ -353,12 +313,12 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-6">
+    <div className="border-border bg-background rounded-lg border p-6">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold">Now Items</h3>
         <div className="flex items-center gap-2">
           {/* List-level language tab */}
-          <div className="flex gap-1 rounded-md border border-border p-1">
+          <div className="border-border flex gap-1 rounded-md border p-1">
             <button
               type="button"
               onClick={() => setItemTab('en')}
@@ -388,7 +348,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
               setShowAddForm(true);
               setEditingId(null);
             }}
-            className="inline-flex items-center gap-1 rounded-md bg-foreground px-3 py-1.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+            className="bg-foreground text-background inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
             Add Item
@@ -408,11 +368,9 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
       )}
 
       {initialItems.length === 0 ? (
-        <p className="py-8 text-center text-muted-foreground">
-          No items yet. Add your first one!
-        </p>
+        <p className="text-muted-foreground py-8 text-center">No items yet. Add your first one!</p>
       ) : (
-        <div className="divide-y divide-border">
+        <div className="divide-border divide-y">
           {initialItems.map((item) =>
             editingId === item.id ? (
               <div key={item.id} className="py-4">
@@ -430,20 +388,17 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
                 />
               </div>
             ) : (
-              <div
-                key={item.id}
-                className="flex items-center justify-between gap-4 py-3"
-              >
+              <div key={item.id} className="flex items-center justify-between gap-4 py-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">
                       {itemTab === 'en' ? item.labelEn : item.labelZh}
                     </span>
-                    <span className="rounded bg-accent px-1.5 py-0.5 text-xs text-muted-foreground">
+                    <span className="bg-accent text-muted-foreground rounded px-1.5 py-0.5 text-xs">
                       #{item.sortOrder}
                     </span>
                   </div>
-                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                  <p className="text-muted-foreground mt-0.5 truncate text-sm">
                     {itemTab === 'en' ? item.valueEn : item.valueZh}
                   </p>
                 </div>
@@ -454,7 +409,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
                       setEditingId(item.id);
                       setShowAddForm(false);
                     }}
-                    className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-md p-2 transition-colors"
                     title="Edit"
                   >
                     <Pencil className="h-4 w-4" />
@@ -462,7 +417,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
-                    className="rounded-md p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-md p-2 transition-colors"
                     title="Delete"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -481,10 +436,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
 /*  Main NowManager                                                    */
 /* ------------------------------------------------------------------ */
 
-export default function NowManager({
-  initialItems,
-  initialConfig,
-}: NowManagerProps) {
+export default function NowManager({ initialItems, initialConfig }: NowManagerProps) {
   return (
     <div className="space-y-6">
       <ConfigSection initialConfig={initialConfig} />

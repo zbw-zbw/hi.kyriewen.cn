@@ -11,10 +11,8 @@ type EventType = (typeof EVENT_TYPES)[number];
 const TYPE_COLORS: Record<EventType, string> = {
   product: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
   post: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-  milestone:
-    'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-  career:
-    'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+  milestone: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+  career: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
 };
 
 /* ── Types ───────────────────────────────────────────────────── */
@@ -52,11 +50,7 @@ const EMPTY_FORM: FormData = {
 };
 
 /* ── Component ───────────────────────────────────────────────── */
-export default function TimelineManager({
-  items,
-}: {
-  items: TimelineEvent[];
-}) {
+export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -91,25 +85,51 @@ export default function TimelineManager({
     setForm(EMPTY_FORM);
   }, []);
 
-  /* ── Submit (create or update) ─────────────────────────────── */
+  /* ── Submit (create or update) — auto-translate zh→en ─────── */
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (
-      !form.date.trim() ||
-      !form.titleEn.trim() ||
-      !form.titleZh.trim() ||
-      !form.type.trim()
-    ) {
-      toast.error('Date, Title (EN), Title (ZH), and Type are required');
+    if (!form.date.trim() || !form.titleZh.trim() || !form.type.trim()) {
+      toast.error('Date, Title (ZH), and Type are required');
       return;
     }
 
     setLoading(true);
+
+    // Auto-translate Chinese fields to English
+    let titleEn = form.titleEn.trim();
+    let descriptionEn = form.descriptionEn.trim() || null;
+
+    if (form.titleZh.trim()) {
+      try {
+        const textsToTranslate = [
+          { text: form.titleZh.trim(), type: 'title', field: 'titleZh' },
+          ...(form.descriptionZh.trim()
+            ? [{ text: form.descriptionZh.trim(), type: 'description', field: 'descriptionZh' }]
+            : []),
+        ];
+        const trRes = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: textsToTranslate }),
+        });
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          for (const r of trData.results ?? []) {
+            if (r.field === 'titleZh') titleEn = r.translated;
+            if (r.field === 'descriptionZh') descriptionEn = r.translated;
+          }
+        }
+      } catch {
+        toast.error('自动翻译失败，将使用中文值作为英文');
+        if (!titleEn) titleEn = form.titleZh.trim();
+      }
+    }
+
     const payload = {
       date: form.date.trim(),
-      titleEn: form.titleEn.trim(),
+      titleEn,
       titleZh: form.titleZh.trim(),
-      descriptionEn: form.descriptionEn.trim() || null,
+      descriptionEn,
       descriptionZh: form.descriptionZh.trim() || null,
       type: form.type.trim(),
       url: form.url.trim() || null,
@@ -131,15 +151,11 @@ export default function TimelineManager({
         throw new Error(errorData.error || 'Request failed');
       }
 
-      toast.success(
-        isEdit ? 'Timeline event updated' : 'Timeline event created',
-      );
+      toast.success(isEdit ? 'Timeline event updated' : 'Timeline event created');
       closeForm();
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Something went wrong',
-      );
+      toast.error(error instanceof Error ? error.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
@@ -161,9 +177,7 @@ export default function TimelineManager({
       toast.success('Timeline event deleted');
       router.refresh();
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Delete failed',
-      );
+      toast.error(error instanceof Error ? error.message : 'Delete failed');
     } finally {
       setDeletingId(null);
     }
@@ -174,13 +188,13 @@ export default function TimelineManager({
     <div className="space-y-6">
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {items.length} event{items.length !== 1 ? 's' : ''}
         </p>
         <button
           type="button"
           onClick={openCreateForm}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
         >
           + Add New
         </button>
@@ -188,7 +202,7 @@ export default function TimelineManager({
 
       {/* ── Inline Form ──────────────────────────────────────── */}
       {showForm && (
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">
             {editingId !== null ? 'Edit Event' : 'New Event'}
           </h3>
@@ -201,7 +215,7 @@ export default function TimelineManager({
                 value={form.date}
                 onChange={(e) => setForm({ ...form, date: e.target.value })}
                 required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -211,7 +225,7 @@ export default function TimelineManager({
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               >
                 {EVENT_TYPES.map((eventType) => (
                   <option key={eventType} value={eventType}>
@@ -221,61 +235,28 @@ export default function TimelineManager({
               </select>
             </label>
 
-            {/* Title EN */}
-            <label className="space-y-1.5">
-              <span className="text-sm font-medium">Title (EN) *</span>
-              <input
-                type="text"
-                value={form.titleEn}
-                onChange={(e) =>
-                  setForm({ ...form, titleEn: e.target.value })
-                }
-                placeholder="English title"
-                required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-            </label>
-
-            {/* Title ZH */}
-            <label className="space-y-1.5">
-              <span className="text-sm font-medium">Title (ZH) *</span>
+            {/* Title ZH (auto-translate to EN on save) */}
+            <label className="space-y-1.5 sm:col-span-2">
+              <span className="text-sm font-medium">标题 *</span>
               <input
                 type="text"
                 value={form.titleZh}
-                onChange={(e) =>
-                  setForm({ ...form, titleZh: e.target.value })
-                }
-                placeholder="中文标题"
+                onChange={(e) => setForm({ ...form, titleZh: e.target.value })}
+                placeholder="中文标题（保存时自动翻译英文）"
                 required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
-            {/* Description EN */}
+            {/* Description ZH (auto-translate to EN on save) */}
             <label className="space-y-1.5 sm:col-span-2">
-              <span className="text-sm font-medium">Description (EN)</span>
-              <textarea
-                value={form.descriptionEn}
-                onChange={(e) =>
-                  setForm({ ...form, descriptionEn: e.target.value })
-                }
-                placeholder="English description (optional)"
-                rows={3}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-              />
-            </label>
-
-            {/* Description ZH */}
-            <label className="space-y-1.5 sm:col-span-2">
-              <span className="text-sm font-medium">Description (ZH)</span>
+              <span className="text-sm font-medium">描述</span>
               <textarea
                 value={form.descriptionZh}
-                onChange={(e) =>
-                  setForm({ ...form, descriptionZh: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, descriptionZh: e.target.value })}
                 placeholder="中文描述（可选）"
                 rows={3}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -287,7 +268,7 @@ export default function TimelineManager({
                 value={form.url}
                 onChange={(e) => setForm({ ...form, url: e.target.value })}
                 placeholder="https://example.com (optional)"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -296,18 +277,14 @@ export default function TimelineManager({
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
               >
-                {loading
-                  ? 'Saving…'
-                  : editingId !== null
-                    ? 'Update'
-                    : 'Create'}
+                {loading ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
               </button>
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                className="border-input hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -317,7 +294,7 @@ export default function TimelineManager({
       )}
 
       {/* ── Language Tab ─────────────────────────────────────── */}
-      <div className="flex gap-1 rounded-md border border-border p-1 w-fit">
+      <div className="border-border flex w-fit gap-1 rounded-md border p-1">
         <button
           type="button"
           onClick={() => setLangTab('en')}
@@ -344,19 +321,17 @@ export default function TimelineManager({
 
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
+        <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
           No timeline events yet. Click &quot;+ Add New&quot; to create one.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-border bg-muted/50">
+              <tr className="border-border bg-muted/50 border-b">
                 <th className="px-4 py-3 text-left font-medium">Date</th>
                 <th className="px-4 py-3 text-left font-medium">Title</th>
-                <th className="px-4 py-3 text-left font-medium">
-                  Description
-                </th>
+                <th className="px-4 py-3 text-left font-medium">Description</th>
                 <th className="px-4 py-3 text-left font-medium">Type</th>
                 <th className="px-4 py-3 text-left font-medium">URL</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -366,18 +341,14 @@ export default function TimelineManager({
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                  className="border-border hover:bg-muted/30 border-b transition-colors last:border-0"
                 >
-                  <td className="whitespace-nowrap px-4 py-3 font-mono text-xs">
-                    {item.date}
-                  </td>
-                  <td className="px-4 py-3 max-w-[240px] truncate">
+                  <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">{item.date}</td>
+                  <td className="max-w-[240px] truncate px-4 py-3">
                     {langTab === 'en' ? item.titleEn : item.titleZh}
                   </td>
-                  <td className="px-4 py-3 max-w-[300px] truncate text-muted-foreground">
-                    {langTab === 'en'
-                      ? item.descriptionEn || '—'
-                      : item.descriptionZh || '—'}
+                  <td className="text-muted-foreground max-w-[300px] truncate px-4 py-3">
+                    {langTab === 'en' ? item.descriptionEn || '—' : item.descriptionZh || '—'}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -389,7 +360,7 @@ export default function TimelineManager({
                       {item.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 max-w-[180px] truncate text-muted-foreground">
+                  <td className="text-muted-foreground max-w-[180px] truncate px-4 py-3">
                     {item.url ? (
                       <a
                         href={item.url}
@@ -403,11 +374,11 @@ export default function TimelineManager({
                       '—'
                     )}
                   </td>
-                  <td className="whitespace-nowrap px-4 py-3 text-right">
+                  <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
                       type="button"
                       onClick={() => openEditForm(item)}
-                      className="mr-2 rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                      className="text-primary hover:bg-primary/10 mr-2 rounded px-2 py-1 text-xs font-medium transition-colors"
                     >
                       Edit
                     </button>
@@ -415,7 +386,7 @@ export default function TimelineManager({
                       type="button"
                       onClick={() => handleDelete(item.id)}
                       disabled={deletingId === item.id}
-                      className="rounded px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                      className="text-destructive hover:bg-destructive/10 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
                     >
                       {deletingId === item.id ? 'Deleting…' : 'Delete'}
                     </button>

@@ -124,6 +124,27 @@ export default function UsesManager({
       e.preventDefault();
       setLoading(true);
       try {
+        // Auto-translate titleZh → titleEn
+        const payload = { ...sectionForm };
+        if (sectionForm.titleZh.trim()) {
+          try {
+            const trRes = await fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                texts: [{ text: sectionForm.titleZh.trim(), type: 'title' }],
+              }),
+            });
+            if (trRes.ok) {
+              const trData = await trRes.json();
+              const translated = trData.results?.[0]?.translated;
+              if (translated) payload.titleEn = translated;
+            }
+          } catch {
+            /* non-blocking */
+          }
+        }
+
         const isEdit = editingSectionId !== null;
         const url = isEdit ? `/api/uses/${editingSectionId}` : '/api/uses';
         const method = isEdit ? 'PATCH' : 'POST';
@@ -131,7 +152,7 @@ export default function UsesManager({
         const res = await fetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(sectionForm),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) {
@@ -199,13 +220,42 @@ export default function UsesManager({
       e.preventDefault();
       setLoading(true);
       try {
+        // Auto-translate zh → en fields
+        const translatedForm = { ...itemForm };
+        const textsToTranslate = [
+          ...(itemForm.noteZh.trim()
+            ? [{ text: itemForm.noteZh.trim(), type: 'description', field: 'noteZh' }]
+            : []),
+          ...(itemForm.verdictZh.trim()
+            ? [{ text: itemForm.verdictZh.trim(), type: 'short', field: 'verdictZh' }]
+            : []),
+        ];
+        if (textsToTranslate.length > 0) {
+          try {
+            const trRes = await fetch('/api/translate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ texts: textsToTranslate }),
+            });
+            if (trRes.ok) {
+              const trData = await trRes.json();
+              for (const r of trData.results ?? []) {
+                if (r.field === 'noteZh') translatedForm.noteEn = r.translated;
+                if (r.field === 'verdictZh') translatedForm.verdictEn = r.translated;
+              }
+            }
+          } catch {
+            /* non-blocking */
+          }
+        }
+
         const isEdit = editingItemId !== null;
         const url = isEdit ? `/api/uses/items/${editingItemId}` : '/api/uses/items';
         const method = isEdit ? 'PATCH' : 'POST';
 
         const payload = isEdit
-          ? { ...itemForm, rating: Number(itemForm.rating) }
-          : { ...itemForm, sectionId, rating: Number(itemForm.rating) };
+          ? { ...translatedForm, rating: Number(translatedForm.rating) }
+          : { ...translatedForm, sectionId, rating: Number(translatedForm.rating) };
 
         const res = await fetch(url, {
           method,
@@ -283,29 +333,25 @@ export default function UsesManager({
       {showSectionForm && (
         <form
           onSubmit={handleSectionSubmit}
-          className="rounded-lg border border-border bg-card p-4 space-y-3"
+          className="border-border bg-card space-y-3 rounded-lg border p-4"
         >
-          <h3 className="font-semibold">
-            {editingSectionId ? 'Edit Section' : 'New Section'}
-          </h3>
+          <h3 className="font-semibold">{editingSectionId ? 'Edit Section' : 'New Section'}</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              <label className="text-muted-foreground mb-1 block text-xs font-medium">
                 Section ID
               </label>
               <input
                 type="text"
                 value={sectionForm.sectionId}
-                onChange={(e) =>
-                  setSectionForm({ ...sectionForm, sectionId: e.target.value })
-                }
+                onChange={(e) => setSectionForm({ ...sectionForm, sectionId: e.target.value })}
                 placeholder="e.g. hardware"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 required
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              <label className="text-muted-foreground mb-1 block text-xs font-medium">
                 Sort Order
               </label>
               <input
@@ -314,36 +360,19 @@ export default function UsesManager({
                 onChange={(e) =>
                   setSectionForm({ ...sectionForm, sortOrder: Number(e.target.value) })
                 }
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
               />
             </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Title (EN)
-              </label>
-              <input
-                type="text"
-                value={sectionForm.titleEn}
-                onChange={(e) =>
-                  setSectionForm({ ...sectionForm, titleEn: e.target.value })
-                }
-                placeholder="Hardware"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                Title (ZH)
+            <div className="sm:col-span-2">
+              <label className="text-muted-foreground mb-1 block text-xs font-medium">
+                标题（保存时自动翻译英文）
               </label>
               <input
                 type="text"
                 value={sectionForm.titleZh}
-                onChange={(e) =>
-                  setSectionForm({ ...sectionForm, titleZh: e.target.value })
-                }
+                onChange={(e) => setSectionForm({ ...sectionForm, titleZh: e.target.value })}
                 placeholder="硬件"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 required
               />
             </div>
@@ -362,7 +391,7 @@ export default function UsesManager({
                 setShowSectionForm(false);
                 setEditingSectionId(null);
               }}
-              className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+              className="border-input hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
             >
               Cancel
             </button>
@@ -372,7 +401,7 @@ export default function UsesManager({
 
       {/* Sections List */}
       {sections.length === 0 && !showSectionForm && (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
+        <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
           No sections yet. Click &quot;+ New Section&quot; to get started.
         </div>
       )}
@@ -382,27 +411,22 @@ export default function UsesManager({
         const isCollapsed = collapsedSections.has(section.id);
 
         return (
-          <div
-            key={section.id}
-            className="rounded-lg border border-border bg-card overflow-hidden"
-          >
+          <div key={section.id} className="border-border bg-card overflow-hidden rounded-lg border">
             {/* Section Header */}
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <div className="border-border flex items-center justify-between border-b px-4 py-3">
               <button
                 onClick={() => toggleCollapse(section.id)}
                 className="flex items-center gap-2 text-left"
               >
-                <span className="text-muted-foreground">
-                  {isCollapsed ? '▶' : '▼'}
-                </span>
+                <span className="text-muted-foreground">{isCollapsed ? '▶' : '▼'}</span>
                 <div>
                   <span className="font-semibold">{section.titleEn}</span>
-                  <span className="mx-2 text-muted-foreground">/</span>
+                  <span className="text-muted-foreground mx-2">/</span>
                   <span className="text-muted-foreground">{section.titleZh}</span>
-                  <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                  <span className="bg-muted text-muted-foreground ml-2 rounded px-1.5 py-0.5 text-xs">
                     {section.sectionId}
                   </span>
-                  <span className="ml-2 text-xs text-muted-foreground">
+                  <span className="text-muted-foreground ml-2 text-xs">
                     ({sectionItems.length} items)
                   </span>
                 </div>
@@ -417,7 +441,7 @@ export default function UsesManager({
                 <button
                   onClick={() => handleDeleteSection(section.id)}
                   disabled={loading}
-                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+                  className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
                 >
                   Delete
                 </button>
@@ -426,21 +450,21 @@ export default function UsesManager({
 
             {/* Section Body */}
             {!isCollapsed && (
-              <div className="p-4 space-y-3">
+              <div className="space-y-3 p-4">
                 {/* Items Table */}
                 {sectionItems.length > 0 && (
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-border text-left text-xs text-muted-foreground">
-                          <th className="pb-2 pr-3 font-medium">Name</th>
-                          <th className="pb-2 pr-3 font-medium">Rating</th>
-                          <th className="pb-2 pr-3 font-medium">Since</th>
-                          <th className="pb-2 pr-3 font-medium">Note / Verdict</th>
+                        <tr className="border-border text-muted-foreground border-b text-left text-xs">
+                          <th className="pr-3 pb-2 font-medium">Name</th>
+                          <th className="pr-3 pb-2 font-medium">Rating</th>
+                          <th className="pr-3 pb-2 font-medium">Since</th>
+                          <th className="pr-3 pb-2 font-medium">Note / Verdict</th>
                           <th className="pb-2 font-medium">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-border">
+                      <tbody className="divide-border divide-y">
                         {sectionItems.map((item) => {
                           const lang = getLangTab(item.id);
                           const note = lang === 'en' ? item.noteEn : item.noteZh;
@@ -463,11 +487,11 @@ export default function UsesManager({
                                 )}
                               </td>
                               <td className="py-2 pr-3">{renderStars(item.rating)}</td>
-                              <td className="py-2 pr-3 text-muted-foreground">
+                              <td className="text-muted-foreground py-2 pr-3">
                                 {item.since || '—'}
                               </td>
-                              <td className="py-2 pr-3 max-w-xs">
-                                <div className="flex items-center gap-1 mb-1">
+                              <td className="max-w-xs py-2 pr-3">
+                                <div className="mb-1 flex items-center gap-1">
                                   <button
                                     onClick={() =>
                                       setItemLangTab((prev) => ({
@@ -499,11 +523,11 @@ export default function UsesManager({
                                     ZH
                                   </button>
                                 </div>
-                                <p className="truncate text-xs text-muted-foreground">
+                                <p className="text-muted-foreground truncate text-xs">
                                   {note || '—'}
                                 </p>
                                 {verdict && (
-                                  <p className="truncate text-xs italic text-muted-foreground">
+                                  <p className="text-muted-foreground truncate text-xs italic">
                                     Verdict: {verdict}
                                   </p>
                                 )}
@@ -519,7 +543,7 @@ export default function UsesManager({
                                   <button
                                     onClick={() => handleDeleteItem(item.id)}
                                     disabled={loading}
-                                    className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+                                    className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
                                   >
                                     Delete
                                   </button>
@@ -534,48 +558,44 @@ export default function UsesManager({
                 )}
 
                 {sectionItems.length === 0 && showItemFormFor !== section.id && (
-                  <p className="text-sm text-muted-foreground">No items yet.</p>
+                  <p className="text-muted-foreground text-sm">No items yet.</p>
                 )}
 
                 {/* Item Form */}
                 {showItemFormFor === section.id && (
                   <form
                     onSubmit={(e) => handleItemSubmit(e, section.id)}
-                    className="rounded-md border border-border bg-background p-4 space-y-3"
+                    className="border-border bg-background space-y-3 rounded-md border p-4"
                   >
                     <h4 className="text-sm font-semibold">
                       {editingItemId ? 'Edit Item' : 'New Item'}
                     </h4>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
                           Name *
                         </label>
                         <input
                           type="text"
                           value={itemForm.name}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, name: e.target.value })
-                          }
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                           required
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
                           URL
                         </label>
                         <input
                           type="url"
                           value={itemForm.url}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, url: e.target.value })
-                          }
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          onChange={(e) => setItemForm({ ...itemForm, url: e.target.value })}
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
                           Rating (1-5)
                         </label>
                         <select
@@ -583,30 +603,29 @@ export default function UsesManager({
                           onChange={(e) =>
                             setItemForm({ ...itemForm, rating: Number(e.target.value) })
                           }
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         >
                           {[1, 2, 3, 4, 5].map((v) => (
                             <option key={v} value={v}>
-                              {v} — {'★'.repeat(v)}{'☆'.repeat(5 - v)}
+                              {v} — {'★'.repeat(v)}
+                              {'☆'.repeat(5 - v)}
                             </option>
                           ))}
                         </select>
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
                           Since (YYYY-MM)
                         </label>
                         <input
                           type="month"
                           value={itemForm.since}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, since: e.target.value })
-                          }
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          onChange={(e) => setItemForm({ ...itemForm, since: e.target.value })}
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
                           Sort Order
                         </label>
                         <input
@@ -615,61 +634,31 @@ export default function UsesManager({
                           onChange={(e) =>
                             setItemForm({ ...itemForm, sortOrder: Number(e.target.value) })
                           }
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                          Note (EN)
-                        </label>
-                        <textarea
-                          value={itemForm.noteEn}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, noteEn: e.target.value })
-                          }
-                          rows={2}
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                          Note (ZH)
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
+                          说明（保存时自动翻译英文）
                         </label>
                         <textarea
                           value={itemForm.noteZh}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, noteZh: e.target.value })
-                          }
+                          onChange={(e) => setItemForm({ ...itemForm, noteZh: e.target.value })}
                           rows={2}
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         />
                       </div>
                       <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                          Verdict (EN)
-                        </label>
-                        <textarea
-                          value={itemForm.verdictEn}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, verdictEn: e.target.value })
-                          }
-                          rows={2}
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                          Verdict (ZH)
+                        <label className="text-muted-foreground mb-1 block text-xs font-medium">
+                          评价（保存时自动翻译英文）
                         </label>
                         <textarea
                           value={itemForm.verdictZh}
-                          onChange={(e) =>
-                            setItemForm({ ...itemForm, verdictZh: e.target.value })
-                          }
+                          onChange={(e) => setItemForm({ ...itemForm, verdictZh: e.target.value })}
                           rows={2}
-                          className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                          className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         />
                       </div>
                     </div>
@@ -687,7 +676,7 @@ export default function UsesManager({
                           setShowItemFormFor(null);
                           setEditingItemId(null);
                         }}
-                        className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent"
+                        className="border-input hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
                       >
                         Cancel
                       </button>
@@ -700,7 +689,7 @@ export default function UsesManager({
                   <button
                     onClick={() => openCreateItem(section.id)}
                     disabled={loading}
-                    className="rounded-md border border-dashed border-border px-3 py-2 text-xs text-muted-foreground hover:border-blue-400 hover:text-blue-600 disabled:opacity-50"
+                    className="border-border text-muted-foreground rounded-md border border-dashed px-3 py-2 text-xs hover:border-blue-400 hover:text-blue-600 disabled:opacity-50"
                   >
                     + Add Item
                   </button>

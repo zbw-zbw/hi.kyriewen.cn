@@ -132,6 +132,24 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
     event.preventDefault();
     setSubmitting(true);
 
+    // Auto-translate storyZh → storyEn
+    let storyEn = form.storyEn || null;
+    if (form.storyZh.trim() && !form.storyEn.trim()) {
+      try {
+        const trRes = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: [{ text: form.storyZh.trim(), type: 'description' }] }),
+        });
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          storyEn = trData.results?.[0]?.translated || null;
+        }
+      } catch {
+        /* translation failure is non-blocking */
+      }
+    }
+
     const payload = {
       src: form.src,
       alt: form.alt,
@@ -139,7 +157,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
       height: form.height,
       location: form.location || null,
       takenAt: form.takenAt,
-      storyEn: form.storyEn || null,
+      storyEn,
       storyZh: form.storyZh || null,
       exif: buildExifString(form),
       sortOrder: form.sortOrder,
@@ -199,7 +217,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
         </div>
         <button
           onClick={openCreateForm}
-          className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
           Add Photo
@@ -208,11 +226,9 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
 
       {/* Form Modal */}
       {showForm && (
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">
-              {editingId ? 'Edit Photo' : 'New Photo'}
-            </h3>
+            <h3 className="text-lg font-semibold">{editingId ? 'Edit Photo' : 'New Photo'}</h3>
             <button onClick={closeForm} className="text-muted-foreground hover:text-foreground">
               <X className="h-5 w-5" />
             </button>
@@ -237,7 +253,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 value={form.alt}
                 onChange={(event) => updateField('alt', event.target.value)}
                 required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
               />
             </div>
 
@@ -251,7 +267,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                   onChange={(event) => updateField('width', Number(event.target.value))}
                   required
                   min={1}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -262,7 +278,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                   onChange={(event) => updateField('height', Number(event.target.value))}
                   required
                   min={1}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 />
               </div>
               <div className="space-y-2">
@@ -271,7 +287,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                   type="number"
                   value={form.sortOrder}
                   onChange={(event) => updateField('sortOrder', Number(event.target.value))}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 />
               </div>
             </div>
@@ -284,7 +300,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                   type="text"
                   value={form.location}
                   onChange={(event) => updateField('location', event.target.value)}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                   placeholder="Tokyo, Japan"
                 />
               </div>
@@ -295,45 +311,34 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                   value={form.takenAt}
                   onChange={(event) => updateField('takenAt', event.target.value)}
                   required
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                 />
               </div>
             </div>
 
-            {/* Story En / Zh */}
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Story (EN)</label>
-                <textarea
-                  value={form.storyEn}
-                  onChange={(event) => updateField('storyEn', event.target.value)}
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Story (ZH)</label>
-                <textarea
-                  value={form.storyZh}
-                  onChange={(event) => updateField('storyZh', event.target.value)}
-                  rows={3}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-y"
-                />
-              </div>
+            {/* Story ZH (auto-translate to EN on save) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">故事描述（保存时自动翻译英文）</label>
+              <textarea
+                value={form.storyZh}
+                onChange={(event) => updateField('storyZh', event.target.value)}
+                rows={3}
+                className="border-input bg-background w-full resize-y rounded-md border px-3 py-2 text-sm"
+              />
             </div>
 
             {/* EXIF - Collapsible */}
-            <div className="rounded-md border border-border">
+            <div className="border-border rounded-md border">
               <button
                 type="button"
                 onClick={() => setExifOpen(!exifOpen)}
-                className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium hover:bg-muted/50 transition-colors"
+                className="hover:bg-muted/50 flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
               >
                 <span>EXIF Data</span>
                 {exifOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
               {exifOpen && (
-                <div className="border-t border-border px-4 py-4 space-y-4">
+                <div className="border-border space-y-4 border-t px-4 py-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Camera</label>
@@ -341,7 +346,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                         type="text"
                         value={form.camera}
                         onChange={(event) => updateField('camera', event.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         placeholder="Sony A7IV"
                       />
                     </div>
@@ -351,7 +356,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                         type="text"
                         value={form.lens}
                         onChange={(event) => updateField('lens', event.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         placeholder="24-70mm f/2.8"
                       />
                     </div>
@@ -362,8 +367,10 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                       <input
                         type="number"
                         value={form.iso}
-                        onChange={(event) => updateField('iso', event.target.value ? Number(event.target.value) : '')}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        onChange={(event) =>
+                          updateField('iso', event.target.value ? Number(event.target.value) : '')
+                        }
+                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         placeholder="100"
                       />
                     </div>
@@ -373,7 +380,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                         type="text"
                         value={form.aperture}
                         onChange={(event) => updateField('aperture', event.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         placeholder="f/2.8"
                       />
                     </div>
@@ -383,7 +390,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                         type="text"
                         value={form.shutter}
                         onChange={(event) => updateField('shutter', event.target.value)}
-                        className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="border-input bg-background w-full rounded-md border px-3 py-2 text-sm"
                         placeholder="1/250s"
                       />
                     </div>
@@ -397,14 +404,14 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-muted transition-colors"
+                className="border-input hover:bg-muted rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
               >
                 {submitting ? 'Saving...' : editingId ? 'Update' : 'Create'}
               </button>
@@ -415,7 +422,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
 
       {/* Photo Grid */}
       {initialPhotos.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
+        <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
           No photos yet. Click &quot;Add Photo&quot; to get started.
         </div>
       ) : (
@@ -423,10 +430,10 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
           {initialPhotos.map((photo) => (
             <div
               key={photo.id}
-              className="group relative overflow-hidden rounded-lg border border-border bg-card shadow-sm transition-shadow hover:shadow-md"
+              className="group border-border bg-card relative overflow-hidden rounded-lg border shadow-sm transition-shadow hover:shadow-md"
             >
               {/* Thumbnail */}
-              <div className="aspect-4/3 overflow-hidden bg-muted">
+              <div className="bg-muted aspect-4/3 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={photo.src}
@@ -436,9 +443,9 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
               </div>
 
               {/* Info */}
-              <div className="p-3 space-y-1">
-                <p className="text-sm font-medium truncate">{photo.alt}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="space-y-1 p-3">
+                <p className="truncate text-sm font-medium">{photo.alt}</p>
+                <div className="text-muted-foreground flex items-center gap-2 text-xs">
                   {photo.location && <span>{photo.location}</span>}
                   {photo.location && photo.takenAt && <span>·</span>}
                   {photo.takenAt && <span>{photo.takenAt}</span>}
@@ -446,17 +453,17 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
               </div>
 
               {/* Actions */}
-              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="absolute top-2 right-2 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
                   onClick={() => openEditForm(photo)}
-                  className="rounded-md bg-background/80 backdrop-blur p-1.5 text-foreground hover:bg-background shadow-sm"
+                  className="bg-background/80 text-foreground hover:bg-background rounded-md p-1.5 shadow-sm backdrop-blur"
                   title="Edit"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(photo.id)}
-                  className="rounded-md bg-background/80 backdrop-blur p-1.5 text-destructive hover:bg-background shadow-sm"
+                  className="bg-background/80 text-destructive hover:bg-background rounded-md p-1.5 shadow-sm backdrop-blur"
                   title="Delete"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

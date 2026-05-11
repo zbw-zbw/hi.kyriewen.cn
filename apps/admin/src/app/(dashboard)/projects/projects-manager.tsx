@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { ImageUploader } from '@/components/image-uploader';
-import { TranslateButton } from '@/components/translate-button';
 
 /* ── Constants ───────────────────────────────────────────────── */
 const CATEGORY_OPTIONS = ['chrome-extension', 'web-app', 'library'] as const;
@@ -196,26 +195,19 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [copyTab, setCopyTab] = useState<'en' | 'zh'>('en');
-
-  const updateField = useCallback(
-    <K extends keyof FormData>(key: K, value: FormData[K]) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
-    },
-    [],
-  );
+  const updateField = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   const openCreateForm = useCallback(() => {
     setEditingId(null);
     setForm(EMPTY_FORM);
-    setCopyTab('en');
     setShowForm(true);
   }, []);
 
   const openEditForm = useCallback((item: Project) => {
     setEditingId(item.id);
     setForm(projectToForm(item));
-    setCopyTab('en');
     setShowForm(true);
   }, []);
 
@@ -234,7 +226,41 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
     }
 
     setLoading(true);
-    const payload = formToPayload(form);
+
+    // Auto-translate zh → en fields before saving
+    const translatedForm = { ...form };
+    const textsToTranslate = [
+      ...(form.taglineZh.trim()
+        ? [{ text: form.taglineZh.trim(), type: 'title', field: 'taglineZh' }]
+        : []),
+      ...(form.descriptionZh.trim()
+        ? [{ text: form.descriptionZh.trim(), type: 'description', field: 'descriptionZh' }]
+        : []),
+      ...(form.caseStudyZh.trim()
+        ? [{ text: form.caseStudyZh.trim(), type: 'article', field: 'caseStudyZh' }]
+        : []),
+    ];
+    if (textsToTranslate.length > 0) {
+      try {
+        const trRes = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: textsToTranslate }),
+        });
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          for (const r of trData.results ?? []) {
+            if (r.field === 'taglineZh') translatedForm.taglineEn = r.translated;
+            if (r.field === 'descriptionZh') translatedForm.descriptionEn = r.translated;
+            if (r.field === 'caseStudyZh') translatedForm.caseStudyEn = r.translated;
+          }
+        }
+      } catch {
+        /* non-blocking */
+      }
+    }
+
+    const payload = formToPayload(translatedForm);
 
     try {
       const isEdit = editingId !== null;
@@ -289,7 +315,9 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
       library: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
     };
     return (
-      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${colors[cat] ?? 'bg-muted text-muted-foreground'}`}>
+      <span
+        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${colors[cat] ?? 'bg-muted text-muted-foreground'}`}
+      >
         {cat}
       </span>
     );
@@ -300,13 +328,13 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {items.length} project{items.length !== 1 ? 's' : ''}
         </p>
         <button
           type="button"
           onClick={openCreateForm}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
         >
           + Add New
         </button>
@@ -314,139 +342,196 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
 
       {/* ── Inline Form ──────────────────────────────────────── */}
       {showForm && (
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">
             {editingId !== null ? 'Edit Project' : 'New Project'}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ─── Section A: Basic Info ──────────────────────── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Basic Info
               </legend>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="space-y-1.5">
                   <span className={labelClass}>Slug *</span>
-                  <input type="text" value={form.slug} onChange={(e) => updateField('slug', e.target.value)} required className={inputClass} placeholder="my-project" />
+                  <input
+                    type="text"
+                    value={form.slug}
+                    onChange={(e) => updateField('slug', e.target.value)}
+                    required
+                    className={inputClass}
+                    placeholder="my-project"
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Name *</span>
-                  <input type="text" value={form.name} onChange={(e) => updateField('name', e.target.value)} required className={inputClass} placeholder="My Project" />
+                  <input
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => updateField('name', e.target.value)}
+                    required
+                    className={inputClass}
+                    placeholder="My Project"
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Category *</span>
-                  <select value={form.category} onChange={(e) => updateField('category', e.target.value)} className={inputClass}>
+                  <select
+                    value={form.category}
+                    onChange={(e) => updateField('category', e.target.value)}
+                    className={inputClass}
+                  >
                     {CATEGORY_OPTIONS.map((cat) => (
-                      <option key={cat} value={cat}>{cat}</option>
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
                     ))}
                   </select>
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Year *</span>
-                  <input type="number" value={form.year} onChange={(e) => updateField('year', Number(e.target.value) || new Date().getFullYear())} required className={inputClass} />
+                  <input
+                    type="number"
+                    value={form.year}
+                    onChange={(e) =>
+                      updateField('year', Number(e.target.value) || new Date().getFullYear())
+                    }
+                    required
+                    className={inputClass}
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Accent</span>
-                  <input type="text" value={form.accent} onChange={(e) => updateField('accent', e.target.value)} className={inputClass} placeholder="#6366f1" />
+                  <input
+                    type="text"
+                    value={form.accent}
+                    onChange={(e) => updateField('accent', e.target.value)}
+                    className={inputClass}
+                    placeholder="#6366f1"
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Color Theme</span>
-                  <input type="text" value={form.colorTheme} onChange={(e) => updateField('colorTheme', e.target.value)} className={inputClass} placeholder="purple" />
+                  <input
+                    type="text"
+                    value={form.colorTheme}
+                    onChange={(e) => updateField('colorTheme', e.target.value)}
+                    className={inputClass}
+                    placeholder="purple"
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Sort Order</span>
-                  <input type="number" value={form.sortOrder} onChange={(e) => updateField('sortOrder', Number(e.target.value) || 0)} className={inputClass} />
+                  <input
+                    type="number"
+                    value={form.sortOrder}
+                    onChange={(e) => updateField('sortOrder', Number(e.target.value) || 0)}
+                    className={inputClass}
+                  />
                 </label>
                 <label className="flex items-center gap-2 self-end py-2">
-                  <input type="checkbox" checked={form.featured} onChange={(e) => updateField('featured', e.target.checked)} className="size-4 rounded border-input" />
+                  <input
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) => updateField('featured', e.target.checked)}
+                    className="border-input size-4 rounded"
+                  />
                   <span className={labelClass}>Featured</span>
                 </label>
                 <label className="flex items-center gap-2 self-end py-2">
-                  <input type="checkbox" checked={form.pinned} onChange={(e) => updateField('pinned', e.target.checked)} className="size-4 rounded border-input" />
+                  <input
+                    type="checkbox"
+                    checked={form.pinned}
+                    onChange={(e) => updateField('pinned', e.target.checked)}
+                    className="border-input size-4 rounded"
+                  />
                   <span className={labelClass}>Pinned</span>
                 </label>
               </div>
             </fieldset>
 
-            {/* ─── Section B: Copy (EN / ZH Tabs) ────────────── */}
+            {/* ─── Section B: Copy (ZH only, auto-translate EN on save) ── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                Copy
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
+                文案（保存时自动翻译英文）
               </legend>
-              <div className="flex gap-2 border-b border-border">
-                <button type="button" onClick={() => setCopyTab('en')} className={`px-3 py-1.5 text-sm font-medium transition-colors ${copyTab === 'en' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                  English
-                </button>
-                <button type="button" onClick={() => setCopyTab('zh')} className={`px-3 py-1.5 text-sm font-medium transition-colors ${copyTab === 'zh' ? 'border-b-2 border-primary text-primary' : 'text-muted-foreground hover:text-foreground'}`}>
-                  中文
-                </button>
+              <div className="grid gap-4">
+                <label className="space-y-1.5">
+                  <span className={labelClass}>标语</span>
+                  <input
+                    type="text"
+                    value={form.taglineZh}
+                    onChange={(e) => updateField('taglineZh', e.target.value)}
+                    className={inputClass}
+                    placeholder="简短标语"
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className={labelClass}>描述</span>
+                  <textarea
+                    value={form.descriptionZh}
+                    onChange={(e) => updateField('descriptionZh', e.target.value)}
+                    rows={3}
+                    className={inputClass}
+                    placeholder="项目描述..."
+                  />
+                </label>
+                <label className="space-y-1.5">
+                  <span className={labelClass}>案例（Markdown）</span>
+                  <textarea
+                    value={form.caseStudyZh}
+                    onChange={(e) => updateField('caseStudyZh', e.target.value)}
+                    rows={4}
+                    className={inputClass}
+                    placeholder="详细案例..."
+                  />
+                </label>
               </div>
-              {copyTab === 'en' ? (
-                <div className="grid gap-4">
-                  <label className="space-y-1.5">
-                    <span className={labelClass}>Tagline (EN)</span>
-                    <input type="text" value={form.taglineEn} onChange={(e) => updateField('taglineEn', e.target.value)} className={inputClass} placeholder="A short tagline" />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className={labelClass}>Description (EN)</span>
-                    <textarea value={form.descriptionEn} onChange={(e) => updateField('descriptionEn', e.target.value)} rows={3} className={inputClass} placeholder="Project description..." />
-                  </label>
-                  <label className="space-y-1.5">
-                    <span className={labelClass}>Case Study (EN)</span>
-                    <textarea value={form.caseStudyEn} onChange={(e) => updateField('caseStudyEn', e.target.value)} rows={4} className={inputClass} placeholder="Detailed case study (Markdown)..." />
-                  </label>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className={labelClass}>Tagline (ZH)</span>
-                      <TranslateButton text={form.taglineZh} type="title" onTranslated={(v) => { updateField('taglineEn', v); setCopyTab('en'); }} />
-                    </div>
-                    <input type="text" value={form.taglineZh} onChange={(e) => updateField('taglineZh', e.target.value)} className={inputClass} placeholder="简短标语" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className={labelClass}>Description (ZH)</span>
-                      <TranslateButton text={form.descriptionZh} type="description" onTranslated={(v) => { updateField('descriptionEn', v); setCopyTab('en'); }} />
-                    </div>
-                    <textarea value={form.descriptionZh} onChange={(e) => updateField('descriptionZh', e.target.value)} rows={3} className={inputClass} placeholder="项目描述..." />
-                  </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className={labelClass}>Case Study (ZH)</span>
-                      <TranslateButton text={form.caseStudyZh} type="article" onTranslated={(v) => { updateField('caseStudyEn', v); setCopyTab('en'); }} />
-                    </div>
-                    <textarea value={form.caseStudyZh} onChange={(e) => updateField('caseStudyZh', e.target.value)} rows={4} className={inputClass} placeholder="详细案例（Markdown）..." />
-                  </div>
-                </div>
-              )}
             </fieldset>
 
             {/* ─── Section C: Links ──────────────────────────── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Links
               </legend>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="space-y-1.5">
                   <span className={labelClass}>Repo URL</span>
-                  <input type="text" value={form.repo} onChange={(e) => updateField('repo', e.target.value)} className={inputClass} placeholder="https://github.com/..." />
+                  <input
+                    type="text"
+                    value={form.repo}
+                    onChange={(e) => updateField('repo', e.target.value)}
+                    className={inputClass}
+                    placeholder="https://github.com/..."
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Live URL</span>
-                  <input type="text" value={form.live} onChange={(e) => updateField('live', e.target.value)} className={inputClass} placeholder="https://..." />
+                  <input
+                    type="text"
+                    value={form.live}
+                    onChange={(e) => updateField('live', e.target.value)}
+                    className={inputClass}
+                    placeholder="https://..."
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Chrome Store ID</span>
-                  <input type="text" value={form.chromeStoreId} onChange={(e) => updateField('chromeStoreId', e.target.value)} className={inputClass} placeholder="abc123..." />
+                  <input
+                    type="text"
+                    value={form.chromeStoreId}
+                    onChange={(e) => updateField('chromeStoreId', e.target.value)}
+                    className={inputClass}
+                    placeholder="abc123..."
+                  />
                 </label>
               </div>
             </fieldset>
 
             {/* ─── Section D: Media ──────────────────────────── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Media
               </legend>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -460,64 +545,115 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                 </div>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Cover Video URL</span>
-                  <input type="text" value={form.coverVideo} onChange={(e) => updateField('coverVideo', e.target.value)} className={inputClass} placeholder="https://..." />
+                  <input
+                    type="text"
+                    value={form.coverVideo}
+                    onChange={(e) => updateField('coverVideo', e.target.value)}
+                    className={inputClass}
+                    placeholder="https://..."
+                  />
                 </label>
                 <label className="space-y-1.5 sm:col-span-2">
                   <span className={labelClass}>Gallery URLs (comma-separated)</span>
-                  <textarea value={form.galleryText} onChange={(e) => updateField('galleryText', e.target.value)} rows={2} className={inputClass} placeholder="https://img1.jpg, https://img2.jpg" />
+                  <textarea
+                    value={form.galleryText}
+                    onChange={(e) => updateField('galleryText', e.target.value)}
+                    rows={2}
+                    className={inputClass}
+                    placeholder="https://img1.jpg, https://img2.jpg"
+                  />
                 </label>
               </div>
             </fieldset>
 
             {/* ─── Section E: Stack ──────────────────────────── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Tech Stack
               </legend>
               <label className="space-y-1.5">
                 <span className={labelClass}>Stack (comma-separated)</span>
-                <input type="text" value={form.stackText} onChange={(e) => updateField('stackText', e.target.value)} className={inputClass} placeholder="Next.js, React, Tailwind CSS" />
+                <input
+                  type="text"
+                  value={form.stackText}
+                  onChange={(e) => updateField('stackText', e.target.value)}
+                  className={inputClass}
+                  placeholder="Next.js, React, Tailwind CSS"
+                />
               </label>
             </fieldset>
 
             {/* ─── Section F: Metrics ────────────────────────── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Metrics
               </legend>
               <div className="grid gap-4 sm:grid-cols-3">
                 <label className="space-y-1.5">
                   <span className={labelClass}>Users</span>
-                  <input type="number" value={form.metricsUsers} onChange={(e) => updateField('metricsUsers', e.target.value)} className={inputClass} placeholder="0" />
+                  <input
+                    type="number"
+                    value={form.metricsUsers}
+                    onChange={(e) => updateField('metricsUsers', e.target.value)}
+                    className={inputClass}
+                    placeholder="0"
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Stars</span>
-                  <input type="number" value={form.metricsStars} onChange={(e) => updateField('metricsStars', e.target.value)} className={inputClass} placeholder="0" />
+                  <input
+                    type="number"
+                    value={form.metricsStars}
+                    onChange={(e) => updateField('metricsStars', e.target.value)}
+                    className={inputClass}
+                    placeholder="0"
+                  />
                 </label>
                 <label className="space-y-1.5">
                   <span className={labelClass}>Rating</span>
-                  <input type="number" value={form.metricsRating} onChange={(e) => updateField('metricsRating', e.target.value)} className={inputClass} placeholder="4.5" step="0.1" />
+                  <input
+                    type="number"
+                    value={form.metricsRating}
+                    onChange={(e) => updateField('metricsRating', e.target.value)}
+                    className={inputClass}
+                    placeholder="4.5"
+                    step="0.1"
+                  />
                 </label>
               </div>
             </fieldset>
 
             {/* ─── Section G: Changelog ──────────────────────── */}
             <fieldset className="space-y-4">
-              <legend className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+              <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Changelog
               </legend>
               <label className="space-y-1.5">
                 <span className={labelClass}>Changelog JSON</span>
-                <textarea value={form.changelogText} onChange={(e) => updateField('changelogText', e.target.value)} rows={4} className={`${inputClass} font-mono text-xs`} placeholder='[{"version": "1.0", "date": "2024-01-01", "changes": ["Initial release"]}]' />
+                <textarea
+                  value={form.changelogText}
+                  onChange={(e) => updateField('changelogText', e.target.value)}
+                  rows={4}
+                  className={`${inputClass} font-mono text-xs`}
+                  placeholder='[{"version": "1.0", "date": "2024-01-01", "changes": ["Initial release"]}]'
+                />
               </label>
             </fieldset>
 
             {/* ─── Actions ───────────────────────────────────── */}
-            <div className="flex gap-2 border-t border-border pt-4">
-              <button type="submit" disabled={loading} className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-colors">
+            <div className="border-border flex gap-2 border-t pt-4">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+              >
                 {loading ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
               </button>
-              <button type="button" onClick={closeForm} className="inline-flex items-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent transition-colors">
+              <button
+                type="button"
+                onClick={closeForm}
+                className="border-input hover:bg-accent inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium transition-colors"
+              >
                 Cancel
               </button>
             </div>
@@ -527,13 +663,13 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
 
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
+        <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
           No projects yet. Click &quot;Add New&quot; to create one.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/50">
+            <thead className="border-border bg-muted/50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">Category</th>
@@ -544,25 +680,36 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-border divide-y">
               {items.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{item.name}</td>
                   <td className="px-4 py-3">{categoryBadge(item.category)}</td>
                   <td className="px-4 py-3 text-center">{item.year}</td>
-                  <td className="px-4 py-3 text-center space-x-1">
+                  <td className="space-x-1 px-4 py-3 text-center">
                     {item.featured === 1 && <span title="Featured">⭐</span>}
                     {item.pinned === 1 && <span title="Pinned">📌</span>}
-                    {item.featured !== 1 && item.pinned !== 1 && <span className="text-muted-foreground">—</span>}
+                    {item.featured !== 1 && item.pinned !== 1 && (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{item.slug}</td>
+                  <td className="text-muted-foreground px-4 py-3 font-mono text-xs">{item.slug}</td>
                   <td className="px-4 py-3 text-center">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
-                      <button type="button" onClick={() => openEditForm(item)} className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20 transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(item)}
+                        className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
+                      >
                         Edit
                       </button>
-                      <button type="button" onClick={() => handleDelete(item.id)} disabled={deletingId === item.id} className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        disabled={deletingId === item.id}
+                        className="rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                      >
                         {deletingId === item.id ? '…' : 'Delete'}
                       </button>
                     </div>
