@@ -6,3 +6,7 @@ pnpm next lint
 
 # Run ESLint for admin
 cd apps/admin && pnpm next lint
+
+# TypeScript 类型检查（拦截构建错误）
+cd "$OLDPWD"
+pnpm tsc --noEmit
