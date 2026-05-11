@@ -25,22 +25,24 @@ export function Footer({ socialLinks }: { socialLinks: SerializableSocialLink[] 
             <p>{t('copyright', { year })}</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">
-            {socialLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                target={link.href.startsWith('http') ? '_blank' : undefined}
-                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                aria-label={link.name}
-                title={link.name}
-                className="cursor-pointer transition-colors hover:text-[var(--fg)]"
-              >
-                {(() => {
-                  const Icon = ICON_MAP[link.iconName] ?? Mail;
-                  return <Icon className="h-4 w-4" />;
-                })()}
-              </a>
-            ))}
+            {socialLinks
+              .filter((link) => !link.isEmail)
+              .map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  target={link.href.startsWith('http') ? '_blank' : undefined}
+                  rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                  aria-label={link.name}
+                  title={link.name}
+                  className="cursor-pointer transition-colors hover:text-[var(--fg)]"
+                >
+                  {(() => {
+                    const Icon = ICON_MAP[link.iconName] ?? Mail;
+                    return <Icon className="h-4 w-4" />;
+                  })()}
+                </a>
+              ))}
             <EmailLink variant="pill" />
           </div>
         </div>

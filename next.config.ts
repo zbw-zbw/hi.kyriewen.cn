@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'github.com' },
       // Unsplash 占位图（/photos 照片墙 — 后续替换为本地资源）
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      // Cloudflare R2 CDN（用户上传的图片）
+      { protocol: 'https', hostname: 'cdn.kyriewen.cn' },
     ],
   },
   experimental: {

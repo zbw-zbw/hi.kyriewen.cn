@@ -240,7 +240,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
                 className="group inline-flex items-center gap-2 text-sm text-[var(--muted)]"
               >
                 <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
-                <EmailLink variant="inline" label={link.name} />
+                <EmailLink variant="inline" label={link.handle ?? link.name} />
               </span>
             ) : (
               <a
