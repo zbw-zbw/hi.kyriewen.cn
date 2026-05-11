@@ -15,37 +15,63 @@ interface I18nMessage {
 
 /* ── Component ───────────────────────────────────────────────── */
 export default function I18nPage() {
-  const [items, setItems] = useState<I18nMessage[]>([]);
+  const [zhItems, setZhItems] = useState<I18nMessage[]>([]);
+  const [enItems, setEnItems] = useState<I18nMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [locale, setLocale] = useState<'en' | 'zh'>('en');
   const [search, setSearch] = useState('');
   const [editingItem, setEditingItem] = useState<I18nMessage | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [translatingAll, setTranslatingAll] = useState(false);
+  const [translatingIds, setTranslatingIds] = useState<Set<number>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /* ── Fetch items ───────────────────────────────────────────── */
+  /* ── Fetch both zh and en items ────────────────────────────── */
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/i18n?locale=${locale}`);
-      if (!response.ok) throw new Error('Failed to fetch i18n messages');
-      const json = await response.json();
-      const list = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
-      setItems(list);
+      const [zhRes, enRes] = await Promise.all([
+        fetch('/api/i18n?locale=zh'),
+        fetch('/api/i18n?locale=en'),
+      ]);
+      if (!zhRes.ok) throw new Error('Failed to fetch zh messages');
+
+      const zhJson = await zhRes.json();
+      const zhList = Array.isArray(zhJson)
+        ? zhJson
+        : Array.isArray(zhJson?.data)
+          ? zhJson.data
+          : [];
+      setZhItems(zhList);
+
+      if (enRes.ok) {
+        const enJson = await enRes.json();
+        const enList = Array.isArray(enJson)
+          ? enJson
+          : Array.isArray(enJson?.data)
+            ? enJson.data
+            : [];
+        setEnItems(enList);
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [locale]);
+  }, []);
 
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
 
-  /* ── Filter items by search ────────────────────────────────── */
-  const filteredItems = items.filter((item) => {
+  /* ── Build en lookup map ─────────────────────────────────────── */
+  const enMap = new Map<string, I18nMessage>();
+  for (const item of enItems) {
+    enMap.set(`${item.namespace}::${item.key}`, item);
+  }
+
+  /* ── Filter zh items by search ─────────────────────────────── */
+  const filteredItems = zhItems.filter((item) => {
     if (!search.trim()) return true;
     const query = search.toLowerCase();
     return (
@@ -79,11 +105,13 @@ export default function I18nPage() {
     setEditValue('');
   };
 
+  /* ── Save zh + auto-translate en ───────────────────────────── */
   const saveEdit = async () => {
     if (!editingItem) return;
 
     setSaving(true);
     try {
+      // 1. Save the Chinese value
       const response = await fetch(`/api/i18n/${editingItem.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -95,14 +123,139 @@ export default function I18nPage() {
         throw new Error(errorData.error || 'Update failed');
       }
 
-      toast.success('Message updated');
+      toast.success('中文文案已保存，正在翻译英文…');
       cancelEdit();
+
+      // 2. Auto-translate to English
+      try {
+        const trRes = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: [{ text: editValue, type: 'short' }] }),
+        });
+
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          const translated = trData.results?.[0]?.translated;
+          if (translated) {
+            // 3. Upsert English version
+            await fetch('/api/i18n', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                locale: 'en',
+                namespace: editingItem.namespace,
+                key: editingItem.key,
+                value: translated,
+              }),
+            });
+            toast.success('英文翻译已同步');
+          }
+        }
+      } catch {
+        toast.error('自动翻译失败，请手动处理英文版本');
+      }
+
       fetchItems();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Update failed');
     } finally {
       setSaving(false);
     }
+  };
+
+  /* ── Translate single item ─────────────────────────────────── */
+  const translateSingle = async (item: I18nMessage) => {
+    setTranslatingIds((prev) => new Set(prev).add(item.id));
+    try {
+      const trRes = await fetch('/api/translate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: [{ text: item.value, type: 'short' }] }),
+      });
+
+      if (!trRes.ok) throw new Error('Translation failed');
+
+      const trData = await trRes.json();
+      const translated = trData.results?.[0]?.translated;
+      if (!translated) throw new Error('Empty translation');
+
+      await fetch('/api/i18n', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          locale: 'en',
+          namespace: item.namespace,
+          key: item.key,
+          value: translated,
+        }),
+      });
+
+      toast.success(`"${item.key}" 翻译完成`);
+      fetchItems();
+    } catch {
+      toast.error(`"${item.key}" 翻译失败`);
+    } finally {
+      setTranslatingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  };
+
+  /* ── Translate all untranslated items ──────────────────────── */
+  const translateAll = async () => {
+    const untranslated = zhItems.filter((item) => !enMap.has(`${item.namespace}::${item.key}`));
+
+    if (untranslated.length === 0) {
+      toast.success('所有文案已有英文翻译');
+      return;
+    }
+
+    setTranslatingAll(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const item of untranslated) {
+      try {
+        const trRes = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: [{ text: item.value, type: 'short' }] }),
+        });
+
+        if (!trRes.ok) {
+          failCount++;
+          continue;
+        }
+
+        const trData = await trRes.json();
+        const translated = trData.results?.[0]?.translated;
+        if (!translated) {
+          failCount++;
+          continue;
+        }
+
+        await fetch('/api/i18n', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locale: 'en',
+            namespace: item.namespace,
+            key: item.key,
+            value: translated,
+          }),
+        });
+        successCount++;
+      } catch {
+        failCount++;
+      }
+    }
+
+    toast.success(`批量翻译完成：${successCount} 成功，${failCount} 失败`);
+    setTranslatingAll(false);
+    fetchItems();
   };
 
   /* ── Batch import from JSON ────────────────────────────────── */
@@ -141,7 +294,7 @@ export default function I18nPage() {
       const response = await fetch('/api/i18n/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ locale, messages }),
+        body: JSON.stringify({ locale: 'zh', messages }),
       });
 
       if (!response.ok) {
@@ -164,53 +317,46 @@ export default function I18nPage() {
     }
   };
 
+  /* ── Helpers ─────────────────────────────────────────────────── */
+  const untranslatedCount = zhItems.filter(
+    (item) => !enMap.has(`${item.namespace}::${item.key}`),
+  ).length;
+
   /* ── Render ────────────────────────────────────────────────── */
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold tracking-tight">i18n Messages</h2>
         <p className="text-muted-foreground">
-          Manage internationalization messages (DB overrides local JSON).
+          配置中文文案，保存时自动翻译英文（DB overrides local JSON）。
         </p>
       </div>
 
       <div className="space-y-6">
         {/* ── Controls ─────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-3">
-          {/* Locale switcher */}
-          <div className="border-border inline-flex rounded-md border">
-            <button
-              type="button"
-              onClick={() => setLocale('en')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                locale === 'en' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-              } rounded-l-md`}
-            >
-              EN
-            </button>
-            <button
-              type="button"
-              onClick={() => setLocale('zh')}
-              className={`px-3 py-1.5 text-sm font-medium transition-colors ${
-                locale === 'zh' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-              } rounded-r-md`}
-            >
-              ZH
-            </button>
-          </div>
-
           {/* Search */}
           <input
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search namespace, key, or value…"
+            placeholder="搜索 namespace / key / value…"
             className="border-input bg-background focus:ring-ring min-w-[200px] flex-1 rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2"
           />
 
+          {/* Translate all */}
+          <button
+            type="button"
+            onClick={translateAll}
+            disabled={translatingAll || untranslatedCount === 0}
+            className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
+          >
+            {translatingAll ? '翻译中…' : `翻译全部 (${untranslatedCount})`}
+          </button>
+
           {/* Import button */}
           <label className="border-input hover:bg-accent inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors">
-            Import JSON
+            导入 JSON
             <input
               ref={fileInputRef}
               type="file"
@@ -221,9 +367,7 @@ export default function I18nPage() {
           </label>
 
           {/* Count */}
-          <span className="text-muted-foreground text-sm">
-            {filteredItems.length} message{filteredItems.length !== 1 ? 's' : ''}
-          </span>
+          <span className="text-muted-foreground text-sm">{filteredItems.length} 条文案</span>
         </div>
 
         {/* ── Loading state ────────────────────────────────────── */}
@@ -236,9 +380,7 @@ export default function I18nPage() {
         {/* ── Empty state ──────────────────────────────────────── */}
         {!loading && filteredItems.length === 0 && (
           <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-            {search
-              ? 'No messages match your search.'
-              : 'No i18n messages yet. Use "Import JSON" to add messages.'}
+            {search ? '没有匹配的文案。' : '暂无 i18n 文案，点击"导入 JSON"添加。'}
           </div>
         )}
 
@@ -258,66 +400,99 @@ export default function I18nPage() {
                   <table className="w-full text-sm">
                     <thead className="border-border bg-muted/50 border-b">
                       <tr>
-                        <th className="w-[30%] px-4 py-2 text-left font-medium">Key</th>
-                        <th className="px-4 py-2 text-left font-medium">Value</th>
-                        <th className="w-[80px] px-4 py-2 text-right font-medium">Actions</th>
+                        <th className="w-[25%] px-4 py-2 text-left font-medium">Key</th>
+                        <th className="px-4 py-2 text-left font-medium">中文</th>
+                        <th className="w-[80px] px-4 py-2 text-center font-medium">英文</th>
+                        <th className="w-[100px] px-4 py-2 text-right font-medium">操作</th>
                       </tr>
                     </thead>
                     <tbody className="divide-border divide-y">
-                      {namespaceItems.map((item) => (
-                        <tr key={item.id} className="hover:bg-muted/30 transition-colors">
-                          <td className="px-4 py-2">
-                            <span className="bg-muted inline-flex rounded px-2 py-0.5 font-mono text-xs break-all">
-                              {item.key}
-                            </span>
-                          </td>
-                          <td className="px-4 py-2">
-                            {editingItem?.id === item.id ? (
-                              <div className="flex items-center gap-2">
-                                <input
-                                  type="text"
-                                  value={editValue}
-                                  onChange={(event) => setEditValue(event.target.value)}
-                                  onKeyDown={(event) => {
-                                    if (event.key === 'Enter') saveEdit();
-                                    if (event.key === 'Escape') cancelEdit();
-                                  }}
-                                  autoFocus
-                                  className="border-input bg-background focus:ring-ring flex-1 rounded-md border px-2 py-1 text-sm outline-none focus:ring-2"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={saveEdit}
-                                  disabled={saving}
-                                  className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
+                      {namespaceItems.map((item) => {
+                        const enVersion = enMap.get(`${item.namespace}::${item.key}`);
+                        const hasEn = !!enVersion;
+                        const isTranslating = translatingIds.has(item.id);
+
+                        return (
+                          <tr key={item.id} className="hover:bg-muted/30 transition-colors">
+                            <td className="px-4 py-2">
+                              <span className="bg-muted inline-flex rounded px-2 py-0.5 font-mono text-xs break-all">
+                                {item.key}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2">
+                              {editingItem?.id === item.id ? (
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="text"
+                                    value={editValue}
+                                    onChange={(event) => setEditValue(event.target.value)}
+                                    onKeyDown={(event) => {
+                                      if (event.key === 'Enter') saveEdit();
+                                      if (event.key === 'Escape') cancelEdit();
+                                    }}
+                                    autoFocus
+                                    className="border-input bg-background focus:ring-ring flex-1 rounded-md border px-2 py-1 text-sm outline-none focus:ring-2"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={saveEdit}
+                                    disabled={saving}
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
+                                  >
+                                    {saving ? '…' : '保存'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelEdit}
+                                    className="border-input hover:bg-accent rounded border px-2 py-1 text-xs font-medium transition-colors"
+                                  >
+                                    取消
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-foreground break-all">{item.value}</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              {hasEn ? (
+                                <span
+                                  className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                  title={enVersion.value}
                                 >
-                                  {saving ? '…' : 'Save'}
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={cancelEdit}
-                                  className="border-input hover:bg-accent rounded border px-2 py-1 text-xs font-medium transition-colors"
-                                >
-                                  Cancel
-                                </button>
+                                  ✓
+                                </span>
+                              ) : (
+                                <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                  —
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-2 text-right">
+                              <div className="inline-flex gap-1">
+                                {editingItem?.id !== item.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => startEdit(item)}
+                                    className="text-primary hover:bg-primary/10 rounded px-2 py-1 text-xs font-medium transition-colors"
+                                  >
+                                    编辑
+                                  </button>
+                                )}
+                                {!hasEn && editingItem?.id !== item.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => translateSingle(item)}
+                                    disabled={isTranslating}
+                                    className="rounded px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 disabled:opacity-50 dark:hover:bg-blue-900/20"
+                                  >
+                                    {isTranslating ? '…' : '翻译'}
+                                  </button>
+                                )}
                               </div>
-                            ) : (
-                              <span className="text-muted-foreground break-all">{item.value}</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-2 text-right">
-                            {editingItem?.id !== item.id && (
-                              <button
-                                type="button"
-                                onClick={() => startEdit(item)}
-                                className="text-primary hover:bg-primary/10 rounded px-2 py-1 text-xs font-medium transition-colors"
-                              >
-                                Edit
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
