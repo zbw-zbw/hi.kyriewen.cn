@@ -89,7 +89,7 @@ export function Sidebar() {
   const cycleTheme = () => {
     const currentIdx = THEME_CYCLE.indexOf((theme as 'light' | 'dark' | 'system') ?? 'system');
     const nextIdx = (currentIdx + 1) % THEME_CYCLE.length;
-    setTheme(THEME_CYCLE[nextIdx]);
+    setTheme(THEME_CYCLE[nextIdx] ?? 'system');
   };
 
   const currentTheme = (theme as keyof typeof THEME_ICONS) ?? 'system';

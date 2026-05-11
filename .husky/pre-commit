@@ -7,6 +7,9 @@ pnpm next lint
 # Run ESLint for admin
 cd apps/admin && pnpm next lint
 
-# TypeScript 类型检查（拦截构建错误）
+# TypeScript 类型检查（主站）
 cd "$OLDPWD"
 pnpm tsc --noEmit
+
+# TypeScript 类型检查（Admin 后台，有更严格的 noUncheckedIndexedAccess）
+cd apps/admin && pnpm tsc --noEmit
