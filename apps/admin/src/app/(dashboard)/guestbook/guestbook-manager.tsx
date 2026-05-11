@@ -85,18 +85,27 @@ export default function GuestbookManager({
   const handleBatchDeleteConfirm = useCallback(async () => {
     setBatchDeleteOpen(false);
     const ids = Array.from(selectedIds);
-    let successCount = 0;
-    for (const id of ids) {
-      try {
-        await executeDelete(id);
-        successCount++;
-      } catch {
-        // continue
+    try {
+      const res = await fetch('/api/guestbook/batch', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error ?? 'Batch delete failed');
       }
+      const { deletedCount } = await res.json();
+      toast.success(`Deleted ${deletedCount} messages`);
+      setMessages((prev) =>
+        prev.filter((m) => !ids.includes(m.id) && !ids.includes(m.parentId ?? -1)),
+      );
+      setTotal((prev) => prev - deletedCount);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Batch delete failed');
     }
-    toast.success(`Deleted ${successCount} of ${ids.length} messages`);
     setSelectedIds(new Set());
-  }, [selectedIds, executeDelete]);
+  }, [selectedIds]);
 
   const handlePageChange = (p: number) => {
     setPage(p);

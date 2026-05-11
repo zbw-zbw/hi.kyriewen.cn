@@ -136,16 +136,21 @@ export function BlogList({ posts }: BlogListProps) {
   const handleBatchDeleteConfirm = useCallback(async () => {
     setBatchDeleteOpen(false);
     const ids = Array.from(selectedIds);
-    let successCount = 0;
-    for (const id of ids) {
-      try {
-        await executeDelete(id);
-        successCount++;
-      } catch {
-        // continue deleting remaining
+    try {
+      const response = await fetch('/api/blog/batch', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error ?? 'Batch delete failed');
       }
+      const { deletedCount } = await response.json();
+      toast.success(`Deleted ${deletedCount} posts`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Batch delete failed');
     }
-    toast.success(`Deleted ${successCount} of ${ids.length} posts`);
     setSelectedIds(new Set());
     router.refresh();
   }, [selectedIds, executeDelete, router]);
