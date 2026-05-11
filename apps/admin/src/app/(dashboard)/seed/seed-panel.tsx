@@ -12,6 +12,8 @@ const SEED_TABLES = [
   { key: 'uses', label: 'Uses', desc: '5 sections + 13 items from uses.ts' },
   { key: 'social', label: 'Social Links', desc: '4 links from social.ts' },
   { key: 'popular', label: 'Popular Posts', desc: '1 item from popular.ts' },
+  { key: 'navigation', label: 'Navigation', desc: '10 nav items (home, projects, blog…)' },
+  { key: 'i18n', label: 'i18n Messages', desc: 'All texts from zh.json + en.json' },
 ] as const;
 
 type TableKey = (typeof SEED_TABLES)[number]['key'];
@@ -55,7 +57,7 @@ export default function SeedPanel() {
         if (!res.ok) throw new Error(data.error ?? 'Seed failed');
         setResults(data.results);
         toast.success(
-          `Imported ${Object.values(data.results as Record<string, number>).reduce((a, b) => a + b, 0)} records`
+          `Imported ${Object.values(data.results as Record<string, number>).reduce((a, b) => a + b, 0)} records`,
         );
       } catch (err) {
         toast.error(String(err));
@@ -70,10 +72,9 @@ export default function SeedPanel() {
         <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" />
         <div className="text-sm">
           <p className="font-medium text-yellow-500">Caution</p>
-          <p className="mt-1 text-muted-foreground">
-            This will <strong>clear existing data</strong> in the selected
-            tables and replace with content from local files. Use this only for
-            initial setup or data reset.
+          <p className="text-muted-foreground mt-1">
+            This will <strong>clear existing data</strong> in the selected tables and replace with
+            content from local files. Use this only for initial setup or data reset.
           </p>
         </div>
       </div>
@@ -83,13 +84,11 @@ export default function SeedPanel() {
         <button
           type="button"
           onClick={toggleAll}
-          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+          className="text-primary text-sm font-medium underline-offset-4 hover:underline"
         >
-          {selected.size === SEED_TABLES.length
-            ? 'Deselect All'
-            : 'Select All'}
+          {selected.size === SEED_TABLES.length ? 'Deselect All' : 'Select All'}
         </button>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-muted-foreground text-xs">
           {selected.size} / {SEED_TABLES.length} selected
         </span>
       </div>
@@ -103,16 +102,14 @@ export default function SeedPanel() {
             <label
               key={table.key}
               className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
-                isSelected
-                  ? 'border-primary bg-primary/5'
-                  : 'border-border hover:border-primary/50'
+                isSelected ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'
               }`}
             >
               <input
                 type="checkbox"
                 checked={isSelected}
                 onChange={() => toggle(table.key)}
-                className="mt-0.5 h-4 w-4 rounded border-border"
+                className="border-border mt-0.5 h-4 w-4 rounded"
               />
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -124,9 +121,7 @@ export default function SeedPanel() {
                     </span>
                   )}
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {table.desc}
-                </p>
+                <p className="text-muted-foreground mt-0.5 text-xs">{table.desc}</p>
               </div>
             </label>
           );
@@ -138,30 +133,21 @@ export default function SeedPanel() {
         type="button"
         onClick={handleSeed}
         disabled={pending || selected.size === 0}
-        className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
       >
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Database className="h-4 w-4" />
-        )}
+        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
         {pending ? 'Importing...' : 'Import Selected'}
       </button>
 
       {/* Results */}
       {results && (
-        <div className="rounded-lg border bg-card p-4">
+        <div className="bg-card rounded-lg border p-4">
           <h3 className="mb-2 text-sm font-medium">Import Results</h3>
           <div className="space-y-1">
             {Object.entries(results).map(([table, count]) => (
-              <div
-                key={table}
-                className="flex items-center justify-between text-sm"
-              >
+              <div key={table} className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">{table}</span>
-                <span className="font-mono text-green-500">
-                  +{count} records
-                </span>
+                <span className="font-mono text-green-500">+{count} records</span>
               </div>
             ))}
           </div>
