@@ -104,8 +104,7 @@
       "title": "现在在做什么",
       "subtitle": "灵感来自 Derek Sivers 的 /now 运动。",
       "lastUpdated": "最后更新",
-      "listeningTitle": "在听什么",
-      "listeningSubtitle": "通过 Last.fm 同步的最近播放。"
+      "listeningTitle": "最近在听"
     }
   },
   "timeline": {

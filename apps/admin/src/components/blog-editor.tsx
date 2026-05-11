@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { Save, Send, ArrowLeft, Languages, Loader2, Eye, EyeOff } from 'lucide-react';
 import { TiptapEditor, markdownToHtml, htmlToMarkdown } from './tiptap-editor';
@@ -63,25 +63,6 @@ export function BlogEditor({ post }: BlogEditorProps) {
   const [saving, setSaving] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
-  const [previewMd, setPreviewMd] = useState(post?.content ?? '');
-  const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Debounced preview: convert HTML → Markdown for live preview
-  useEffect(() => {
-    if (!showPreview) return;
-    if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-    previewTimerRef.current = setTimeout(async () => {
-      try {
-        const md = await htmlToMarkdown(editorHtml);
-        setPreviewMd(md);
-      } catch {
-        // ignore conversion errors during typing
-      }
-    }, 500);
-    return () => {
-      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-    };
-  }, [editorHtml, showPreview]);
 
   // Auto-generate slug from title (only in create mode)
   const handleTitleChange = useCallback(
@@ -454,20 +435,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
 
         {/* Editor + Live Preview (side by side) */}
         <div className={`grid gap-4 ${showPreview ? 'grid-cols-2' : 'grid-cols-1'}`}>
-          {/* Left: Markdown source (raw text) */}
-          {showPreview && (
-            <div className="border-border bg-muted/30 min-w-0 overflow-auto rounded-lg border p-4">
-              <div className="border-border mb-2 flex items-center gap-2 border-b pb-2">
-                <Eye className="text-muted-foreground h-4 w-4" />
-                <span className="text-muted-foreground text-xs font-medium">Markdown Source</span>
-              </div>
-              <pre className="text-foreground/80 max-w-none font-mono text-xs leading-relaxed break-words whitespace-pre-wrap">
-                {previewMd || 'Markdown source will appear here...'}
-              </pre>
-            </div>
-          )}
-
-          {/* Right (or full): Tiptap WYSIWYG Editor (rendered preview) */}
+          {/* Left: Tiptap WYSIWYG Editor (editable) */}
           <div className="min-w-0">
             <TiptapEditor
               content={editorHtml}
@@ -475,6 +443,24 @@ export function BlogEditor({ post }: BlogEditorProps) {
               placeholder="Start writing your post..."
             />
           </div>
+
+          {/* Right: Rendered preview (read-only) */}
+          {showPreview && (
+            <div className="border-border bg-muted/30 min-w-0 overflow-auto rounded-lg border p-4">
+              <div className="border-border mb-2 flex items-center gap-2 border-b pb-2">
+                <Eye className="text-muted-foreground h-4 w-4" />
+                <span className="text-muted-foreground text-xs font-medium">Preview</span>
+              </div>
+              <div
+                className="prose prose-sm dark:prose-invert max-w-none wrap-break-word"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    editorHtml ||
+                    '<p class="text-muted-foreground">Preview will appear here...</p>',
+                }}
+              />
+            </div>
+          )}
         </div>
       </div>
 

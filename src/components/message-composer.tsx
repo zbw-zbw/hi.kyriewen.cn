@@ -97,11 +97,7 @@ export function MessageComposer({
 
   // 工具栏：在 textarea 当前光标/选区位置插入 Markdown 标记
   // 支持"先选中文字，再点工具栏"的交互
-  const insertMarkdown = (
-    before: string,
-    after: string = before,
-    sample = ''
-  ) => {
+  const insertMarkdown = (before: string, after: string = before, sample = '') => {
     const ta = textareaRef.current;
     if (!ta) {
       setBody((b) => `${b}${before}${sample}${after}`);
@@ -110,15 +106,11 @@ export function MessageComposer({
     const start = ta.selectionStart;
     const end = ta.selectionEnd;
     const selected = body.slice(start, end) || sample;
-    const next =
-      body.slice(0, start) + before + selected + after + body.slice(end);
+    const next = body.slice(0, start) + before + selected + after + body.slice(end);
     setBody(next);
     requestAnimationFrame(() => {
       ta.focus();
-      ta.setSelectionRange(
-        start + before.length,
-        start + before.length + selected.length
-      );
+      ta.setSelectionRange(start + before.length, start + before.length + selected.length);
     });
   };
 
@@ -138,104 +130,99 @@ export function MessageComposer({
     <form onSubmit={onSubmit} className="space-y-2">
       {/* 工具栏 + 编辑区连体容器（消除 space-y-2 间距） */}
       <div className="overflow-hidden rounded-md border border-[var(--border)]">
-      {/* 工具栏 */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-2 py-1.5">
-        <div className="flex items-center gap-0.5">
-          <ToolbarButton
-            onClick={() => insertMarkdown('**', '**', t('boldSample'))}
-            label="Bold (⌘B)"
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => insertMarkdown('*', '*', t('italicSample'))}
-            label="Italic (⌘I)"
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() => insertMarkdown('`', '`', 'code')}
-            label="Inline code"
-          >
-            <Code className="h-3.5 w-3.5" />
-          </ToolbarButton>
-          <ToolbarButton
-            onClick={() =>
-              insertMarkdown('[', '](https://)', t('linkSample'))
-            }
-            label="Link"
-          >
-            <Link2 className="h-3.5 w-3.5" />
-          </ToolbarButton>
+        {/* 工具栏 */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] bg-[var(--card)] px-2 py-1.5">
+          <div className="flex items-center gap-0.5">
+            <ToolbarButton
+              onClick={() => insertMarkdown('**', '**', t('boldSample'))}
+              label="Bold (⌘B)"
+            >
+              <Bold className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => insertMarkdown('*', '*', t('italicSample'))}
+              label="Italic (⌘I)"
+            >
+              <Italic className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton onClick={() => insertMarkdown('`', '`', 'code')} label="Inline code">
+              <Code className="h-3.5 w-3.5" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => insertMarkdown('[', '](https://)', t('linkSample'))}
+              label="Link"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setPreview((v) => !v)}
+              className="inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--fg)]"
+            >
+              {preview ? (
+                <>
+                  <EyeOff className="h-3 w-3" />
+                  {t('edit')}
+                </>
+              ) : (
+                <>
+                  <Eye className="h-3 w-3" />
+                  {t('preview')}
+                </>
+              )}
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPreview((v) => !v)}
-            className="inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--fg)]"
-          >
-            {preview ? (
-              <>
-                <EyeOff className="h-3 w-3" />
-                {t('edit')}
-              </>
-            ) : (
-              <>
-                <Eye className="h-3 w-3" />
-                {t('preview')}
-              </>
+        {/* 编辑区 / 预览区 */}
+        {preview ? (
+          <div
+            className={cn(
+              'min-h-[80px] bg-[var(--card)] p-3 text-sm',
+              '[&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-3 [&_blockquote]:text-[var(--muted-fg)] [&_code]:rounded [&_code]:bg-[var(--bg)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] [&_p]:my-1',
             )}
-          </button>
-        </div>
-      </div>
-
-      {/* 编辑区 / 预览区 */}
-      {preview ? (
-        <div
-          className={cn(
-            'min-h-[80px] bg-[var(--card)] p-3 text-sm',
-            '[&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--border)] [&_blockquote]:pl-3 [&_blockquote]:text-[var(--muted-fg)] [&_code]:rounded [&_code]:bg-[var(--bg)] [&_code]:px-1 [&_code]:font-mono [&_code]:text-[0.85em] [&_p]:my-1'
-          )}
-          dangerouslySetInnerHTML={{
-            __html: body.trim()
-              ? renderSafeMarkdown(body)
-              : `<p class="text-[var(--muted)]">${t('previewEmpty')}</p>`,
-          }}
-        />
-      ) : (
-        <textarea
-          ref={textareaRef}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          onKeyDown={(e) => {
-            // ⌘B / ⌘I 快捷键
-            if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
-              if (e.key === 'b') {
-                e.preventDefault();
-                insertMarkdown('**', '**', t('boldSample'));
-              } else if (e.key === 'i') {
-                e.preventDefault();
-                insertMarkdown('*', '*', t('italicSample'));
-              } else if (e.key === 'Enter' && body.trim()) {
-                // ⌘Enter 提交
-                e.preventDefault();
-                onSubmit(e as unknown as React.FormEvent);
+            dangerouslySetInnerHTML={{
+              __html: body.trim()
+                ? renderSafeMarkdown(body)
+                : `<p class="text-[var(--muted)]">${t('previewEmpty')}</p>`,
+            }}
+          />
+        ) : (
+          <textarea
+            ref={textareaRef}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            onKeyDown={(e) => {
+              // ⌘B / ⌘I 快捷键
+              if ((e.metaKey || e.ctrlKey) && !e.shiftKey) {
+                if (e.key === 'b') {
+                  e.preventDefault();
+                  insertMarkdown('**', '**', t('boldSample'));
+                } else if (e.key === 'i') {
+                  e.preventDefault();
+                  insertMarkdown('*', '*', t('italicSample'));
+                } else if (e.key === 'Enter' && body.trim()) {
+                  // ⌘Enter 提交
+                  e.preventDefault();
+                  onSubmit(e as unknown as React.FormEvent);
+                }
               }
+            }}
+            maxLength={MAX_LEN}
+            rows={compact ? 2 : 3}
+            placeholder={
+              placeholder ??
+              (locale === 'zh'
+                ? '说点什么吧… 支持 Markdown'
+                : 'Say something nice… Markdown supported')
             }
-          }}
-          maxLength={MAX_LEN}
-          rows={compact ? 2 : 3}
-          placeholder={
-            placeholder ??
-            (locale === 'zh'
-              ? '说点什么吧… 支持 Markdown'
-              : 'Say something nice… Markdown supported')
-          }
-          className="w-full resize-none border-0 bg-[var(--card)] p-3 text-sm outline-none"
-          disabled={pending}
-        />
-      )}
+            className="w-full resize-none border-0 bg-[var(--card)] p-3 text-sm outline-none"
+            disabled={pending}
+          />
+        )}
       </div>
 
       <div className="flex items-center justify-between gap-2">
@@ -244,15 +231,10 @@ export function MessageComposer({
         </span>
         <div className="flex items-center gap-2">
           {onCancel && (
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={pending}
-              className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
-            >
+            <Button type="button" variant="outline" size="sm" onClick={onCancel} disabled={pending}>
               <X className="h-3 w-3" />
               {t('cancel')}
-            </button>
+            </Button>
           )}
           <Button type="submit" size="sm" disabled={pending || !body.trim()}>
             {pending ? t('posting') : t('post')}

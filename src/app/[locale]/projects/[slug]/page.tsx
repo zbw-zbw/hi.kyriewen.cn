@@ -60,9 +60,9 @@ export default async function ProjectDetailPage({
     <>
       <ReadingProgress />
 
-      <article className="pb-20">
+      <article className="-mt-10 pb-20 sm:-mt-14">
         {/* ── Sticky Header: 返回按钮 + Hero 标题区域固定吸顶 ── */}
-        <div className="sticky top-14 z-10 bg-[color-mix(in_srgb,var(--bg)_95%,transparent)] pb-4 pt-2 backdrop-blur-md">
+        <div className="sticky top-14 z-10 bg-[var(--bg)] pt-4 pb-4">
           <Link
             href="/projects"
             className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
@@ -71,7 +71,7 @@ export default async function ProjectDetailPage({
             {t('backLink')}
           </Link>
 
-          <div className="font-mono text-[var(--text-eyebrow)] uppercase tracking-[0.18em] text-[var(--muted)]">
+          <div className="font-mono tracking-[0.18em] text-[var(--muted)] text-[var(--text-eyebrow)] uppercase">
             {categoryLabel[project.category]} · {project.year}
           </div>
 
@@ -144,18 +144,14 @@ export default async function ProjectDetailPage({
 
         {/* ── FIG 01 — Overview ── */}
         <ScrollReveal as="section" className="mt-[var(--space-section)]">
-          <SectionHeading
-            index="01"
-            eyebrow={t('overviewEyebrow')}
-            title={t('overviewTitle')}
-          />
+          <SectionHeading index="01" eyebrow={t('overviewEyebrow')} title={t('overviewTitle')} />
           <p className="max-w-prose text-base leading-relaxed text-[var(--muted-fg)]">
             {project.description[locale]}
           </p>
 
           {/* Stack chips */}
           <div className="mt-6">
-            <h3 className="mb-3 font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
+            <h3 className="mb-3 font-mono text-xs tracking-widest text-[var(--muted)] uppercase">
               {t('stack')}
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -173,15 +169,11 @@ export default async function ProjectDetailPage({
           {/* Meta */}
           <div className="mt-6 flex flex-wrap gap-6 text-sm text-[var(--muted)]">
             <div>
-              <span className="font-mono text-xs uppercase tracking-widest">
-                {t('category')}
-              </span>
+              <span className="font-mono text-xs tracking-widest uppercase">{t('category')}</span>
               <p className="mt-1 text-[var(--fg)]">{categoryLabel[project.category]}</p>
             </div>
             <div>
-              <span className="font-mono text-xs uppercase tracking-widest">
-                {t('year')}
-              </span>
+              <span className="font-mono text-xs tracking-widest uppercase">{t('year')}</span>
               <p className="mt-1 text-[var(--fg)]">{project.year}</p>
             </div>
           </div>
@@ -189,12 +181,8 @@ export default async function ProjectDetailPage({
 
         {/* ── FIG 02 — Why I built this ── */}
         <ScrollReveal as="section" className="mt-[var(--space-section)]">
-          <SectionHeading
-            index="02"
-            eyebrow={t('whyEyebrow')}
-            title={t('whyTitle')}
-          />
-          <div className="prose prose-neutral max-w-prose text-[var(--muted-fg)] dark:prose-invert">
+          <SectionHeading index="02" eyebrow={t('whyEyebrow')} title={t('whyTitle')} />
+          <div className="prose prose-neutral dark:prose-invert max-w-prose text-[var(--muted-fg)]">
             <p>{project.description[locale]}</p>
           </div>
         </ScrollReveal>
@@ -202,11 +190,7 @@ export default async function ProjectDetailPage({
         {/* ── FIG 03 — Gallery (条件渲染) ── */}
         {project.gallery && project.gallery.length > 0 && (
           <ScrollReveal as="section" className="mt-[var(--space-section)]">
-            <SectionHeading
-              index="03"
-              eyebrow={t('galleryEyebrow')}
-              title={t('galleryTitle')}
-            />
+            <SectionHeading index="03" eyebrow={t('galleryEyebrow')} title={t('galleryTitle')} />
             <div className="grid gap-4 sm:grid-cols-2">
               {project.gallery.map((src, i) => (
                 <ScrollReveal key={src} delay={i * 0.08}>
@@ -286,13 +270,11 @@ function MetricCard({ label, value }: { label: string; value: string }) {
     <div
       className={cn(
         'rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--card)] p-5',
-        'shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-elevated)]'
+        'shadow-[var(--shadow-soft)] transition-shadow hover:shadow-[var(--shadow-elevated)]',
       )}
     >
-      <p className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
-        {label}
-      </p>
-      <p className="mt-2 text-2xl font-bold tabular-nums tracking-tight text-[var(--fg)]">
+      <p className="font-mono text-xs tracking-widest text-[var(--muted)] uppercase">{label}</p>
+      <p className="mt-2 text-2xl font-bold tracking-tight text-[var(--fg)] tabular-nums">
         {value}
       </p>
     </div>

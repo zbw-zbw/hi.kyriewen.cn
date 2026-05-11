@@ -121,11 +121,26 @@ export function SyncCenter() {
 
         const data = await response.json();
         setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
-        setTaskResults((prev) => ({
-          ...prev,
-          [taskId]: JSON.stringify(data.result, null, 2).slice(0, 200),
-        }));
-        toast.success(`${taskId} completed`);
+
+        // Build friendly result message
+        const result = data.result ?? {};
+        let friendlyMessage = 'Completed successfully';
+        if (taskId === 'sync-articles' && Array.isArray(result.results)) {
+          const parts = result.results.map(
+            (r: { source: string; imported: number; skipped: number; error?: string }) =>
+              r.error
+                ? `${r.source}: error`
+                : `${r.source === 'juejin' ? '掘金' : r.source.toUpperCase()}: +${r.imported} new, ${r.skipped} skipped`,
+          );
+          friendlyMessage = parts.join(' · ');
+        } else if (typeof result.imported === 'number') {
+          friendlyMessage = `+${result.imported} imported, ${result.skipped ?? 0} skipped`;
+        } else if (typeof result.updated === 'number') {
+          friendlyMessage = `${result.updated} records updated`;
+        }
+
+        setTaskResults((prev) => ({ ...prev, [taskId]: friendlyMessage }));
+        toast.success(`${TASKS.find((t) => t.id === taskId)?.name ?? taskId}: ${friendlyMessage}`);
       } catch (error) {
         setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
         const message = error instanceof Error ? error.message : 'Unknown error';

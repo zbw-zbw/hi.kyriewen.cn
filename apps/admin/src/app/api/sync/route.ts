@@ -61,11 +61,11 @@ export async function GET() {
 
 /**
  * POST /api/sync — trigger a specific sync task
- * Body: { taskId: string }
+ * Body: { taskId: string, sources?: string[] }
  */
 export async function POST(req: Request) {
   try {
-    const { taskId } = (await req.json()) as { taskId?: string };
+    const { taskId, sources } = (await req.json()) as { taskId?: string; sources?: string[] };
     if (!taskId) {
       return NextResponse.json({ error: 'taskId is required' }, { status: 400 });
     }
@@ -85,8 +85,13 @@ export async function POST(req: Request) {
       );
     }
 
-    const url = `${MAIN_SITE}${task.path}`;
-    const response = await fetch(url, {
+    // Build URL with optional sources query param for sync-articles
+    const targetUrl = new URL(`${MAIN_SITE}${task.path}`);
+    if (taskId === 'sync-articles' && sources && sources.length > 0) {
+      targetUrl.searchParams.set('sources', sources.join(','));
+    }
+
+    const response = await fetch(targetUrl.toString(), {
       method: 'GET',
       headers: { Authorization: `Bearer ${CRON_SECRET}` },
     });

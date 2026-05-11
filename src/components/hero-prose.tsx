@@ -25,29 +25,19 @@ interface HeroProseProps {
  *        and 5 other tools. Currently listening to <NowPlayingInline />.</p>
  *   </HeroProse>
  */
-export function HeroProse({
-  eyebrow,
-  children,
-  footer,
-  className,
-}: HeroProseProps) {
+export function HeroProse({ eyebrow, children, footer, className }: HeroProseProps) {
   return (
-    <section
-      className={cn(
-        'relative pt-12 pb-12 sm:pt-20 sm:pb-16 md:pt-28 md:pb-20',
-        className
-      )}
-    >
+    <section className={cn('relative pt-6 pb-6 sm:pt-10 sm:pb-8 md:pt-14 md:pb-10', className)}>
       {eyebrow && (
-        <div className="mb-6 font-mono text-[var(--text-eyebrow)] uppercase tracking-[0.18em] text-[var(--muted)]">
+        <div className="mb-6 font-mono tracking-[0.18em] text-[var(--muted)] text-[var(--text-eyebrow)] uppercase">
           {eyebrow}
         </div>
       )}
 
       <div
         className={cn(
-          'max-w-[60ch] font-[var(--font-display)] font-normal leading-[1.65] tracking-normal text-[var(--fg)]',
-          'text-[length:var(--text-hero)]'
+          'max-w-[60ch] leading-[1.65] font-[var(--font-display)] font-normal tracking-normal text-[var(--fg)]',
+          'text-[length:var(--text-hero)]',
         )}
       >
         {children}

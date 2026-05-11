@@ -35,18 +35,16 @@ export function SectionHeading({
   const eyebrowText = eyebrow ?? (index ? title : undefined);
 
   return (
-    <div className={cn('mb-8 sm:mb-10', className)}>
+    <div className={cn('mb-5 sm:mb-6', className)}>
       {/* 编号 + Eyebrow 小字 */}
       {(index || eyebrowText) && (
-        <div className="mb-4 flex items-center gap-3 font-mono text-[var(--text-eyebrow)] uppercase tracking-[0.18em] text-[var(--muted)]">
+        <div className="mb-4 flex items-center gap-3 font-mono tracking-[0.18em] text-[var(--muted)] text-[var(--text-eyebrow)] uppercase">
           {index && (
             <span className="tabular-nums">
               FIG <span className="text-[var(--fg)]">{index}</span>
             </span>
           )}
-          {index && eyebrowText && (
-            <span className="h-px w-6 bg-[var(--border)]" aria-hidden />
-          )}
+          {index && eyebrowText && <span className="h-px w-6 bg-[var(--border)]" aria-hidden />}
           {eyebrowText && <span>{eyebrowText}</span>}
         </div>
       )}
@@ -56,23 +54,17 @@ export function SectionHeading({
           <h2
             className={cn(
               'font-semibold tracking-tight text-[var(--fg)]',
-              variant === 'display'
-                ? 'text-3xl sm:text-4xl md:text-5xl'
-                : 'text-2xl sm:text-3xl'
+              variant === 'display' ? 'text-3xl sm:text-4xl md:text-5xl' : 'text-2xl sm:text-3xl',
             )}
           >
             {title}
           </h2>
           {subtitle && (
-            <p className="max-w-prose text-sm text-[var(--muted)] sm:text-base">
-              {subtitle}
-            </p>
+            <p className="max-w-prose text-sm text-[var(--muted)] sm:text-base">{subtitle}</p>
           )}
         </div>
         {action && (
-          <div className="text-sm text-[var(--muted)] hover:text-[var(--fg)]">
-            {action}
-          </div>
+          <div className="text-sm text-[var(--muted)] hover:text-[var(--fg)]">{action}</div>
         )}
       </div>
     </div>

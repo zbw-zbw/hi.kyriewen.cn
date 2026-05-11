@@ -33,7 +33,7 @@ interface ScrollRevealProps {
 export function ScrollReveal({
   delay = 0,
   variant = 'fadeUp',
-  amount = 0.15,
+  amount = 0.05,
   once = true,
   as = 'div',
   className,
@@ -64,8 +64,8 @@ export function ScrollReveal({
       whileInView="visible"
       viewport={{ once, amount }}
       transition={{
-        duration: 0.7,
-        delay,
+        duration: 0.45,
+        delay: delay * 0.6,
         ease: [0.19, 1, 0.22, 1], // ease-out-expo
       }}
       variants={variants[variant]}

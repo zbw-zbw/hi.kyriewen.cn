@@ -162,10 +162,10 @@ export default async function BlogPostPage({
     <>
       <BlogPostingJsonLd title={post.title} summary={post.summary} date={post.date} url={url} />
       <ReadingProgress />
-      <div className="relative flex gap-10 lg:justify-center">
+      <div className="relative -mt-10 flex gap-10 sm:-mt-14 lg:justify-center">
         <article className="min-w-0 flex-1 lg:max-w-2xl">
           {/* 吸顶 header 区域：返回按钮 + 标题 + 元信息 + 标签 */}
-          <div className="sticky top-14 z-10 bg-[color-mix(in_srgb,var(--bg)_95%,transparent)] pt-2 pb-4 backdrop-blur-md">
+          <div className="sticky top-14 z-10 bg-[var(--bg)] pt-4 pb-4">
             <Link
               href="/blog"
               className="inline-flex items-center gap-1 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]"

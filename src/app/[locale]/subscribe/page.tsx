@@ -31,11 +31,7 @@ async function getRecentIssues() {
   }
 }
 
-export default async function SubscribePage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}) {
+export default async function SubscribePage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('subscribe.page');
@@ -43,11 +39,9 @@ export default async function SubscribePage({
   const recentIssues = await getRecentIssues();
 
   // Tailwind perks 数组：next-intl 的 plural 不太适合数组，直接 raw 取
-  const perks = (
-    (await getTranslations({ locale, namespace: 'subscribe.page' })).raw(
-      'perks'
-    ) as string[]
-  ) ?? [];
+  const perks =
+    ((await getTranslations({ locale, namespace: 'subscribe.page' })).raw('perks') as string[]) ??
+    [];
 
   return (
     <div className="space-y-16">
@@ -61,7 +55,7 @@ export default async function SubscribePage({
 
       {/* ── 订阅表单 ── */}
       <ScrollReveal>
-        <Card className="mx-auto max-w-xl space-y-4 p-6">
+        <Card className="max-w-xl space-y-4 p-6">
           <NewsletterForm />
           <p className="flex items-center gap-1.5 text-xs text-[var(--muted)]">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -81,9 +75,7 @@ export default async function SubscribePage({
           {perks.map((perk, i) => (
             <li key={i} className="flex items-start gap-3">
               <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-[var(--accent)]" />
-              <span className="text-sm leading-relaxed text-[var(--card-fg)]">
-                {perk}
-              </span>
+              <span className="text-sm leading-relaxed text-[var(--card-fg)]">{perk}</span>
             </li>
           ))}
         </ul>
@@ -100,20 +92,12 @@ export default async function SubscribePage({
           <PromiseCard
             icon={<ShieldCheck className="h-4 w-4" />}
             title={isZh ? '不卖名单' : 'No list selling'}
-            desc={
-              isZh
-                ? '邮箱仅用于发邮件。'
-                : 'Your email is used solely to send the letter.'
-            }
+            desc={isZh ? '邮箱仅用于发邮件。' : 'Your email is used solely to send the letter.'}
           />
           <PromiseCard
             icon={<Sparkles className="h-4 w-4" />}
             title={isZh ? '一键退订' : 'One-click unsubscribe'}
-            desc={
-              isZh
-                ? '每封邮件底部都有退订链接。'
-                : 'Every email includes an unsubscribe link.'
-            }
+            desc={isZh ? '每封邮件底部都有退订链接。' : 'Every email includes an unsubscribe link.'}
           />
         </div>
       </ScrollReveal>
@@ -132,9 +116,7 @@ export default async function SubscribePage({
                 key={issue.sentAt!.toISOString()}
                 className="flex items-baseline justify-between gap-4 p-4"
               >
-                <span className="text-sm font-medium">
-                  {issue.subject}
-                </span>
+                <span className="text-sm font-medium">{issue.subject}</span>
                 <time className="shrink-0 font-mono text-xs text-[var(--muted)]">
                   {issue.sentAt!.toISOString().slice(0, 10)}
                 </time>

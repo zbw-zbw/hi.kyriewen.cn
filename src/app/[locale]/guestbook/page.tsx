@@ -60,8 +60,8 @@ async function loadGuestbook(currentUserId: string | null): Promise<LoadResult> 
           and(
             eq(likes.userId, currentUserId),
             eq(likes.targetType, 'message'),
-            inArray(likes.targetId, ids)
-          )
+            inArray(likes.targetId, ids),
+          ),
         );
       mine = mineRows.map((r) => r.targetId);
     }
@@ -73,11 +73,7 @@ async function loadGuestbook(currentUserId: string | null): Promise<LoadResult> 
   }
 }
 
-export default async function GuestbookPage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}) {
+export default async function GuestbookPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations('guestbook.page');
@@ -104,22 +100,13 @@ export default async function GuestbookPage({
         </HeroProse>
 
         <ScrollReveal>
-          <div className="mx-auto max-w-2xl">
-            <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
-              <GuestbookAuth locale={locale} user={user} />
-            </div>
+          <div className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
+            <GuestbookAuth locale={locale} user={user} />
           </div>
         </ScrollReveal>
 
         <ScrollReveal delay={0.1}>
-          <div className="mx-auto max-w-2xl">
-            <MessageComposer
-              locale={locale}
-              user={user}
-              postSlug={null}
-              parentId={null}
-            />
-          </div>
+          <MessageComposer locale={locale} user={user} postSlug={null} parentId={null} />
         </ScrollReveal>
 
         <ScrollReveal delay={0.2}>

@@ -329,6 +329,13 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Parse optional sources filter from query params (e.g. ?sources=csdn,juejin)
+  const url = new URL(req.url);
+  const sourcesParam = url.searchParams.get('sources');
+  const allowedSources = sourcesParam
+    ? new Set(sourcesParam.split(',').map((s) => s.trim().toLowerCase()))
+    : null; // null means all sources
+
   const results: Array<{
     source: string;
     fetched: number;
@@ -338,9 +345,9 @@ export async function GET(req: Request) {
     error?: string;
   }> = [];
 
-  // Sync CSDN
+  // Sync CSDN (only if no filter or filter includes csdn)
   const csdnUser = process.env.CSDN_USER_ID;
-  if (csdnUser) {
+  if (csdnUser && (!allowedSources || allowedSources.has('csdn'))) {
     try {
       results.push(await syncCsdn(csdnUser));
     } catch (e) {
@@ -348,9 +355,9 @@ export async function GET(req: Request) {
     }
   }
 
-  // Sync Juejin
+  // Sync Juejin (only if no filter or filter includes juejin)
   const juejinUser = process.env.JUEJIN_USER_ID;
-  if (juejinUser) {
+  if (juejinUser && (!allowedSources || allowedSources.has('juejin'))) {
     try {
       results.push(await syncJuejin(juejinUser));
     } catch (e) {

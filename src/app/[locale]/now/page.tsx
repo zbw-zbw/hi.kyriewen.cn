@@ -5,7 +5,6 @@ import { getNowItems, getNowUpdatedAt } from '@/lib/content-loader';
 import { LastfmWidget } from '@/components/lastfm-widget';
 import { HeroProse } from '@/components/hero-prose';
 import { ScrollReveal } from '@/components/scroll-reveal';
-import { SectionHeading } from '@/components/section-heading';
 import { formatDate } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
 
@@ -66,8 +65,10 @@ export default async function NowPage({ params }: { params: Promise<{ locale: Lo
       </div>
 
       <ScrollReveal delay={0.1}>
-        <section className="space-y-4">
-          <SectionHeading title={t('listeningTitle')} subtitle={t('listeningSubtitle')} />
+        <article className="space-y-2">
+          <h2 className="font-mono text-xs tracking-widest text-[var(--muted)] uppercase">
+            {t('listeningTitle')}
+          </h2>
           <Suspense
             fallback={
               <div className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />
@@ -75,7 +76,7 @@ export default async function NowPage({ params }: { params: Promise<{ locale: Lo
           >
             <LastfmWidget locale={locale} />
           </Suspense>
-        </section>
+        </article>
       </ScrollReveal>
     </div>
   );

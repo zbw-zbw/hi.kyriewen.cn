@@ -6,7 +6,10 @@
     "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backfill": "node scripts/backfill-articles.mjs",
+    "backfill:csdn": "node scripts/backfill-articles.mjs --csdn",
+    "backfill:juejin": "node scripts/backfill-articles.mjs --juejin"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
