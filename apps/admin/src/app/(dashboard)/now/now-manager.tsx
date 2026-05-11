@@ -163,7 +163,6 @@ function ItemForm({
 }) {
   const [form, setForm] = useState<ItemFormData>(initial);
   const [submitting, setSubmitting] = useState(false);
-  const [tab, setTab] = useState<'en' | 'zh'>('en');
 
   function update(field: keyof ItemFormData, value: string | number) {
     setForm((prev) => ({ ...prev, [field]: value }));
