@@ -50,7 +50,29 @@ import {
   type TimelineEvent,
 } from '@/content/timeline';
 import { USES as FILE_USES, formatSince, type UsesSection, type UsesItem } from '@/content/uses';
-import { SOCIAL_LINKS as FILE_SOCIAL_LINKS, type SocialLink } from '@/content/social';
+import { SOCIAL_LINKS as FILE_SOCIAL_LINKS } from '@/content/social';
+
+/** 可序列化的社交链接（不含函数引用，可安全从 Server → Client 传递） */
+export interface SerializableSocialLink {
+  name: string;
+  href: string;
+  iconName: string;
+  handle?: string;
+  isEmail?: boolean;
+}
+
+/** 将文件中的 SocialLink（含 Icon 函数）转换为可序列化格式 */
+function toSerializable(links: typeof FILE_SOCIAL_LINKS): SerializableSocialLink[] {
+  return links.map((l) => ({
+    name: l.name,
+    href: l.href,
+    iconName: l.Icon.displayName ?? l.name.replace(/\s*\/\s*/g, ''),
+    handle: l.handle,
+    isEmail: l.isEmail,
+  }));
+}
+
+const FILE_SERIALIZABLE_SOCIAL_LINKS = toSerializable(FILE_SOCIAL_LINKS);
 import {
   POPULAR_POSTS as FILE_POPULAR_POSTS,
   getTopPosts as fileGetTopPosts,
@@ -66,7 +88,6 @@ export type {
   TimelineEvent,
   UsesSection,
   UsesItem,
-  SocialLink,
   PopularPost,
 };
 export { formatSince };
@@ -308,27 +329,20 @@ export async function getUses(): Promise<UsesSection[]> {
 // Social Links
 // ═══════════════════════════════════════════════════════════════
 
-export async function getSocialLinks(): Promise<SocialLink[]> {
-  if (!shouldReadDb()) return FILE_SOCIAL_LINKS;
+export async function getSocialLinks(): Promise<SerializableSocialLink[]> {
+  if (!shouldReadDb()) return FILE_SERIALIZABLE_SOCIAL_LINKS;
   try {
-    const { Github, Twitter, Mail, Rss } = await import('lucide-react');
-    const iconMap: Record<string, typeof Github> = {
-      Github,
-      Twitter,
-      Mail,
-      Rss,
-    };
     const rows = await db.select().from(socialLinksTable).orderBy(asc(socialLinksTable.sortOrder));
-    if (rows.length === 0) return FILE_SOCIAL_LINKS;
+    if (rows.length === 0) return FILE_SERIALIZABLE_SOCIAL_LINKS;
     return rows.map((r) => ({
       name: r.name,
       href: r.href,
-      Icon: iconMap[r.iconName] ?? Mail,
+      iconName: r.iconName,
       handle: r.handle ?? undefined,
       isEmail: r.isEmail === 1,
     }));
   } catch {
-    return FILE_SOCIAL_LINKS;
+    return FILE_SERIALIZABLE_SOCIAL_LINKS;
   }
 }
 

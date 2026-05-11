@@ -1,5 +1,5 @@
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ArrowRight, Eye, TrendingUp } from 'lucide-react';
+import { ArrowRight, Eye, TrendingUp, Github, Twitter, Mail, Rss } from 'lucide-react';
 import { Link } from '@/i18n/navigation';
 import { HeroProse } from '@/components/hero-prose';
 import { NowPlayingInline } from '@/components/now-playing-inline';
@@ -226,28 +226,35 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
       <ScrollReveal as="section" className="mt-[var(--space-section)] pb-8">
         <SectionHeading index="05" eyebrow={t('connect.eyebrow')} title={t('connect.title')} />
         <div className="flex flex-wrap gap-x-6 gap-y-3">
-          {socialLinks.map(({ name, href, Icon, isEmail }) =>
-            isEmail ? (
+          {socialLinks.map((link) => {
+            const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+              Github,
+              Twitter,
+              Mail,
+              Rss,
+            };
+            const Icon = iconMap[link.iconName] ?? Mail;
+            return link.isEmail ? (
               <span
-                key={name}
+                key={link.name}
                 className="group inline-flex items-center gap-2 text-sm text-[var(--muted)]"
               >
                 <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
-                <EmailLink variant="inline" label={name} />
+                <EmailLink variant="inline" label={link.name} />
               </span>
             ) : (
               <a
-                key={name}
-                href={href}
-                target={href.startsWith('http') ? '_blank' : undefined}
-                rel={href.startsWith('http') ? 'noopener noreferrer' : undefined}
+                key={link.name}
+                href={link.href}
+                target={link.href.startsWith('http') ? '_blank' : undefined}
+                rel={link.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 className="group inline-flex cursor-pointer items-center gap-2 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
               >
                 <Icon className="h-4 w-4 transition-colors group-hover:text-[var(--accent)]" />
-                <span>{name}</span>
+                <span>{link.name}</span>
               </a>
-            ),
-          )}
+            );
+          })}
         </div>
       </ScrollReveal>
     </div>

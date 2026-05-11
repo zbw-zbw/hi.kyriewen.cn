@@ -29,7 +29,14 @@ import { useRouter } from '@/i18n/navigation';
 import type { Locale } from '@/i18n/routing';
 import { ACCENTS, useAccent, type Accent } from '@/components/theme-accent-provider';
 import { cn } from '@/lib/utils';
-import type { NavigationItem, SocialLink } from '@/lib/content-loader';
+import type { NavigationItem, SerializableSocialLink } from '@/lib/content-loader';
+
+/** 社交链接图标映射 */
+const SOCIAL_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Github,
+  Twitter,
+  Mail,
+};
 
 /** 4 个 accent 色的展示色值（与 globals.css [data-accent] 中 light 模式保持一致） */
 const ACCENT_SWATCH: Record<Accent, string> = {
@@ -68,7 +75,7 @@ export function CommandMenu({
 }: {
   posts?: SearchablePost[];
   navItems?: NavigationItem[];
-  socialLinks?: SocialLink[];
+  socialLinks?: SerializableSocialLink[];
 }) {
   const [open, setOpen] = useState(false);
   const router = useRouter();
@@ -239,7 +246,10 @@ export function CommandMenu({
                   value={`social ${link.name}`}
                   onSelect={() => runAndClose(() => window.open(link.href, '_blank'))}
                 >
-                  <link.Icon className="h-4 w-4 text-[var(--muted)]" />
+                  {(() => {
+                    const Icon = SOCIAL_ICON_MAP[link.iconName] ?? Mail;
+                    return <Icon className="h-4 w-4 text-[var(--muted)]" />;
+                  })()}
                   <span>{link.name}</span>
                 </Command.Item>
               ))}

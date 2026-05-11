@@ -3,10 +3,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslations } from 'next-intl';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Github, Twitter, Mail, Rss } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
-import type { NavigationItem, SocialLink } from '@/lib/content-loader';
+import type { NavigationItem, SerializableSocialLink } from '@/lib/content-loader';
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Github,
+  Twitter,
+  Mail,
+  Rss,
+};
 
 /**
  * 全屏抽屉式移动端导航。
@@ -18,7 +25,7 @@ export function MobileNav({
   socialLinks,
 }: {
   navItems: NavigationItem[];
-  socialLinks: SocialLink[];
+  socialLinks: SerializableSocialLink[];
 }) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -112,7 +119,10 @@ export function MobileNav({
                       aria-label={link.name}
                       className="cursor-pointer text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
                     >
-                      <link.Icon className="h-5 w-5" />
+                      {(() => {
+                        const Icon = ICON_MAP[link.iconName] ?? Mail;
+                        return <Icon className="h-5 w-5" />;
+                      })()}
                     </a>
                   ))}
                 </div>

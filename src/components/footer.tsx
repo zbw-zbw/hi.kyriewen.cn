@@ -1,10 +1,18 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
+import { Github, Twitter, Mail, Rss } from 'lucide-react';
 import { EmailLink } from '@/components/email-link';
-import type { SocialLink } from '@/lib/content-loader';
+import type { SerializableSocialLink } from '@/lib/content-loader';
 
-export function Footer({ socialLinks }: { socialLinks: SocialLink[] }) {
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Github,
+  Twitter,
+  Mail,
+  Rss,
+};
+
+export function Footer({ socialLinks }: { socialLinks: SerializableSocialLink[] }) {
   const t = useTranslations('footer');
   const year = new Date().getFullYear();
 
@@ -27,7 +35,10 @@ export function Footer({ socialLinks }: { socialLinks: SocialLink[] }) {
                 title={link.name}
                 className="cursor-pointer transition-colors hover:text-[var(--fg)]"
               >
-                <link.Icon className="h-4 w-4" />
+                {(() => {
+                  const Icon = ICON_MAP[link.iconName] ?? Mail;
+                  return <Icon className="h-4 w-4" />;
+                })()}
               </a>
             ))}
             <EmailLink variant="pill" />

@@ -9,7 +9,7 @@ import { AccentSwitcher } from '@/components/accent-switcher';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { MobileNav } from '@/components/mobile-nav';
 import { cn } from '@/lib/utils';
-import type { NavigationItem, SocialLink } from '@/lib/content-loader';
+import type { NavigationItem, SerializableSocialLink } from '@/lib/content-loader';
 
 /** 触发 ⌘K 命令面板 */
 function triggerCommandMenu() {
@@ -26,7 +26,7 @@ export function Header({
   socialLinks,
 }: {
   navItems: NavigationItem[];
-  socialLinks: SocialLink[];
+  socialLinks: SerializableSocialLink[];
 }) {
   const t = useTranslations('nav');
   const tSite = useTranslations('site');
