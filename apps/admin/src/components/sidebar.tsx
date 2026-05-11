@@ -79,7 +79,6 @@ const navGroups: NavGroup[] = [
 ];
 
 const THEME_ICONS = { light: Sun, dark: Moon, system: Monitor } as const;
-const THEME_LABELS = { light: 'Light', dark: 'Dark', system: 'System' } as const;
 const THEME_CYCLE: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
 
 export function Sidebar() {
