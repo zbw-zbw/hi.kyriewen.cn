@@ -2,7 +2,6 @@ import { Suspense } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import type { Metadata } from 'next';
 import { getNowItems, getNowUpdatedAt } from '@/lib/content-loader';
-import type { NowItem } from '@/lib/content-loader';
 import { LastfmWidget } from '@/components/lastfm-widget';
 import { HeroProse } from '@/components/hero-prose';
 import { ScrollReveal } from '@/components/scroll-reveal';
@@ -28,11 +27,7 @@ export async function generateMetadata({
   return { title: t('now') };
 }
 
-export default async function NowPage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}) {
+export default async function NowPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
   const NOW_ITEMS = await getNowItems();
@@ -50,7 +45,7 @@ export default async function NowPage({
         }
       >
         <p>{t('title')}</p>
-        <p className="mt-4 text-[length:var(--text-body)] font-normal leading-relaxed text-[var(--muted-fg)]">
+        <p className="mt-4 text-[length:var(--text-body)] leading-relaxed font-normal text-[var(--muted-fg)]">
           {t('subtitle')}
         </p>
       </HeroProse>
@@ -59,7 +54,7 @@ export default async function NowPage({
         {NOW_ITEMS.map((item, itemIndex) => (
           <ScrollReveal key={item.label.en} delay={itemIndex * 0.06}>
             <article className="space-y-2">
-              <h2 className="font-mono text-xs uppercase tracking-widest text-[var(--muted)]">
+              <h2 className="font-mono text-xs tracking-widest text-[var(--muted)] uppercase">
                 {item.label[locale]}
               </h2>
               <p className="max-w-prose text-base leading-relaxed text-[var(--fg)]">
@@ -72,10 +67,7 @@ export default async function NowPage({
 
       <ScrollReveal delay={0.1}>
         <section className="space-y-4">
-          <SectionHeading
-            title={t('listeningTitle')}
-            subtitle={t('listeningSubtitle')}
-          />
+          <SectionHeading title={t('listeningTitle')} subtitle={t('listeningSubtitle')} />
           <Suspense
             fallback={
               <div className="h-24 animate-pulse rounded-lg border border-[var(--border)] bg-[var(--card)]" />

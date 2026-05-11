@@ -1,17 +1,10 @@
 'use client';
 
-import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport, type UIMessage } from 'ai';
 import { useLocale, useTranslations } from 'next-intl';
-import {
-  Send,
-  Bot,
-  User,
-  Loader2,
-  Sparkles,
-  AlertCircle,
-} from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -44,13 +37,15 @@ function MarkdownBubble({ text }: { text: string }) {
     lazyRenderMarkdown(text).then((result) => {
       if (!cancelled) setHtml(result);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [text]);
 
   if (!html) return <p>{text}</p>;
   return (
     <div
-      className="prose-kw [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1"
+      className="prose-kw [&_ol]:my-1 [&_p]:my-1 [&_ul]:my-1"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -94,9 +89,7 @@ export default function AskPage() {
         </div>
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold">{t('comingSoon')}</h1>
-          <p className="max-w-sm text-sm text-[var(--muted-fg)]">
-            {t('comingSoonDesc')}
-          </p>
+          <p className="max-w-sm text-sm text-[var(--muted-fg)]">{t('comingSoonDesc')}</p>
         </div>
       </div>
     );
@@ -121,9 +114,7 @@ export default function AskPage() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
             <Bot className="h-12 w-12 text-[var(--border)]" />
-            <p className="max-w-xs text-sm text-[var(--muted)]">
-              {t('emptyHint')}
-            </p>
+            <p className="max-w-xs text-sm text-[var(--muted)]">{t('emptyHint')}</p>
           </div>
         )}
 
@@ -134,7 +125,7 @@ export default function AskPage() {
               key={message.id}
               className={cn(
                 'flex gap-3',
-                message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                message.role === 'user' ? 'flex-row-reverse' : 'flex-row',
               )}
             >
               <div
@@ -142,7 +133,7 @@ export default function AskPage() {
                   'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
                   message.role === 'user'
                     ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                    : 'bg-[var(--card)] text-[var(--muted)]'
+                    : 'bg-[var(--card)] text-[var(--muted)]',
                 )}
               >
                 {message.role === 'user' ? (
@@ -157,14 +148,10 @@ export default function AskPage() {
                   'max-w-[80%] rounded-2xl px-4 py-3 text-sm leading-relaxed',
                   message.role === 'user'
                     ? 'bg-[var(--accent)] text-[var(--accent-fg)]'
-                    : 'bg-[var(--card)] text-[var(--card-fg)]'
+                    : 'bg-[var(--card)] text-[var(--card-fg)]',
                 )}
               >
-                {message.role === 'assistant' ? (
-                  <MarkdownBubble text={text} />
-                ) : (
-                  <p>{text}</p>
-                )}
+                {message.role === 'assistant' ? <MarkdownBubble text={text} /> : <p>{text}</p>}
               </div>
             </div>
           );
@@ -195,7 +182,7 @@ export default function AskPage() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t('placeholder')}
-          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-[var(--muted)] focus:border-[var(--accent)]"
+          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--card)] px-4 py-2.5 text-sm transition-colors outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent)]"
           disabled={isStreaming}
           maxLength={500}
           autoFocus

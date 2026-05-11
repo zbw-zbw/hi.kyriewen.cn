@@ -16,7 +16,6 @@ import {
   Moon,
   Sun,
   Languages,
-  Copy,
   Mail,
   Github,
   Twitter,
@@ -102,7 +101,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
             '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:py-2 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-[var(--muted)]',
             '[&_[cmdk-item]]:flex [&_[cmdk-item]]:cursor-pointer [&_[cmdk-item]]:items-center [&_[cmdk-item]]:gap-3 [&_[cmdk-item]]:rounded-md [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-2 [&_[cmdk-item]]:text-sm',
             '[&_[cmdk-item][data-selected=true]]:bg-[var(--bg)]',
-            '[&_[cmdk-empty]]:py-8 [&_[cmdk-empty]]:text-center [&_[cmdk-empty]]:text-sm [&_[cmdk-empty]]:text-[var(--muted)]'
+            '[&_[cmdk-empty]]:py-8 [&_[cmdk-empty]]:text-center [&_[cmdk-empty]]:text-sm [&_[cmdk-empty]]:text-[var(--muted)]',
           )}
         >
           <Command.Input placeholder={tCmd('placeholder')} />
@@ -137,9 +136,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                     <Box className="h-4 w-4 text-[var(--muted)]" />
                     <div className="flex min-w-0 flex-1 flex-col">
                       <span className="truncate">{project.name}</span>
-                      <span className="truncate text-xs text-[var(--muted)]">
-                        {tagline}
-                      </span>
+                      <span className="truncate text-xs text-[var(--muted)]">{tagline}</span>
                     </div>
                   </Command.Item>
                 );
@@ -168,9 +165,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                       <BookOpen className="h-4 w-4 text-[var(--muted)]" />
                       <div className="flex min-w-0 flex-1 flex-col">
                         <span className="truncate">{post.title}</span>
-                        <span className="truncate text-xs text-[var(--muted)]">
-                          {post.summary}
-                        </span>
+                        <span className="truncate text-xs text-[var(--muted)]">{post.summary}</span>
                       </div>
                     </Command.Item>
                   );
@@ -182,9 +177,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
               <Command.Item
                 value="action theme toggle"
                 onSelect={() =>
-                  runAndClose(() =>
-                    setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')
-                  )
+                  runAndClose(() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark'))
                 }
               >
                 {resolvedTheme === 'dark' ? (
@@ -213,11 +206,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                     navigator.clipboard
                       .writeText('coderkyriewen@gmail.com')
                       .then(() => {
-                        toast.success(
-                          locale === 'zh'
-                            ? '邮箱已复制'
-                            : 'Email copied!'
-                        );
+                        toast.success(locale === 'zh' ? '邮箱已复制' : 'Email copied!');
                       })
                       .catch(() => {});
                   })
@@ -228,9 +217,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
               </Command.Item>
             </Command.Group>
 
-            <Command.Group
-              heading={locale === 'zh' ? '主题色' : 'Accent color'}
-            >
+            <Command.Group heading={locale === 'zh' ? '主题色' : 'Accent color'}>
               {ACCENTS.map((a) => (
                 <Command.Item
                   key={a}
@@ -260,9 +247,7 @@ export function CommandMenu({ posts = [] }: { posts?: SearchablePost[] }) {
                 <Command.Item
                   key={href}
                   value={`social ${label}`}
-                  onSelect={() =>
-                    runAndClose(() => window.open(href, '_blank'))
-                  }
+                  onSelect={() => runAndClose(() => window.open(href, '_blank'))}
                 >
                   <Icon className="h-4 w-4 text-[var(--muted)]" />
                   <span>{label}</span>

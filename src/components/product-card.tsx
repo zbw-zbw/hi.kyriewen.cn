@@ -51,9 +51,6 @@ export function ProductCard({
     ? ({ ['--card-accent']: project.accent } as React.CSSProperties)
     : undefined;
 
-  // 阻止 footer 内的外链冒泡到外层 Link
-  const stopBubble = (e: React.MouseEvent) => e.stopPropagation();
-
   return (
     <Link
       href={`/projects/${project.slug}`}
@@ -68,7 +65,7 @@ export function ProductCard({
           highlighted && project.accent
             ? 'hover:border-[var(--card-accent,var(--accent))]'
             : 'hover:border-[var(--accent)]',
-          className
+          className,
         )}
       >
         <CardHeader className="gap-2 p-5 pb-3">
