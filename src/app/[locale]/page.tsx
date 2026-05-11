@@ -89,7 +89,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: L
             {locale === 'en' ? 'my blog' : '博客'}
           </Link>
           {locale === 'zh' ? '。' : '. '}
-          {t('hero.proseConnect')} <EmailLink variant="inline" />
+          {t('hero.proseConnect')}{' '}
+          <Link href="/guestbook" className={LINK_CLASS}>
+            {locale === 'zh' ? '留言墙' : 'guestbook'}
+          </Link>
           {locale === 'zh' ? '。' : '.'}
         </p>
       </HeroProse>

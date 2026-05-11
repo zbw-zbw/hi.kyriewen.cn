@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
@@ -239,6 +240,7 @@ function MessageItem({
   t,
   tCommon,
 }: MessageItemProps) {
+  const router = useRouter();
   const { data: session } = useSession();
   const [pending, startTransition] = useTransition();
   const [editBody, setEditBody] = useState(message.body);
@@ -292,8 +294,8 @@ function MessageItem({
         if (!res.ok) throw new Error('save failed');
         toast.success(t('editSaved'));
         onCancelEdit();
-        // 刷新 RSC 让服务端拉到最新留言
-        window.location.reload();
+        // 软刷新 RSC 数据，不丢失客户端状态
+        router.refresh();
       } catch {
         toast.error(tCommon('error'));
       }
@@ -309,7 +311,7 @@ function MessageItem({
         });
         if (!res.ok) throw new Error('delete failed');
         toast.success(t('deleted'));
-        window.location.reload();
+        router.refresh();
       } catch {
         toast.error(tCommon('error'));
       }

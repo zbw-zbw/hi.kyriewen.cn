@@ -62,10 +62,10 @@ export default async function ProjectDetailPage({
 
       <article className="-mt-10 pb-20 sm:-mt-14">
         {/* ── Sticky Header: 返回按钮 + Hero 标题 + CTA 按钮 固定吸顶 ── */}
-        <div className="sticky top-14 z-10 bg-[var(--bg)] pt-4 pb-6">
+        <div className="sticky top-14 z-10 bg-[var(--bg)] pt-6 pb-8">
           <Link
             href="/projects"
-            className="mb-3 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {t('backLink')}
@@ -76,7 +76,7 @@ export default async function ProjectDetailPage({
           </div>
 
           <h1
-            className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
+            className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl"
             style={project.colorTheme ? { color: project.colorTheme } : undefined}
           >
             {project.name}

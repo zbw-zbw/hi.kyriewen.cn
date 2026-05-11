@@ -134,7 +134,7 @@ export default async function LocaleLayout({
               <CommandMenu posts={searchablePosts} navItems={navItems} socialLinks={socialLinks} />
               <AiChatBubble />
               <ScrollToTop />
-              <Toaster position="bottom-right" theme="system" />
+              <Toaster position="top-right" theme="system" />
             </NextIntlClientProvider>
           </ThemeAccentProvider>
         </ThemeProvider>

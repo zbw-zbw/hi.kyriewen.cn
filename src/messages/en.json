@@ -249,6 +249,7 @@
     "subscribeSuccess": "Thanks for subscribing!",
     "subscribeError": "Failed to subscribe.",
     "copy": "Copy",
-    "copied": "Copied"
+    "copied": "Copied",
+    "cancel": "Cancel"
   }
 }
