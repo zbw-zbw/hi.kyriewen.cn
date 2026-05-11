@@ -39,9 +39,8 @@ export default async function SubscribePage({ params }: { params: Promise<{ loca
   const recentIssues = await getRecentIssues();
 
   // Tailwind perks 数组：next-intl 的 plural 不太适合数组，直接 raw 取
-  const perks =
-    ((await getTranslations({ locale, namespace: 'subscribe.page' })).raw('perks') as string[]) ??
-    [];
+  const rawPerks = (await getTranslations({ locale, namespace: 'subscribe.page' })).raw('perks');
+  const perks: string[] = Array.isArray(rawPerks) ? rawPerks : [];
 
   return (
     <div className="space-y-16">
