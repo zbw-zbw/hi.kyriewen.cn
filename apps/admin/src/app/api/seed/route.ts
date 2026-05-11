@@ -11,7 +11,7 @@ import {
   socialLinks,
   popularPosts,
 } from '@repo/db/schema';
-import { sql } from 'drizzle-orm';
+// drizzle-orm utilities imported as needed
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

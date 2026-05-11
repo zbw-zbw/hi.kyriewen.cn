@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { translateText, translateBatch } from '@/lib/translate';
+import { translateBatch } from '@/lib/translate';
 import type { TranslateFieldType } from '@/lib/translate';
 
 export const runtime = 'nodejs';

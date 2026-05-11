@@ -473,7 +473,8 @@ export function BlogEditor({ post }: BlogEditorProps) {
                   if (line.startsWith('---')) return <hr key={lineIndex} className="my-3" />;
                   if (line.startsWith('![')) {
                     const altMatch = line.match(/!\[([^\]]*)\]\(([^)]*)\)/);
-                    if (altMatch) return <img key={lineIndex} src={altMatch[2]} alt={altMatch[1]} className="my-2 max-h-48 rounded" />;
+                    // eslint-disable-next-line @next/next/no-img-element
+                    if (altMatch) return <img key={lineIndex} src={altMatch[2]} alt={altMatch[1] || ''} className="my-2 max-h-48 rounded" />;
                   }
                   if (line.trim() === '') return <br key={lineIndex} />;
                   return <p key={lineIndex} className="my-0.5">{line}</p>;

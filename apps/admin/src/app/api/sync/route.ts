@@ -14,7 +14,7 @@ interface SyncTask {
   schedule: string;
 }
 
-export const SYNC_TASKS: SyncTask[] = [
+const SYNC_TASKS: SyncTask[] = [
   { id: 'github-stats', name: 'GitHub Stats', description: 'Sync GitHub stars, followers & repo stats', path: '/api/cron/github-stats', schedule: '0 0 * * *' },
   { id: 'chrome-stats', name: 'Chrome Stats', description: 'Sync Chrome extension user counts', path: '/api/cron/chrome-stats', schedule: '5 0 * * *' },
   { id: 'sync-projects', name: 'Sync Projects', description: 'Sync GitHub repos to projects table', path: '/api/cron/sync-projects', schedule: '10 0 * * *' },

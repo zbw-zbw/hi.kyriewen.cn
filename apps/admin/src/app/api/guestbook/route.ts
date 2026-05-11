@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { guestbookMessages } from '@repo/db/schema';
-import { desc, eq, isNull, sql } from 'drizzle-orm';
+import { desc, isNull, sql } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

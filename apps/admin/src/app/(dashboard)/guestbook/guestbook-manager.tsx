@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
+import Image from 'next/image';
 import { Trash2, Loader2, MessageSquare, Filter } from 'lucide-react';
 
 interface Message {
@@ -122,10 +123,13 @@ export default function GuestbookManager({
             >
               {/* Avatar */}
               {msg.avatar ? (
-                <img
+                <Image
                   src={msg.avatar}
                   alt={msg.name}
+                  width={32}
+                  height={32}
                   className="h-8 w-8 rounded-full"
+                  unoptimized
                 />
               ) : (
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
