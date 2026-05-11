@@ -3,7 +3,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { TextStreamChatTransport, type UIMessage } from 'ai';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { Send, Bot, User, Loader2, X, AlertCircle, Sparkles, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -46,7 +46,6 @@ function MarkdownBubble({ text }: { text: string }) {
 }
 
 export function AiChatBubble() {
-  const locale = useLocale();
   const t = useTranslations('ask');
 
   const [isOpen, setIsOpen] = useState(false);
