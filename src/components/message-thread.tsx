@@ -37,6 +37,8 @@ export interface MessageThreadProps {
   initialLikes?: { counts: Record<string, number>; mine: string[] };
   /** 用户已登录则传 user.id；未登录传 null（影响 编辑/删除/点赞 按钮显示） */
   currentUserId?: string | null;
+  /** 增量刷新回调：若提供则替代 router.refresh()，避免整页刷新 */
+  onMutate?: () => void;
 }
 
 /**
@@ -54,6 +56,7 @@ export function MessageThread({
   locale,
   initialLikes,
   currentUserId = null,
+  onMutate,
 }: MessageThreadProps) {
   const t = useTranslations('message');
   const tCommon = useTranslations('common');
@@ -135,6 +138,7 @@ export function MessageThread({
             onReplyToggle={() => setReplyTo((cur) => (cur === m.id ? null : m.id))}
             t={t}
             tCommon={tCommon}
+            onMutate={onMutate}
           />
 
           {/* 子回复 */}
@@ -167,6 +171,7 @@ export function MessageThread({
                     t={t}
                     tCommon={tCommon}
                     isReply
+                    onMutate={onMutate}
                   />
                 </li>
               ))}
@@ -185,6 +190,7 @@ export function MessageThread({
                 placeholder={locale === 'zh' ? `回复 @${m.name}…` : `Reply to @${m.name}…`}
                 onPosted={() => setReplyTo(null)}
                 onCancel={() => setReplyTo(null)}
+                onMutate={onMutate}
                 compact
               />
             </div>
@@ -223,6 +229,8 @@ interface MessageItemProps {
   isReply?: boolean;
   t: ReturnType<typeof useTranslations<'message'>>;
   tCommon: ReturnType<typeof useTranslations<'common'>>;
+  /** 增量刷新回调：若提供则替代 router.refresh() */
+  onMutate?: () => void;
 }
 
 function MessageItem({
@@ -239,9 +247,13 @@ function MessageItem({
   isReply,
   t,
   tCommon,
+  onMutate,
 }: MessageItemProps) {
   const router = useRouter();
   const { data: session } = useSession();
+
+  /** 刷新数据：优先用增量回调，否则回退到整页 RSC 刷新 */
+  const refreshData = onMutate ?? (() => router.refresh());
   const [pending, startTransition] = useTransition();
   const [editBody, setEditBody] = useState(message.body);
   const [editPreview, setEditPreview] = useState(false);
@@ -294,8 +306,7 @@ function MessageItem({
         if (!res.ok) throw new Error('save failed');
         toast.success(t('editSaved'));
         onCancelEdit();
-        // 软刷新 RSC 数据，不丢失客户端状态
-        router.refresh();
+        refreshData();
       } catch {
         toast.error(tCommon('error'));
       }
@@ -311,7 +322,7 @@ function MessageItem({
         });
         if (!res.ok) throw new Error('delete failed');
         toast.success(t('deleted'));
-        router.refresh();
+        refreshData();
       } catch {
         toast.error(tCommon('error'));
       }

@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
 
 interface BlogPost {
@@ -24,7 +24,7 @@ interface BlogPost {
 }
 
 type LangFilter = 'all' | 'en' | 'zh';
-type SourceFilter = 'all' | 'manual' | 'csdn' | 'juejin';
+type SourceFilter = 'all' | 'manual' | 'juejin';
 
 const PAGE_SIZE = 20;
 
@@ -33,7 +33,6 @@ interface BlogListProps {
 }
 
 const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
-  csdn: { label: 'CSDN', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
   juejin: {
     label: '掘金',
     color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
@@ -63,6 +62,7 @@ export function BlogList({ posts }: BlogListProps) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleteTarget, setDeleteTarget] = useState<{ id: number; title: string } | null>(null);
   const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchPublishOpen, setBatchPublishOpen] = useState(false);
 
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
@@ -155,6 +155,28 @@ export function BlogList({ posts }: BlogListProps) {
     router.refresh();
   }, [selectedIds, router]);
 
+  const handleBatchPublishConfirm = useCallback(async () => {
+    setBatchPublishOpen(false);
+    const ids = Array.from(selectedIds);
+    try {
+      const response = await fetch('/api/blog/batch', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error ?? 'Batch publish failed');
+      }
+      const { publishedCount } = await response.json();
+      toast.success(`Published ${publishedCount} posts`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Batch publish failed');
+    }
+    setSelectedIds(new Set());
+    router.refresh();
+  }, [selectedIds, router]);
+
   function formatDate(date: Date | string | null): string {
     if (!date) return '—';
     return new Date(date).toLocaleDateString('en-US', {
@@ -191,7 +213,7 @@ export function BlogList({ posts }: BlogListProps) {
 
           {/* Source filter */}
           <div className="border-border flex gap-1 rounded-md border p-1">
-            {(['all', 'manual', 'csdn', 'juejin'] as const).map((value) => (
+            {(['all', 'manual', 'juejin'] as const).map((value) => (
               <button
                 key={value}
                 onClick={() => {
@@ -212,13 +234,22 @@ export function BlogList({ posts }: BlogListProps) {
 
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
-            <button
-              onClick={() => setBatchDeleteOpen(true)}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete ({selectedIds.size})
-            </button>
+            <>
+              <button
+                onClick={() => setBatchPublishOpen(true)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+              >
+                <Send className="h-4 w-4" />
+                Publish ({selectedIds.size})
+              </button>
+              <button
+                onClick={() => setBatchDeleteOpen(true)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete ({selectedIds.size})
+              </button>
+            </>
           )}
           <button
             onClick={() => router.push('/blog/new')}
@@ -412,6 +443,16 @@ export function BlogList({ posts }: BlogListProps) {
         variant="danger"
         onConfirm={handleBatchDeleteConfirm}
         onCancel={() => setBatchDeleteOpen(false)}
+      />
+
+      {/* Batch publish confirm */}
+      <ConfirmDialog
+        open={batchPublishOpen}
+        title="Batch Publish"
+        description={`Are you sure you want to publish ${selectedIds.size} selected posts? They will be visible to all visitors.`}
+        confirmLabel={`Publish ${selectedIds.size} Posts`}
+        onConfirm={handleBatchPublishConfirm}
+        onCancel={() => setBatchPublishOpen(false)}
       />
     </div>
   );

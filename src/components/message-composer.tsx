@@ -27,6 +27,8 @@ export interface MessageComposerProps {
   showAuthPrompt?: boolean;
   /** 已登录用户信息（外层从 session 拿） */
   user?: { name: string; image?: string | null } | null;
+  /** 增量刷新回调：若提供则替代 router.refresh()，避免整页刷新 */
+  onMutate?: () => void;
 }
 
 const MAX_LEN = 1000;
@@ -48,12 +50,16 @@ export function MessageComposer({
   compact = false,
   showAuthPrompt = true,
   user,
+  onMutate,
 }: MessageComposerProps) {
   const router = useRouter();
   const t = useTranslations('message');
   const [body, setBody] = useState('');
   const [preview, setPreview] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  /** 刷新数据：优先用增量回调，否则回退到整页 RSC 刷新 */
+  const refreshData = onMutate ?? (() => router.refresh());
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,7 +91,7 @@ export function MessageComposer({
         toast.success(t('posted'));
         setBody('');
         setPreview(false);
-        router.refresh();
+        refreshData();
         onPosted?.();
       } catch {
         toast.error(t('postFailed'));

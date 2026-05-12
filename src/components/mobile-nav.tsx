@@ -65,13 +65,13 @@ export function MobileNav({
           <>
             {/* 背景遮罩 — 全屏 */}
             <div
-              className="fixed inset-0 z-[99] bg-black/20 backdrop-blur-sm md:hidden"
+              className="fixed inset-0 z-[99] bg-black/20 backdrop-blur-sm lg:hidden"
               onClick={() => setOpen(false)}
               aria-hidden
             />
             {/* 导航面板 — 从 header 底部到屏幕底部 */}
             <div
-              className="fixed top-[3.5rem] right-0 bottom-0 left-0 z-[100] flex flex-col overflow-hidden bg-[var(--bg)] md:hidden"
+              className="fixed top-[3.5rem] right-0 bottom-0 left-0 z-[100] flex flex-col overflow-hidden bg-[var(--bg)] lg:hidden"
               role="dialog"
               aria-modal="true"
             >
@@ -140,7 +140,7 @@ export function MobileNav({
         aria-label={open ? 'Close menu' : 'Open menu'}
         aria-expanded={open}
         onClick={toggleMenu}
-        className="relative z-[101] inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] md:hidden"
+        className="relative z-[101] inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] lg:hidden"
       >
         {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>

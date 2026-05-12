@@ -2,7 +2,7 @@
   "site": {
     "name": "Kyriewen",
     "tagline": "独立开发者 · 前端工程师",
-    "description": "打造解决真实问题的小而美的产品 —— 纯本地、隐私优先、零追踪。"
+    "description": "打造解决真实问题的小而美的产品"
   },
   "nav": {
     "home": "首页",
@@ -20,9 +20,9 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "软件工程师 · 杭州",
+      "eyebrow": "前端工程师 · 广州",
       "proseLead": "我是 Kyriewen，一名独立开发者，正在打造",
-      "proseAndOthers": "等几个小工具。",
+      "proseAndOthers": "等产品。",
       "proseListening": "此刻我在听",
       "proseWriting": "我把折腾的过程写在",
       "proseConnect": "想聊聊可以来"
@@ -276,5 +276,16 @@
     "copy": "复制",
     "copied": "已复制",
     "cancel": "取消"
+  },
+  "error": {
+    "title": "出了点问题",
+    "description": "发生了意外错误，请重试或返回首页。",
+    "retry": "重试",
+    "home": "返回首页"
+  },
+  "notFound": {
+    "title": "页面未找到",
+    "description": "你访问的页面不存在或已被移动。",
+    "home": "返回首页"
   }
 }

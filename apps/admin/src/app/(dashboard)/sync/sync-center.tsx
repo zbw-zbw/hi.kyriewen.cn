@@ -64,7 +64,7 @@ const TASKS: SyncTask[] = [
   {
     id: 'sync-articles',
     name: 'Sync Articles',
-    description: 'Sync articles from CSDN & Juejin',
+    description: 'Sync articles from Juejin',
     path: '/api/cron/sync-articles',
     schedule: 'Daily 00:20 UTC',
   },

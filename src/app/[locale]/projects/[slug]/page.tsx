@@ -61,16 +61,21 @@ export default async function ProjectDetailPage({
       <ReadingProgress />
 
       <article className="-mt-10 pb-20 sm:-mt-14">
-        {/* ── Sticky Header: 返回按钮 + Hero 标题 + CTA 按钮 固定吸顶 ── */}
-        <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-8 sm:-mx-6 sm:px-6">
+        {/* ── Sticky Header: 仅返回按钮 ── */}
+        <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-4 sm:-mx-6 sm:px-6">
           <Link
             href="/projects"
-            className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             {t('backLink')}
           </Link>
+          {/* 底部渐变遮罩 */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 translate-y-full bg-gradient-to-b from-[var(--bg)] to-transparent" />
+        </div>
 
+        {/* 标题 + 描述 + CTA 按钮 */}
+        <div className="mt-3">
           <div className="font-mono tracking-[0.18em] text-[var(--muted)] text-[var(--text-eyebrow)] uppercase">
             {categoryLabel[project.category]} · {project.year}
           </div>
@@ -86,7 +91,7 @@ export default async function ProjectDetailPage({
             {project.tagline[locale]}
           </p>
 
-          {/* CTA Buttons（吸顶区域内） */}
+          {/* CTA Buttons */}
           <div className="mt-4 flex flex-wrap gap-3">
             {project.live && (
               <a
@@ -122,9 +127,6 @@ export default async function ProjectDetailPage({
               </a>
             )}
           </div>
-
-          {/* 底部渐变遮罩，消除吸顶区域与下方内容的硬分界线 */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 translate-y-full bg-gradient-to-b from-[var(--bg)] to-transparent" />
         </div>
 
         {/* ── Hero: Image（滚动区域） ── */}

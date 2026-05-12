@@ -2,7 +2,7 @@
   "site": {
     "name": "Kyriewen",
     "tagline": "Indie Hacker · Frontend Developer",
-    "description": "Building useful little products that solve real problems — 100% local, privacy-first, zero tracking."
+    "description": "Building useful products that solve real problems."
   },
   "nav": {
     "home": "Home",
@@ -20,9 +20,9 @@
   },
   "home": {
     "hero": {
-      "eyebrow": "Software Engineer · Hangzhou",
+      "eyebrow": "Frontend Engineer · Guangzhou",
       "proseLead": "I'm Kyriewen, a software engineer building",
-      "proseAndOthers": "and a few other small tools.",
+      "proseAndOthers": "and a few other products.",
       "proseListening": "Right now I'm listening to",
       "proseWriting": "I share what I learn at",
       "proseConnect": "Say hi at"
@@ -276,5 +276,16 @@
     "copy": "Copy",
     "copied": "Copied",
     "cancel": "Cancel"
+  },
+  "error": {
+    "title": "Something went wrong",
+    "description": "An unexpected error occurred. Please try again or go back to the homepage.",
+    "retry": "Try again",
+    "home": "Back to Home"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "home": "Back to Home"
   }
 }

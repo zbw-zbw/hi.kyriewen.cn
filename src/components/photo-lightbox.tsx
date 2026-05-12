@@ -67,10 +67,7 @@ export function PhotoLightbox({
   }, [open]);
 
   // 拖拽手势：左滑下一张/右滑上一张
-  const handleDragEnd = (
-    _e: MouseEvent | TouchEvent | PointerEvent,
-    info: PanInfo
-  ) => {
+  const handleDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 80;
     if (info.offset.x < -threshold) goNext();
     else if (info.offset.x > threshold) goPrev();
@@ -100,101 +97,85 @@ export function PhotoLightbox({
             <X className="h-5 w-5" />
           </button>
 
-          {/* 左箭头：移动端缩小并半透明，避免遮挡图片 */}
-          {photos.length > 1 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                goPrev();
-              }}
-              aria-label="Previous photo"
-              className="absolute left-2 bottom-20 z-10 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 sm:bottom-auto sm:left-6 sm:h-10 sm:w-10 sm:bg-white/10 sm:hover:bg-white/20"
+          {/* 主内容：图片 + 图片下方导航栏 */}
+          <div className="flex flex-col items-center gap-3" onClick={(e) => e.stopPropagation()}>
+            {/* 主图 + 拖拽 */}
+            <motion.div
+              key={photo.src}
+              className="relative mx-auto flex max-h-[80vh] max-w-[90vw] items-center justify-center"
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.2 }}
+              drag="x"
+              dragConstraints={{ left: 0, right: 0 }}
+              dragElastic={0.18}
+              onDragEnd={handleDragEnd}
             >
-              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
-          )}
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                width={photo.width}
+                height={photo.height}
+                priority
+                sizes="90vw"
+                className="h-auto max-h-[65vh] w-auto rounded-md object-contain sm:max-h-[75vh]"
+              />
 
-          {/* 右箭头：移动端缩小并半透明，避免遮挡图片 */}
-          {photos.length > 1 && (
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                goNext();
-              }}
-              aria-label="Next photo"
-              className="absolute right-2 bottom-20 z-10 inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-white/15 text-white backdrop-blur transition-colors hover:bg-white/25 sm:bottom-auto sm:right-6 sm:h-10 sm:w-10 sm:bg-white/10 sm:hover:bg-white/20"
-            >
-              <ChevronRight className="h-5 w-5 sm:h-6 sm:w-6" />
-            </button>
-          )}
+              {/* 底部信息覆盖层 */}
+              <figcaption
+                className={cn(
+                  'absolute inset-x-0 bottom-0 rounded-b-md bg-gradient-to-t from-black/85 via-black/55 to-transparent p-4 text-white sm:p-5',
+                )}
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <p className="text-sm font-medium sm:text-base">{photo.location ?? photo.alt}</p>
+                  <p className="font-mono text-[11px] text-white/70">{photo.takenAt}</p>
+                </div>
+                {photo.story && (
+                  <p className="mt-1 text-xs text-white/80 sm:text-sm">{photo.story[locale]}</p>
+                )}
+                {photo.exif && (
+                  <p className="mt-2 font-mono text-[10px] tracking-wider text-white/55 uppercase">
+                    {[
+                      photo.exif.camera,
+                      photo.exif.lens,
+                      photo.exif.iso && `ISO ${photo.exif.iso}`,
+                      photo.exif.aperture,
+                      photo.exif.shutter,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </p>
+                )}
+              </figcaption>
+            </motion.div>
 
-          {/* 计数器 */}
-          {photos.length > 1 && (
-            <div className="absolute top-4 left-1/2 z-10 -translate-x-1/2 rounded-full bg-white/10 px-3 py-1 font-mono text-xs text-white backdrop-blur">
-              {(index ?? 0) + 1} / {photos.length}
-            </div>
-          )}
-
-          {/* 主图 + 拖拽 */}
-          <motion.div
-            key={photo.src}
-            className="relative mx-auto flex max-h-[90vh] max-w-[90vw] items-center justify-center"
-            initial={{ opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.96 }}
-            transition={{ duration: 0.2 }}
-            drag="x"
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.18}
-            onDragEnd={handleDragEnd}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={photo.src}
-              alt={photo.alt}
-              width={photo.width}
-              height={photo.height}
-              priority
-              sizes="90vw"
-              className="h-auto max-h-[70vh] w-auto rounded-md object-contain sm:max-h-[80vh]"
-            />
-
-            {/* 底部信息覆盖层 */}
-            <figcaption
-              className={cn(
-                'absolute inset-x-0 bottom-0 rounded-b-md bg-gradient-to-t from-black/85 via-black/55 to-transparent p-4 text-white sm:p-5'
-              )}
-            >
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm font-medium sm:text-base">
-                  {photo.location ?? photo.alt}
-                </p>
-                <p className="font-mono text-[11px] text-white/70">
-                  {photo.takenAt}
-                </p>
+            {/* 导航栏：上一张 ← 计数器 → 下一张（图片正下方同一行） */}
+            {photos.length > 1 && (
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="Previous photo"
+                  className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="min-w-[3rem] text-center font-mono text-xs text-white/70">
+                  {(index ?? 0) + 1} / {photos.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="Next photo"
+                  className="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-white/10 text-white backdrop-blur transition-colors hover:bg-white/20"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
               </div>
-              {photo.story && (
-                <p className="mt-1 text-xs text-white/80 sm:text-sm">
-                  {photo.story[locale]}
-                </p>
-              )}
-              {photo.exif && (
-                <p className="mt-2 font-mono text-[10px] tracking-wider text-white/55 uppercase">
-                  {[
-                    photo.exif.camera,
-                    photo.exif.lens,
-                    photo.exif.iso && `ISO ${photo.exif.iso}`,
-                    photo.exif.aperture,
-                    photo.exif.shutter,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </p>
-              )}
-            </figcaption>
-          </motion.div>
+            )}
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

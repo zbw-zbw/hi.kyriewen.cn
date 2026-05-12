@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import NextImage from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -18,11 +19,7 @@ import {
   LogOut,
   RefreshCw,
   Languages,
-  Sun,
-  Moon,
-  Monitor,
 } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { useAdminLocale } from '@/components/locale-provider';
 
@@ -78,23 +75,14 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const THEME_ICONS = { light: Sun, dark: Moon, system: Monitor } as const;
-const THEME_CYCLE: Array<'light' | 'dark' | 'system'> = ['light', 'dark', 'system'];
+interface SidebarProps {
+  /** 当前登录用户信息（从 layout 服务端组件传入） */
+  user?: { name?: string | null; login?: string | null; image?: string | null } | null;
+}
 
-export function Sidebar() {
+export function Sidebar({ user }: SidebarProps) {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
-  const { locale, setLocale, t } = useAdminLocale();
-
-  const cycleTheme = () => {
-    const currentIdx = THEME_CYCLE.indexOf((theme as 'light' | 'dark' | 'system') ?? 'system');
-    const nextIdx = (currentIdx + 1) % THEME_CYCLE.length;
-    setTheme(THEME_CYCLE[nextIdx] ?? 'system');
-  };
-
-  const currentTheme = (theme as keyof typeof THEME_ICONS) ?? 'system';
-  const ThemeIcon = THEME_ICONS[currentTheme] ?? Monitor;
-  const themeLabel = t(`theme.${currentTheme}`);
+  const { t } = useAdminLocale();
 
   return (
     <aside className="border-sidebar-border bg-sidebar fixed inset-y-0 left-0 z-30 flex w-60 flex-col border-r">
@@ -140,35 +128,32 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-sidebar-border space-y-1 border-t p-3">
-        {/* Theme toggle */}
-        <button
-          type="button"
-          onClick={cycleTheme}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-        >
-          <ThemeIcon className="h-4 w-4" />
-          {themeLabel}
-        </button>
-
-        {/* Locale toggle */}
-        <button
-          type="button"
-          onClick={() => setLocale(locale === 'zh' ? 'en' : 'zh')}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-        >
-          <Languages className="h-4 w-4" />
-          {locale === 'zh' ? '中文 → EN' : 'EN → 中文'}
-        </button>
-
-        <Link
-          href="/api/auth/signout"
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors"
-        >
-          <LogOut className="h-4 w-4" />
-          {t('nav.signout')}
-        </Link>
+      {/* Footer: 用户信息 + 退出登录同行 */}
+      <div className="border-sidebar-border border-t p-3">
+        <div className="flex items-center justify-between rounded-md px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            {user?.image && (
+              <NextImage
+                src={user.image}
+                alt={user.login ?? user.name ?? ''}
+                width={24}
+                height={24}
+                className="flex-shrink-0 rounded-full"
+                unoptimized
+              />
+            )}
+            <span className="text-foreground truncate text-sm font-medium">
+              {user?.login ?? user?.name ?? 'User'}
+            </span>
+          </div>
+          <Link
+            href="/api/auth/signout"
+            className="text-muted-foreground hover:text-foreground flex-shrink-0 transition-colors"
+            title={t('nav.signout')}
+          >
+            <LogOut className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </aside>
   );

@@ -8,6 +8,9 @@ import { BlogList } from '@/components/blog-list';
 import { getAllPosts } from '@/lib/blog';
 import type { Locale } from '@/i18n/routing';
 
+/** 每 60 秒重新验证，确保后台发布新文章后前台能及时更新 */
+export const revalidate = 60;
+
 export async function generateMetadata({
   params,
 }: {
@@ -18,11 +21,7 @@ export async function generateMetadata({
   return { title: t('blog') };
 }
 
-export default async function BlogIndexPage({
-  params,
-}: {
-  params: Promise<{ locale: Locale }>;
-}) {
+export default async function BlogIndexPage({ params }: { params: Promise<{ locale: Locale }> }) {
   const { locale } = await params;
   setRequestLocale(locale);
 
@@ -59,20 +58,13 @@ export default async function BlogIndexPage({
       </HeroProse>
 
       <ScrollReveal>
-        <BlogList
-          posts={posts}
-          locale={locale}
-          emptyText={t('empty')}
-          allLabel={t('allTags')}
-        />
+        <BlogList posts={posts} locale={locale} emptyText={t('empty')} allLabel={t('allTags')} />
       </ScrollReveal>
 
       <ScrollReveal delay={0.1}>
         <div className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-[var(--muted-fg)]">
-              {t('subscribeLine')}
-            </p>
+            <p className="text-sm text-[var(--muted-fg)]">{t('subscribeLine')}</p>
             <NewsletterForm className="sm:max-w-sm" />
           </div>
         </div>

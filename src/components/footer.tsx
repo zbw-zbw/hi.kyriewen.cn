@@ -20,8 +20,7 @@ export function Footer({ socialLinks }: { socialLinks: SerializableSocialLink[] 
     <footer className="mt-16 border-t border-[var(--border)] py-8 text-sm text-[var(--muted)]">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <div className="space-y-1 text-center sm:text-left">
-            <p>{t('builtWith')}</p>
+          <div className="text-center sm:text-left">
             <p>{t('copyright', { year })}</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">

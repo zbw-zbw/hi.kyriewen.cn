@@ -33,8 +33,10 @@ export function Header({
   const pathname = usePathname();
 
   const [isMac, setIsMac] = useState(false);
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
+    setMounted(true);
   }, []);
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
@@ -51,8 +53,8 @@ export function Header({
           {tSite('name')}
         </Link>
 
-        {/* 桌面端导航：全部展开，首页在第一位 */}
-        <nav className="hidden items-center gap-0.5 text-sm md:flex" aria-label="Main navigation">
+        {/* 桌面端导航：lg 及以上展开，小屏收入汉堡菜单 */}
+        <nav className="hidden items-center gap-0.5 text-sm lg:flex" aria-label="Main navigation">
           {navItems
             .filter((item) => item.visible)
             .map((item) => (
@@ -76,10 +78,10 @@ export function Header({
             onClick={triggerCommandMenu}
             aria-label="Search"
             title="Search (⌘K)"
-            className="hidden cursor-pointer items-center gap-2 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] sm:inline-flex"
+            className="mr-1 hidden cursor-pointer items-center gap-2 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] sm:inline-flex"
           >
             <Search className="h-3.5 w-3.5" />
-            <kbd className="font-mono">{isMac ? '⌘K' : 'Ctrl K'}</kbd>
+            {mounted && <kbd className="font-mono">{isMac ? '⌘K' : 'Ctrl K'}</kbd>}
           </button>
           <button
             type="button"

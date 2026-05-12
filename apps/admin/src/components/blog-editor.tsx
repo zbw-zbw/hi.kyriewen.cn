@@ -180,18 +180,16 @@ export function BlogEditor({ post }: BlogEditorProps) {
 
       toast.success('Post published!');
 
-      // Auto-translate if Chinese article
-      if (lang === 'zh') {
-        toast.info('正在自动翻译英文版…');
-        try {
-          await autoTranslateToEnglish();
-        } catch {
-          toast.error('自动翻译失败，可稍后手动翻译');
-        }
-      }
-
       router.push('/blog');
       router.refresh();
+
+      // Auto-translate if Chinese article — fire-and-forget, don't block navigation
+      if (lang === 'zh') {
+        toast.info('后台正在自动翻译英文版…');
+        autoTranslateToEnglish(true).catch(() => {
+          toast.error('自动翻译失败，可稍后手动翻译');
+        });
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to publish post');
     } finally {
@@ -199,8 +197,11 @@ export function BlogEditor({ post }: BlogEditorProps) {
     }
   }
 
-  // Shared translate logic used by both auto-publish and manual translate
-  async function autoTranslateToEnglish() {
+  /**
+   * 翻译中文文章为英文并保存。
+   * @param autoPublish 为 true 时英文版直接发布（draft=0），否则保存为草稿
+   */
+  async function autoTranslateToEnglish(autoPublish = false) {
     const markdownContent = await htmlToMarkdown(editorHtml);
     const textsToTranslate = [
       { text: title, type: 'title' as const, field: 'title' },
@@ -237,7 +238,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
         .map((t: string) => t.trim())
         .filter(Boolean),
       lang: 'en',
-      draft: 1,
+      draft: autoPublish ? 0 : 1,
       coverImage: coverImage.trim() || null,
     };
 
@@ -265,7 +266,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
       throw new Error(err.error ?? 'Failed to save English version');
     }
 
-    toast.success('已自动创建英文版草稿');
+    toast.success(autoPublish ? '英文版已自动翻译并发布 ✅' : '已自动创建英文版草稿');
   }
 
   // Manual translate button handler — reuses autoTranslateToEnglish

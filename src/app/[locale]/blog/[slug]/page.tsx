@@ -9,9 +9,7 @@ import { Toc } from '@/components/toc';
 import { ReadingProgress } from '@/components/reading-progress';
 import { BlogPostingJsonLd } from '@/components/json-ld';
 import { SessionProvider } from '@/components/session-provider';
-import { GuestbookAuth } from '@/components/guestbook-auth';
-import { MessageThread } from '@/components/message-thread';
-import { MessageComposer } from '@/components/message-composer';
+import { BlogComments } from '@/components/blog-comments';
 import { auth } from '@/auth';
 import { db, guestbookMessages, likes } from '@/lib/db';
 import type { GuestbookMessage } from '@/lib/db';
@@ -139,7 +137,6 @@ export default async function BlogPostPage({
   setRequestLocale(locale);
 
   const t = await getTranslations('blog.page');
-  const tMsg = await getTranslations('message');
   const post = await getPostBySlug(locale, slug);
   if (!post) notFound();
 
@@ -164,40 +161,40 @@ export default async function BlogPostPage({
       <ReadingProgress />
       <div className="relative -mt-10 flex gap-10 sm:-mt-14 lg:justify-center">
         <article className="min-w-0 flex-1 lg:max-w-2xl">
-          {/* 吸顶 header 区域：返回按钮 + 标题 + 元信息 + 标签 */}
-          <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-8 sm:-mx-6 sm:px-6">
+          {/* 吸顶返回按钮 */}
+          <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-4 sm:-mx-6 sm:px-6">
             <Link
               href="/blog"
-              className="mb-1 inline-flex items-center gap-1.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]"
+              className="inline-flex items-center gap-1.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               {t('navLabel')}
             </Link>
-
-            <header className="mt-3 space-y-3">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{post.title}</h1>
-              <p className="text-sm text-[var(--muted-fg)]">{post.summary}</p>
-              <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-[var(--muted)]">
-                <time dateTime={post.date}>{formatDate(post.date, locale)}</time>
-                <span aria-hidden>·</span>
-                <span>
-                  {post.readingTime} {t('minRead')}
-                </span>
-                <span aria-hidden>·</span>
-                <ViewCounter slug={`blog/${slug}`} trackView />
-              </div>
-              {post.tags && post.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {post.tags.map((tag) => (
-                    <TagBadge key={tag} tag={tag} />
-                  ))}
-                </div>
-              )}
-            </header>
-
-            {/* 底部渐变遮罩，消除吸顶区域与下方内容的硬分界线 */}
+            {/* 底部渐变遮罩 */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 translate-y-full bg-gradient-to-b from-[var(--bg)] to-transparent" />
           </div>
+
+          {/* 文章标题 + 元信息 + 标签 */}
+          <header className="mt-3 space-y-3">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{post.title}</h1>
+            <p className="text-sm text-[var(--muted-fg)]">{post.summary}</p>
+            <div className="flex flex-wrap items-center gap-3 font-mono text-xs text-[var(--muted)]">
+              <time dateTime={post.date}>{formatDate(post.date, locale)}</time>
+              <span aria-hidden>·</span>
+              <span>
+                {post.readingTime} {t('minRead')}
+              </span>
+              <span aria-hidden>·</span>
+              <ViewCounter slug={`blog/${slug}`} trackView />
+            </div>
+            {post.tags && post.tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {post.tags.map((tag) => (
+                  <TagBadge key={tag} tag={tag} />
+                ))}
+              </div>
+            )}
+          </header>
 
           <div className="prose-kw mt-4 space-y-4 leading-relaxed">
             <Mdx source={post.content} />
@@ -245,26 +242,16 @@ export default async function BlogPostPage({
             </nav>
           )}
 
-          {/* ── 评论区 ── */}
+          {/* ── 评论区（客户端增量更新，避免整页刷新） ── */}
           <SessionProvider session={session}>
-            <section id="comments" className="mt-16 space-y-4 border-t border-[var(--border)] pt-8">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h3 className="text-xl font-semibold tracking-tight">
-                  {tMsg('commentsHeading', { count: comments.length })}
-                </h3>
-                <GuestbookAuth locale={locale} user={user} />
-              </div>
-
-              <MessageComposer locale={locale} user={user} postSlug={slug} parentId={null} />
-
-              <MessageThread
-                messages={comments}
-                postSlug={slug}
-                locale={locale}
-                initialLikes={commentLikes}
-                currentUserId={currentUserId}
-              />
-            </section>
+            <BlogComments
+              slug={slug}
+              locale={locale}
+              initialComments={comments}
+              initialLikes={commentLikes}
+              currentUserId={currentUserId}
+              user={user}
+            />
           </SessionProvider>
         </article>
 

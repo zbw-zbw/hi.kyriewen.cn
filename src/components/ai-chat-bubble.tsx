@@ -133,7 +133,7 @@ export function AiChatBubble() {
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
         className={cn(
-          'fixed right-5 bottom-20 z-50 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full shadow-lg transition-all duration-300',
+          'fixed right-6 bottom-24 z-50 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full shadow-lg transition-all duration-300 sm:right-8',
           'bg-[var(--accent)] text-[var(--accent-fg)] hover:scale-105 hover:shadow-xl',
         )}
         aria-label={t('openAssistant')}
@@ -147,8 +147,8 @@ export function AiChatBubble() {
           ref={panelRef}
           style={keyboardOffset > 0 ? { bottom: `${keyboardOffset + 16}px` } : undefined}
           className={cn(
-            'fixed right-5 z-50 flex w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl',
-            keyboardOffset > 0 ? 'h-[min(360px,50dvh)]' : 'bottom-[8.5rem] h-[min(480px,60dvh)]',
+            'fixed right-6 z-50 flex w-[min(380px,calc(100vw-3rem))] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl sm:right-8 sm:w-[min(380px,calc(100vw-4rem))]',
+            keyboardOffset > 0 ? 'h-[min(360px,50dvh)]' : 'bottom-[8rem] h-[min(480px,60dvh)]',
           )}
         >
           {/* 头部 */}
