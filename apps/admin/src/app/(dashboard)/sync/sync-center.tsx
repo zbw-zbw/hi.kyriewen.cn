@@ -254,6 +254,19 @@ export function SyncCenter() {
                 </div>
               </div>
 
+              {/* Article sync: content failed warning */}
+              {isArticleSync && result && result.includes('content failed') && (
+                <div className="mt-3 ml-14 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800 dark:bg-amber-950/30">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    ⚠️
+                    部分文章正文抓取失败（CSDN/掘金有反爬限制）。请在本地终端运行以下命令补全正文：
+                  </p>
+                  <code className="mt-1.5 block rounded bg-amber-100 px-2 py-1 text-[11px] text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                    cd apps/admin &amp;&amp; node scripts/backfill-articles.mjs
+                  </code>
+                </div>
+              )}
+
               {/* Article source toggles */}
               {isArticleSync && (
                 <div className="mt-3 ml-14 flex items-center gap-3">

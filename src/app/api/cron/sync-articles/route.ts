@@ -137,49 +137,18 @@ function slugify(title: string, source: string, id: string): string {
   return `${prefix}-${id.slice(-10)}`;
 }
 
-/* ── Content proxy (China mainland server) ───────────────────────── */
-
-const CONTENT_PROXY_URL = process.env.CONTENT_PROXY_URL ?? '';
-const CONTENT_PROXY_SECRET = process.env.CONTENT_PROXY_SECRET ?? '';
-
-async function fetchViaProxy(
-  source: 'csdn' | 'juejin',
-  url?: string,
-  articleId?: string,
-): Promise<string | null> {
-  if (!CONTENT_PROXY_URL) return null;
-  try {
-    const res = await fetch(`${CONTENT_PROXY_URL}/api/fetch-content`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(CONTENT_PROXY_SECRET ? { Authorization: `Bearer ${CONTENT_PROXY_SECRET}` } : {}),
-      },
-      body: JSON.stringify({ source, url, articleId }),
-      signal: AbortSignal.timeout(30000),
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.ok ? data.content : null;
-  } catch {
-    return null;
-  }
-}
-
 /* ── Fetch full article content ──────────────────────────────────── */
 
 async function fetchJuejinContent(articleId: string): Promise<string | null> {
-  // 1. Try proxy (China mainland) first
-  const proxied = await fetchViaProxy('juejin', undefined, articleId);
-  if (proxied) return proxied;
-
-  // 2. Fallback: direct request
   try {
-    const res = await fetch('https://api.juejin.cn/content_api/v1/article/detail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ article_id: articleId }),
-    });
+    const res = await fetch(
+      'https://api.juejin.cn/content_api/v1/article/detail?aid=2608&uuid=&spider=0',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
+        body: JSON.stringify({ article_id: articleId, req_from: 1, client_type: 2608 }),
+      },
+    );
     if (!res.ok) return null;
     const data = await res.json();
     const markdownBody = data?.data?.article_info?.mark_content;
@@ -191,11 +160,6 @@ async function fetchJuejinContent(articleId: string): Promise<string | null> {
 }
 
 async function fetchCsdnContent(articleUrl: string): Promise<string | null> {
-  // 1. Try proxy (China mainland) first
-  const proxied = await fetchViaProxy('csdn', articleUrl);
-  if (proxied) return proxied;
-
-  // 2. Fallback: direct request
   try {
     const res = await fetch(articleUrl, {
       headers: { 'User-Agent': UA, Accept: 'text/html', 'Accept-Language': 'zh-CN,zh;q=0.9' },
