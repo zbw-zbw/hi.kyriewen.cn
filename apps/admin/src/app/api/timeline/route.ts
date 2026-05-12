@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { desc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { timelineEvents } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,10 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const rows = await db
-      .select()
-      .from(timelineEvents)
-      .orderBy(desc(timelineEvents.date));
+    const rows = await db.select().from(timelineEvents).orderBy(desc(timelineEvents.date));
 
     return NextResponse.json({ data: rows });
   } catch (error) {
@@ -30,16 +28,15 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { date, titleEn, titleZh, descriptionEn, descriptionZh, type, url } =
-      body as {
-        date?: string;
-        titleEn?: string;
-        titleZh?: string;
-        descriptionEn?: string;
-        descriptionZh?: string;
-        type?: string;
-        url?: string;
-      };
+    const { date, titleEn, titleZh, descriptionEn, descriptionZh, type, url } = body as {
+      date?: string;
+      titleEn?: string;
+      titleZh?: string;
+      descriptionEn?: string;
+      descriptionZh?: string;
+      type?: string;
+      url?: string;
+    };
 
     if (!date?.trim() || !titleEn?.trim() || !titleZh?.trim() || !type?.trim()) {
       return NextResponse.json(
@@ -60,6 +57,9 @@ export async function POST(req: Request) {
         url: url?.trim() || null,
       })
       .returning();
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/timeline']).catch(() => {});
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (error) {

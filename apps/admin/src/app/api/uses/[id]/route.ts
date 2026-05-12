@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { usesSections, usesItems } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,10 +10,7 @@ export const dynamic = 'force-dynamic';
 /**
  * PATCH /api/uses/[id] — 更新 section
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -29,9 +27,9 @@ export async function PATCH(
     };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (sectionId !== undefined) updates.sectionId = sectionId.trim();
-    if (titleEn !== undefined) updates.titleEn = titleEn.trim();
-    if (titleZh !== undefined) updates.titleZh = titleZh.trim();
+    if (sectionId !== undefined) updates.sectionId = sectionId?.trim() ?? '';
+    if (titleEn !== undefined) updates.titleEn = titleEn?.trim() ?? '';
+    if (titleZh !== undefined) updates.titleZh = titleZh?.trim() ?? '';
     if (sortOrder !== undefined) updates.sortOrder = sortOrder;
 
     const [updated] = await db
@@ -44,6 +42,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/uses']).catch(() => {});
+
     return NextResponse.json({ data: updated });
   } catch (error) {
     console.error('[api/uses] PATCH failed', error);
@@ -54,10 +55,7 @@ export async function PATCH(
 /**
  * DELETE /api/uses/[id] — 删除 section 及其所有 items
  */
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -68,14 +66,14 @@ export async function DELETE(
     // 先删除该 section 下所有 items
     await db.delete(usesItems).where(eq(usesItems.sectionId, id));
 
-    const [deleted] = await db
-      .delete(usesSections)
-      .where(eq(usesSections.id, id))
-      .returning();
+    const [deleted] = await db.delete(usesSections).where(eq(usesSections.id, id)).returning();
 
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/uses']).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

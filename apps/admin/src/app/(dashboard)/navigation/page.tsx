@@ -2,12 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Types ───────────────────────────────────────────────────── */
 interface NavigationItem {
   id: number;
   href: string;
   key: string;
+  labelEn: string;
+  labelZh: string;
   visible: number;
   sortOrder: number;
   createdAt: string;
@@ -17,13 +20,16 @@ interface NavigationItem {
 interface FormData {
   href: string;
   key: string;
+  labelZh: string;
+  labelEn: string;
   sortOrder: number;
 }
 
-const EMPTY_FORM: FormData = { href: '', key: '', sortOrder: 0 };
+const EMPTY_FORM: FormData = { href: '', key: '', labelZh: '', labelEn: '', sortOrder: 0 };
 
 /* ── Component ───────────────────────────────────────────────── */
 export default function NavigationPage() {
+  const { locale, t } = useAdminLocale();
   const [items, setItems] = useState<NavigationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -31,6 +37,7 @@ export default function NavigationPage() {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [langTab, setLangTab] = useState<'en' | 'zh'>(locale);
 
   /* ── Fetch items ───────────────────────────────────────────── */
   const fetchItems = useCallback(async () => {
@@ -60,7 +67,13 @@ export default function NavigationPage() {
 
   const openEditForm = useCallback((item: NavigationItem) => {
     setEditingId(item.id);
-    setForm({ href: item.href, key: item.key, sortOrder: item.sortOrder });
+    setForm({
+      href: item.href,
+      key: item.key,
+      labelZh: item.labelZh ?? '',
+      labelEn: item.labelEn ?? '',
+      sortOrder: item.sortOrder,
+    });
     setShowForm(true);
   }, []);
 
@@ -79,9 +92,32 @@ export default function NavigationPage() {
     }
 
     setSubmitting(true);
+
+    // Auto-translate labelZh → labelEn if labelZh is provided and labelEn is empty
+    let labelEn = form.labelEn.trim();
+    const labelZh = form.labelZh.trim();
+    if (labelZh && !labelEn) {
+      try {
+        const trRes = await fetch('/api/translate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texts: [{ text: labelZh, type: 'title', field: 'labelZh' }] }),
+        });
+        if (trRes.ok) {
+          const trData = await trRes.json();
+          const r = trData.results?.[0];
+          if (r?.translated) labelEn = r.translated;
+        }
+      } catch {
+        /* non-blocking */
+      }
+    }
+
     const payload = {
       href: form.href.trim(),
       key: form.key.trim(),
+      labelEn,
+      labelZh,
       sortOrder: form.sortOrder,
     };
 
@@ -214,6 +250,33 @@ export default function NavigationPage() {
                 />
               </label>
 
+              {/* Label ZH (中文标签，保存时自动翻译英文) */}
+              <label className="space-y-1.5">
+                <span className="text-sm font-medium">中文标签</span>
+                <input
+                  type="text"
+                  value={form.labelZh}
+                  onChange={(event) => setForm({ ...form, labelZh: event.target.value })}
+                  placeholder="关于"
+                  className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
+                />
+              </label>
+
+              {/* Label EN */}
+              <label className="space-y-1.5">
+                <span className="text-sm font-medium">
+                  English Label{' '}
+                  <span className="text-muted-foreground text-xs">(auto-translated if empty)</span>
+                </span>
+                <input
+                  type="text"
+                  value={form.labelEn}
+                  onChange={(event) => setForm({ ...form, labelEn: event.target.value })}
+                  placeholder="About"
+                  className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
+                />
+              </label>
+
               {/* Sort Order */}
               <label className="space-y-1.5">
                 <span className="text-sm font-medium">Sort Order</span>
@@ -248,6 +311,24 @@ export default function NavigationPage() {
           </div>
         )}
 
+        {/* ── Language Tab ──────────────────────────────────────── */}
+        <div className="bg-muted flex w-fit gap-1 rounded-lg p-1">
+          {(['en', 'zh'] as const).map((lang) => (
+            <button
+              key={lang}
+              type="button"
+              onClick={() => setLangTab(lang)}
+              className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+                langTab === lang
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {lang === 'en' ? 'EN' : 'ZH'}
+            </button>
+          ))}
+        </div>
+
         {/* ── Table ────────────────────────────────────────────── */}
         {items.length === 0 ? (
           <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
@@ -260,6 +341,9 @@ export default function NavigationPage() {
                 <tr>
                   <th className="px-4 py-3 text-left font-medium">Key</th>
                   <th className="px-4 py-3 text-left font-medium">Href</th>
+                  <th className="px-4 py-3 text-left font-medium">
+                    {langTab === 'en' ? 'Label (EN)' : '标签 (ZH)'}
+                  </th>
                   <th className="px-4 py-3 text-center font-medium">Visible</th>
                   <th className="px-4 py-3 text-center font-medium">Order</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -275,6 +359,11 @@ export default function NavigationPage() {
                     </td>
                     <td className="text-muted-foreground max-w-[200px] truncate px-4 py-3">
                       {item.href}
+                    </td>
+                    <td className="px-4 py-3">
+                      {langTab === 'en'
+                        ? item.labelEn || <span className="text-muted-foreground italic">—</span>
+                        : item.labelZh || <span className="text-muted-foreground italic">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <button

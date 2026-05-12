@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Plus, Save, X } from 'lucide-react';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface NowItemRow {
   id: number;
@@ -274,9 +275,10 @@ const ITEMS_PAGE_SIZE = 20;
 
 function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
   const router = useRouter();
+  const { locale } = useAdminLocale();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [itemTab, setItemTab] = useState<'en' | 'zh'>('en');
+  const [itemTab, setItemTab] = useState<'en' | 'zh'>(locale);
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(initialItems.length / ITEMS_PAGE_SIZE));

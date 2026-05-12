@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { navigationItems } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,16 +19,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   try {
     const body = await req.json().catch(() => ({}));
-    const { href, key, visible, sortOrder } = body as {
+    const { href, key, labelEn, labelZh, visible, sortOrder } = body as {
       href?: string;
       key?: string;
+      labelEn?: string;
+      labelZh?: string;
       visible?: number;
       sortOrder?: number;
     };
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
-    if (href !== undefined) updates.href = href.trim();
-    if (key !== undefined) updates.key = key.trim();
+    if (href !== undefined) updates.href = href?.trim() ?? '';
+    if (key !== undefined) updates.key = key?.trim() ?? '';
+    if (labelEn !== undefined) updates.labelEn = labelEn?.trim() ?? '';
+    if (labelZh !== undefined) updates.labelZh = labelZh?.trim() ?? '';
     if (visible !== undefined) updates.visible = visible;
     if (sortOrder !== undefined) updates.sortOrder = sortOrder;
 
@@ -40,6 +45,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (!updated) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
 
     return NextResponse.json({ data: updated });
   } catch (error) {
@@ -67,6 +75,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

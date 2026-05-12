@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Constants ───────────────────────────────────────────────── */
 const EVENT_TYPES = ['product', 'post', 'milestone', 'career'] as const;
@@ -54,12 +55,13 @@ const PAGE_SIZE = 20;
 
 export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
   const router = useRouter();
+  const { locale } = useAdminLocale();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [langTab, setLangTab] = useState<'en' | 'zh'>('en');
+  const [langTab, setLangTab] = useState<'en' | 'zh'>(locale);
   const [currentPage, setCurrentPage] = useState(1);
 
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));

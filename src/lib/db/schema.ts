@@ -341,6 +341,8 @@ export const navigationItems = pgTable(
     id: serial('id').primaryKey(),
     href: text('href').notNull(),
     key: varchar('key', { length: 64 }).notNull(),
+    labelEn: varchar('label_en', { length: 128 }).notNull().default(''),
+    labelZh: varchar('label_zh', { length: 128 }).notNull().default(''),
     visible: integer('visible').notNull().default(1),
     sortOrder: integer('sort_order').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),

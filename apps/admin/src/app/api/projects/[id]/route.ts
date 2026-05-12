@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { projects } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,10 +10,7 @@ export const dynamic = 'force-dynamic';
 /**
  * PATCH /api/projects/[id] — 更新 project
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -22,12 +20,30 @@ export async function PATCH(
   try {
     const body = await req.json().catch(() => ({}));
     const {
-      slug, name, category, year,
-      taglineEn, taglineZh, descriptionEn, descriptionZh,
-      stack, repo, live, chromeStoreId,
-      featured, pinned, accent, heroImage,
-      gallery, coverVideo, caseStudyEn, caseStudyZh,
-      colorTheme, metrics, changelog, sortOrder,
+      slug,
+      name,
+      category,
+      year,
+      taglineEn,
+      taglineZh,
+      descriptionEn,
+      descriptionZh,
+      stack,
+      repo,
+      live,
+      chromeStoreId,
+      featured,
+      pinned,
+      accent,
+      heroImage,
+      gallery,
+      coverVideo,
+      caseStudyEn,
+      caseStudyZh,
+      colorTheme,
+      metrics,
+      changelog,
+      sortOrder,
     } = body as Record<string, unknown>;
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -57,15 +73,14 @@ export async function PATCH(
     if (changelog !== undefined) updates.changelog = changelog ? JSON.stringify(changelog) : null;
     if (sortOrder !== undefined) updates.sortOrder = Number(sortOrder) || 0;
 
-    const [updated] = await db
-      .update(projects)
-      .set(updates)
-      .where(eq(projects.id, id))
-      .returning();
+    const [updated] = await db.update(projects).set(updates).where(eq(projects.id, id)).returning();
 
     if (!updated) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/projects', '/']).catch(() => {});
 
     return NextResponse.json({ data: updated });
   } catch (error) {
@@ -77,10 +92,7 @@ export async function PATCH(
 /**
  * DELETE /api/projects/[id] — 删除 project
  */
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -88,14 +100,14 @@ export async function DELETE(
   }
 
   try {
-    const [deleted] = await db
-      .delete(projects)
-      .where(eq(projects.id, id))
-      .returning();
+    const [deleted] = await db.delete(projects).where(eq(projects.id, id)).returning();
 
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/projects', '/']).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

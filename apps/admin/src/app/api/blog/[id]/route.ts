@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { blogPosts } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,10 +10,7 @@ export const dynamic = 'force-dynamic';
 /**
  * GET /api/blog/[id] — 获取单篇文章详情
  */
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -20,10 +18,7 @@ export async function GET(
   }
 
   try {
-    const [row] = await db
-      .select()
-      .from(blogPosts)
-      .where(eq(blogPosts.id, id));
+    const [row] = await db.select().from(blogPosts).where(eq(blogPosts.id, id));
 
     if (!row) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
@@ -41,10 +36,7 @@ export async function GET(
 /**
  * PATCH /api/blog/[id] — 更新文章
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -53,10 +45,8 @@ export async function PATCH(
 
   try {
     const body = await req.json().catch(() => ({}));
-    const {
-      slug, title, summary, content,
-      tags, lang, draft, coverImage, publishedAt,
-    } = body as Record<string, unknown>;
+    const { slug, title, summary, content, tags, lang, draft, coverImage, publishedAt } =
+      body as Record<string, unknown>;
 
     const updates: Record<string, unknown> = { updatedAt: new Date() };
 
@@ -68,7 +58,8 @@ export async function PATCH(
     if (lang !== undefined) updates.lang = lang;
     if (draft !== undefined) updates.draft = Number(draft);
     if (coverImage !== undefined) updates.coverImage = coverImage || null;
-    if (publishedAt !== undefined) updates.publishedAt = publishedAt ? new Date(publishedAt as string) : null;
+    if (publishedAt !== undefined)
+      updates.publishedAt = publishedAt ? new Date(publishedAt as string) : null;
 
     // draft=0 且 publishedAt 未提供时，自动设置发布时间
     if (Number(draft) === 0 && publishedAt === undefined) {
@@ -92,6 +83,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/blog']).catch(() => {});
+
     return NextResponse.json({ data: updated });
   } catch (error) {
     console.error('[api/blog] PATCH failed', error);
@@ -102,10 +96,7 @@ export async function PATCH(
 /**
  * DELETE /api/blog/[id] — 删除文章
  */
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -113,14 +104,14 @@ export async function DELETE(
   }
 
   try {
-    const [deleted] = await db
-      .delete(blogPosts)
-      .where(eq(blogPosts.id, id))
-      .returning();
+    const [deleted] = await db.delete(blogPosts).where(eq(blogPosts.id, id)).returning();
 
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/blog']).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

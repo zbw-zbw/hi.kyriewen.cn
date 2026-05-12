@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from 'react';
 import type { TocEntry } from '@/lib/blog';
 import { cn } from '@/lib/utils';
 
-/** 滚动偏移量：导航栏(56px) + 吸顶返回按钮区域(~76px) = 132px */
-const STICKY_OFFSET = 132;
+/** 滚动偏移量：导航栏(56px) + 吸顶返回按钮区域(~76px) + 额外留白 = 150px */
+const STICKY_OFFSET = 150;
 
 interface TocProps {
   entries: TocEntry[];

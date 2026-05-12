@@ -15,6 +15,9 @@ import { db, pageViews } from '@/lib/db';
 import { desc } from 'drizzle-orm';
 import type { Locale } from '@/i18n/routing';
 
+/* ── ISR: revalidate every hour as fallback ── */
+export const revalidate = 3600;
+
 /** 行内链接统一样式（Lee Robinson 风：所有链接都 underline） */
 const LINK_CLASS =
   'cursor-pointer underline decoration-[var(--border)] decoration-1 underline-offset-4 transition-colors hover:decoration-[var(--accent)] hover:text-[var(--accent)]';

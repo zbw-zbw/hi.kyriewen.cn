@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { asc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { projects } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,10 +14,7 @@ const JSON_FIELDS = ['stack', 'gallery', 'metrics', 'changelog'] as const;
  */
 export async function GET() {
   try {
-    const rows = await db
-      .select()
-      .from(projects)
-      .orderBy(asc(projects.sortOrder));
+    const rows = await db.select().from(projects).orderBy(asc(projects.sortOrder));
 
     const parsed = rows.map((row) => {
       const result: Record<string, unknown> = { ...row };
@@ -47,18 +45,39 @@ export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
     const {
-      slug, name, category, year,
-      taglineEn, taglineZh, descriptionEn, descriptionZh,
-      stack, repo, live, chromeStoreId,
-      featured, pinned, accent, heroImage,
-      gallery, coverVideo, caseStudyEn, caseStudyZh,
-      colorTheme, metrics, changelog, sortOrder,
+      slug,
+      name,
+      category,
+      year,
+      taglineEn,
+      taglineZh,
+      descriptionEn,
+      descriptionZh,
+      stack,
+      repo,
+      live,
+      chromeStoreId,
+      featured,
+      pinned,
+      accent,
+      heroImage,
+      gallery,
+      coverVideo,
+      caseStudyEn,
+      caseStudyZh,
+      colorTheme,
+      metrics,
+      changelog,
+      sortOrder,
     } = body as Record<string, unknown>;
 
     if (
-      !slug || typeof slug !== 'string' ||
-      !name || typeof name !== 'string' ||
-      !category || typeof category !== 'string' ||
+      !slug ||
+      typeof slug !== 'string' ||
+      !name ||
+      typeof name !== 'string' ||
+      !category ||
+      typeof category !== 'string' ||
       year === undefined
     ) {
       return NextResponse.json(
@@ -96,6 +115,9 @@ export async function POST(req: Request) {
         sortOrder: Number(sortOrder) || 0,
       })
       .returning();
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/projects', '/']).catch(() => {});
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (error) {

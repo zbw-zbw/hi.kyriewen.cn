@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { ImageUploader } from '@/components/image-uploader';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Constants ───────────────────────────────────────────────── */
 const CATEGORY_OPTIONS = ['chrome-extension', 'web-app', 'library'] as const;
@@ -192,12 +193,14 @@ const PAGE_SIZE = 20;
 
 export default function ProjectsManager({ items }: { items: Project[] }) {
   const router = useRouter();
+  const { locale } = useAdminLocale();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  const [langTab, setLangTab] = useState<'en' | 'zh'>(locale);
 
   const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -668,6 +671,24 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
         </div>
       )}
 
+      {/* ── Language Tab ──────────────────────────────────────── */}
+      <div className="bg-muted flex w-fit gap-1 rounded-lg p-1">
+        {(['en', 'zh'] as const).map((lang) => (
+          <button
+            key={lang}
+            type="button"
+            onClick={() => setLangTab(lang)}
+            className={`rounded-md px-3 py-1 text-sm font-medium transition-colors ${
+              langTab === lang
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {lang === 'en' ? 'EN' : 'ZH'}
+          </button>
+        ))}
+      </div>
+
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
@@ -679,6 +700,9 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             <thead className="border-border bg-muted/50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
+                <th className="px-4 py-3 text-left font-medium">
+                  {langTab === 'en' ? 'Tagline (EN)' : '标语 (ZH)'}
+                </th>
                 <th className="px-4 py-3 text-left font-medium">Category</th>
                 <th className="px-4 py-3 text-center font-medium">Year</th>
                 <th className="px-4 py-3 text-center font-medium">Status</th>
@@ -691,6 +715,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
               {paginatedItems.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{item.name}</td>
+                  <td className="text-muted-foreground max-w-[200px] truncate px-4 py-3 text-xs">
+                    {langTab === 'en'
+                      ? item.taglineEn || <span className="italic">—</span>
+                      : item.taglineZh || <span className="italic">—</span>}
+                  </td>
                   <td className="px-4 py-3">{categoryBadge(item.category)}</td>
                   <td className="px-4 py-3 text-center">{item.year}</td>
                   <td className="space-x-1 px-4 py-3 text-center">

@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { nowItems } from '@repo/db/schema';
 import { eq } from 'drizzle-orm';
+import { triggerRevalidation } from '@/lib/revalidate';
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const itemId = Number(id);
@@ -35,20 +33,17 @@ export async function PATCH(
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/now']).catch(() => {});
+
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Failed to update now item:', error);
-    return NextResponse.json(
-      { error: 'Failed to update now item' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to update now item' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const itemId = Number(id);
@@ -57,21 +52,18 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
     }
 
-    const [deleted] = await db
-      .delete(nowItems)
-      .where(eq(nowItems.id, itemId))
-      .returning();
+    const [deleted] = await db.delete(nowItems).where(eq(nowItems.id, itemId)).returning();
 
     if (!deleted) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 });
     }
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/now']).catch(() => {});
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete now item:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete now item' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to delete now item' }, { status: 500 });
   }
 }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { asc, eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { navigationItems } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,9 +28,11 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { href, key, visible, sortOrder } = body as {
+    const { href, key, labelEn, labelZh, visible, sortOrder } = body as {
       href?: string;
       key?: string;
+      labelEn?: string;
+      labelZh?: string;
       visible?: number;
       sortOrder?: number;
     };
@@ -43,10 +46,15 @@ export async function POST(req: Request) {
       .values({
         href: href.trim(),
         key: key.trim(),
+        labelEn: labelEn?.trim() ?? '',
+        labelZh: labelZh?.trim() ?? '',
         visible: visible ?? 1,
         sortOrder: sortOrder ?? 0,
       })
       .returning();
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (error) {

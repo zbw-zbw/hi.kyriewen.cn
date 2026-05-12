@@ -18,6 +18,9 @@ import {
 import { cn } from '@/lib/utils';
 import type { Locale } from '@/i18n/routing';
 
+/* ── ISR: revalidate every hour as fallback ── */
+export const revalidate = 3600;
+
 /* ── Static Generation ── */
 
 export async function generateStaticParams() {
