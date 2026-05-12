@@ -1,8 +1,8 @@
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ArrowLeft, ExternalLink, Github, Chrome } from 'lucide-react';
+import { ExternalLink, Github, Chrome } from 'lucide-react';
+import { BackButton } from '@/components/back-button';
 import Image from 'next/image';
-import { Link } from '@/i18n/navigation';
 import { buttonVariants } from '@/components/ui/button';
 import { SectionHeading } from '@/components/section-heading';
 import { ScrollReveal } from '@/components/scroll-reveal';
@@ -63,13 +63,7 @@ export default async function ProjectDetailPage({
       <article className="-mt-10 pb-20 sm:-mt-14">
         {/* ── Sticky Header: 仅返回按钮 ── */}
         <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-4 sm:-mx-6 sm:px-6">
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] transition-colors hover:text-[var(--fg)]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            {t('backLink')}
-          </Link>
+          <BackButton label={t('backLink')} />
           {/* 底部渐变遮罩 */}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 translate-y-full bg-gradient-to-b from-[var(--bg)] to-transparent" />
         </div>

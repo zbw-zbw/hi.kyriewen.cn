@@ -9,6 +9,8 @@ interface ViewCounterProps {
   /** 是否在挂载时自动记录一次浏览 */
   trackView?: boolean;
   className?: string;
+  /** 是否在浏览量前面显示分隔点 */
+  showDot?: boolean;
 }
 
 /**
@@ -19,6 +21,7 @@ export function ViewCounter({
   slug,
   trackView = false,
   className,
+  showDot = false,
 }: ViewCounterProps) {
   const [views, setViews] = useState<number | null>(null);
 
@@ -50,15 +53,18 @@ export function ViewCounter({
   if (views === null) return null;
 
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1 font-mono text-xs text-[var(--muted)]',
-        className
-      )}
-      title={`${views} views`}
-    >
-      <Eye className="h-3 w-3" />
-      {views.toLocaleString()}
-    </span>
+    <>
+      {showDot && <span aria-hidden>·</span>}
+      <span
+        className={cn(
+          'inline-flex items-center gap-1 font-mono text-xs text-[var(--muted)]',
+          className,
+        )}
+        title={`${views} views`}
+      >
+        <Eye className="h-3 w-3" />
+        {views.toLocaleString()}
+      </span>
+    </>
   );
 }

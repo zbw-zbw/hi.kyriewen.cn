@@ -58,6 +58,8 @@ const EMPTY_FORM: FormData = {
 };
 
 /* ── Component ───────────────────────────────────────────────── */
+const PAGE_SIZE = 20;
+
 export default function SocialManager({ items }: { items: SocialLink[] }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
@@ -65,6 +67,11 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedItems = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   const openCreateForm = useCallback(() => {
     setEditingId(null);
@@ -160,13 +167,13 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
     <div className="space-y-6">
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {items.length} social link{items.length !== 1 ? 's' : ''}
         </p>
         <button
           type="button"
           onClick={openCreateForm}
-          className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
         >
           + Add New
         </button>
@@ -174,7 +181,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
 
       {/* ── Inline Form ──────────────────────────────────────── */}
       {showForm && (
-        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
+        <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">
             {editingId !== null ? 'Edit Social Link' : 'New Social Link'}
           </h3>
@@ -188,7 +195,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 onChange={(event) => setForm({ ...form, name: event.target.value })}
                 placeholder="e.g. GitHub"
                 required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -201,7 +208,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 onChange={(event) => setForm({ ...form, href: event.target.value })}
                 placeholder="https://github.com/username"
                 required
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -211,7 +218,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
               <select
                 value={form.iconName}
                 onChange={(event) => setForm({ ...form, iconName: event.target.value })}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               >
                 {ICON_OPTIONS.map((icon) => (
                   <option key={icon} value={icon}>
@@ -229,7 +236,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 value={form.handle}
                 onChange={(event) => setForm({ ...form, handle: event.target.value })}
                 placeholder="@username"
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -242,7 +249,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 onChange={(event) =>
                   setForm({ ...form, sortOrder: Number(event.target.value) || 0 })
                 }
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
             </label>
 
@@ -252,7 +259,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 type="checkbox"
                 checked={form.isEmail}
                 onChange={(event) => setForm({ ...form, isEmail: event.target.checked })}
-                className="size-4 rounded border-input"
+                className="border-input size-4 rounded"
               />
               <span className="text-sm font-medium">Is Email Link</span>
             </label>
@@ -262,14 +269,14 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
               <button
                 type="submit"
                 disabled={loading}
-                className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 disabled:opacity-50 transition-colors"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
               >
                 {loading ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
               </button>
               <button
                 type="button"
                 onClick={closeForm}
-                className="inline-flex items-center rounded-md border border-input px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                className="border-input hover:bg-accent inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
                 Cancel
               </button>
@@ -280,13 +287,13 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
 
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border p-12 text-center text-muted-foreground">
+        <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
           No social links yet. Click &quot;Add New&quot; to create one.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-lg border border-border">
+        <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
-            <thead className="border-b border-border bg-muted/50">
+            <thead className="border-border bg-muted/50 border-b">
               <tr>
                 <th className="px-4 py-3 text-left font-medium">Name</th>
                 <th className="px-4 py-3 text-left font-medium">URL</th>
@@ -297,31 +304,27 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
-              {items.map((item) => (
+            <tbody className="divide-border divide-y">
+              {paginatedItems.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{item.name}</td>
-                  <td className="max-w-[200px] truncate px-4 py-3 text-muted-foreground">
+                  <td className="text-muted-foreground max-w-[200px] truncate px-4 py-3">
                     {item.href}
                   </td>
                   <td className="px-4 py-3">
-                    <span className="inline-flex rounded bg-muted px-2 py-0.5 text-xs font-mono">
+                    <span className="bg-muted inline-flex rounded px-2 py-0.5 font-mono text-xs">
                       {item.iconName}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground">
-                    {item.handle || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-center">
-                    {item.isEmail === 1 ? '✓' : '—'}
-                  </td>
+                  <td className="text-muted-foreground px-4 py-3">{item.handle || '—'}</td>
+                  <td className="px-4 py-3 text-center">{item.isEmail === 1 ? '✓' : '—'}</td>
                   <td className="px-4 py-3 text-center">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-right">
                     <div className="inline-flex gap-1">
                       <button
                         type="button"
                         onClick={() => openEditForm(item)}
-                        className="rounded px-2 py-1 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
+                        className="text-primary hover:bg-primary/10 rounded px-2 py-1 text-xs font-medium transition-colors"
                       >
                         Edit
                       </button>
@@ -329,7 +332,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                         type="button"
                         onClick={() => handleDelete(item.id)}
                         disabled={deletingId === item.id}
-                        className="rounded px-2 py-1 text-xs font-medium text-destructive hover:bg-destructive/10 disabled:opacity-50 transition-colors"
+                        className="text-destructive hover:bg-destructive/10 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
                       >
                         {deletingId === item.id ? 'Deleting…' : 'Delete'}
                       </button>
@@ -339,6 +342,33 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {items.length > PAGE_SIZE && (
+        <div className="border-border flex items-center justify-between border-t pt-3">
+          <span className="text-muted-foreground text-sm">
+            Page {safePage} of {totalPages} · {items.length} items
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

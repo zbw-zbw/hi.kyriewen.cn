@@ -51,7 +51,7 @@ export default function LocaleError({
       <div className="flex items-center gap-3">
         <button
           onClick={reset}
-          className="inline-flex items-center gap-2 rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--card)]"
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md border border-[var(--border)] px-4 py-2 text-sm font-medium transition-colors hover:bg-[var(--card)]"
         >
           <RefreshCw className="h-4 w-4" />
           {retryLabel}

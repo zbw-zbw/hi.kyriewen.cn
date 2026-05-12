@@ -58,7 +58,19 @@ export default async function BlogIndexPage({ params }: { params: Promise<{ loca
       </HeroProse>
 
       <ScrollReveal>
-        <BlogList posts={posts} locale={locale} emptyText={t('empty')} allLabel={t('allTags')} />
+        <BlogList
+          posts={posts}
+          locale={locale}
+          emptyText={t('empty')}
+          allLabel={t('allTags')}
+          paginationLabels={{
+            prev: t('paginationPrev'),
+            next: t('paginationNext'),
+            page: t('paginationPage'),
+            of: t('paginationOf'),
+            total: t('paginationTotal'),
+          }}
+        />
       </ScrollReveal>
 
       <ScrollReveal delay={0.1}>

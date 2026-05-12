@@ -270,11 +270,21 @@ function ItemForm({
 /*  Items Section                                                      */
 /* ------------------------------------------------------------------ */
 
+const ITEMS_PAGE_SIZE = 20;
+
 function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [itemTab, setItemTab] = useState<'en' | 'zh'>('en');
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(initialItems.length / ITEMS_PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedItems = initialItems.slice(
+    (safePage - 1) * ITEMS_PAGE_SIZE,
+    safePage * ITEMS_PAGE_SIZE,
+  );
 
   async function handleCreate(data: ItemFormData) {
     const response = await fetch('/api/now', {
@@ -370,7 +380,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
         <p className="text-muted-foreground py-8 text-center">No items yet. Add your first one!</p>
       ) : (
         <div className="divide-border divide-y">
-          {initialItems.map((item) =>
+          {paginatedItems.map((item) =>
             editingId === item.id ? (
               <div key={item.id} className="py-4">
                 <ItemForm
@@ -425,6 +435,33 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
               </div>
             ),
           )}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {initialItems.length > ITEMS_PAGE_SIZE && (
+        <div className="border-border mt-4 flex items-center justify-between border-t pt-3">
+          <span className="text-muted-foreground text-sm">
+            Page {safePage} of {totalPages} · {initialItems.length} items
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

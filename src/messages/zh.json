@@ -73,7 +73,7 @@
       "readCaseStudy": "阅读详情 →"
     },
     "detail": {
-      "backLink": "返回作品列表",
+      "backLink": "返回",
       "overviewEyebrow": "概览",
       "overviewTitle": "这是什么",
       "whyEyebrow": "故事",
@@ -126,11 +126,17 @@
       "empty": "暂无文章。",
       "allTags": "全部",
       "minRead": "分钟阅读",
+      "backLabel": "返回",
       "navLabel": "文章翻页导航",
       "previous": "上一篇",
       "next": "下一篇",
       "subscribeFooterTitle": "喜欢这篇文章？",
-      "subscribeFooterSub": "每月收到新文章和新项目更新。没有垃圾邮件，随时退订。"
+      "subscribeFooterSub": "每月收到新文章和新项目更新。没有垃圾邮件，随时退订。",
+      "paginationPrev": "上一页",
+      "paginationNext": "下一页",
+      "paginationPage": "第",
+      "paginationOf": "/",
+      "paginationTotal": "篇文章"
     }
   },
   "stats": {

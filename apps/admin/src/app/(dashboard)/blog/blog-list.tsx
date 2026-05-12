@@ -190,47 +190,7 @@ export function BlogList({ posts }: BlogListProps) {
     <div className="flex min-h-0 flex-1 flex-col gap-4">
       {/* Toolbar */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Language filter */}
-          <div className="border-border flex gap-1 rounded-md border p-1">
-            {(['all', 'en', 'zh'] as const).map((value) => (
-              <button
-                key={value}
-                onClick={() => {
-                  setLangFilter(value);
-                  setCurrentPage(1);
-                }}
-                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                  langFilter === value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                {value === 'all' ? 'All' : value.toUpperCase()}
-              </button>
-            ))}
-          </div>
-
-          {/* Source filter */}
-          <div className="border-border flex gap-1 rounded-md border p-1">
-            {(['all', 'manual', 'juejin'] as const).map((value) => (
-              <button
-                key={value}
-                onClick={() => {
-                  setSourceFilter(value);
-                  setCurrentPage(1);
-                }}
-                className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
-                  sourceFilter === value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                }`}
-              >
-                {value === 'all' ? 'All Sources' : (SOURCE_LABELS[value]?.label ?? value)}
-              </button>
-            ))}
-          </div>
-        </div>
+        <div className="flex flex-wrap items-center gap-3">{/* 过滤器已移到表头列 */}</div>
 
         <div className="flex items-center gap-2">
           {selectedIds.size > 0 && (
@@ -298,8 +258,34 @@ export function BlogList({ posts }: BlogListProps) {
                 </span>
               </th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">Title</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Source</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Lang</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                <select
+                  value={sourceFilter}
+                  onChange={(e) => {
+                    setSourceFilter(e.target.value as SourceFilter);
+                    setCurrentPage(1);
+                  }}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer appearance-none border-none bg-transparent text-sm font-medium outline-none"
+                >
+                  <option value="all">Source ▾</option>
+                  <option value="manual">手动</option>
+                  <option value="juejin">掘金</option>
+                </select>
+              </th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                <select
+                  value={langFilter}
+                  onChange={(e) => {
+                    setLangFilter(e.target.value as LangFilter);
+                    setCurrentPage(1);
+                  }}
+                  className="text-muted-foreground hover:text-foreground cursor-pointer appearance-none border-none bg-transparent text-sm font-medium outline-none"
+                >
+                  <option value="all">Lang ▾</option>
+                  <option value="en">EN</option>
+                  <option value="zh">ZH</option>
+                </select>
+              </th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">Status</th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">Updated</th>
               <th className="text-muted-foreground px-4 py-3 text-right font-medium">Actions</th>

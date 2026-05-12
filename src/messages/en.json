@@ -73,7 +73,7 @@
       "readCaseStudy": "Read case study →"
     },
     "detail": {
-      "backLink": "All projects",
+      "backLink": "Back",
       "overviewEyebrow": "Overview",
       "overviewTitle": "What it is",
       "whyEyebrow": "Story",
@@ -126,11 +126,17 @@
       "empty": "No posts yet.",
       "allTags": "All",
       "minRead": "min read",
+      "backLabel": "Back",
       "navLabel": "Post navigation",
       "previous": "Previous",
       "next": "Next",
       "subscribeFooterTitle": "Enjoyed this post?",
-      "subscribeFooterSub": "Get monthly updates on new posts and projects. No spam, unsubscribe anytime."
+      "subscribeFooterSub": "Get monthly updates on new posts and projects. No spam, unsubscribe anytime.",
+      "paginationPrev": "Prev",
+      "paginationNext": "Next",
+      "paginationPage": "Page",
+      "paginationOf": "of",
+      "paginationTotal": "posts"
     }
   },
   "stats": {

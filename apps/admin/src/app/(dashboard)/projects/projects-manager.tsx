@@ -188,6 +188,8 @@ const inputClass =
 const labelClass = 'text-sm font-medium';
 
 /* ── Component ───────────────────────────────────────────────── */
+const PAGE_SIZE = 20;
+
 export default function ProjectsManager({ items }: { items: Project[] }) {
   const router = useRouter();
   const [showForm, setShowForm] = useState(false);
@@ -195,6 +197,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedItems = items.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
   const updateField = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   }, []);
@@ -681,7 +688,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
-              {items.map((item) => (
+              {paginatedItems.map((item) => (
                 <tr key={item.id} className="hover:bg-muted/30 transition-colors">
                   <td className="px-4 py-3 font-medium">{item.name}</td>
                   <td className="px-4 py-3">{categoryBadge(item.category)}</td>
@@ -718,6 +725,33 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination */}
+      {items.length > PAGE_SIZE && (
+        <div className="border-border flex items-center justify-between border-t pt-3">
+          <span className="text-muted-foreground text-sm">
+            Page {safePage} of {totalPages} · {items.length} items
+          </span>
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={safePage <= 1}
+              className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={safePage >= totalPages}
+              className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
     </div>

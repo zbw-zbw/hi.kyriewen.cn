@@ -30,20 +30,52 @@ export default function I18nPage() {
   const fetchItems = useCallback(async () => {
     setLoading(true);
     try {
-      const [zhRes, enRes] = await Promise.all([
+      const [zhRes, enRes, zhJsonRes, enJsonRes] = await Promise.all([
         fetch('/api/i18n?locale=zh'),
         fetch('/api/i18n?locale=en'),
+        fetch('/api/i18n/json?locale=zh'),
+        fetch('/api/i18n/json?locale=en'),
       ]);
       if (!zhRes.ok) throw new Error('Failed to fetch zh messages');
 
       const zhJson = await zhRes.json();
-      const zhList = Array.isArray(zhJson)
+      const zhDbList: I18nMessage[] = Array.isArray(zhJson)
         ? zhJson
         : Array.isArray(zhJson?.data)
           ? zhJson.data
           : [];
-      setZhItems(zhList);
 
+      // 合并 JSON 文件基础文案和 DB 覆盖文案（DB 优先）
+      const zhDbMap = new Map<string, I18nMessage>();
+      for (const item of zhDbList) {
+        zhDbMap.set(`${item.namespace}::${item.key}`, item);
+      }
+
+      // 读取 JSON 文件中的基础文案
+      let jsonBaseItems: I18nMessage[] = [];
+      if (zhJsonRes.ok) {
+        const jsonData = await zhJsonRes.json();
+        const flatItems = Array.isArray(jsonData?.data) ? jsonData.data : [];
+        // 将 JSON 文案转换为 I18nMessage 格式（id 使用负数以区分于 DB 数据）
+        jsonBaseItems = flatItems
+          .filter(
+            (item: { namespace: string; key: string }) =>
+              !zhDbMap.has(`${item.namespace}::${item.key}`),
+          )
+          .map((item: { namespace: string; key: string; value: string }, index: number) => ({
+            id: -(index + 1),
+            locale: 'zh',
+            namespace: item.namespace,
+            key: item.key,
+            value: item.value,
+            updatedAt: '',
+          }));
+      }
+
+      setZhItems([...zhDbList, ...jsonBaseItems]);
+
+      // 处理英文文案
+      const enDbList: I18nMessage[] = [];
       if (enRes.ok) {
         const enJson = await enRes.json();
         const enList = Array.isArray(enJson)
@@ -51,8 +83,34 @@ export default function I18nPage() {
           : Array.isArray(enJson?.data)
             ? enJson.data
             : [];
-        setEnItems(enList);
+        enDbList.push(...enList);
       }
+
+      // 合并英文 JSON 基础文案
+      if (enJsonRes.ok) {
+        const enJsonData = await enJsonRes.json();
+        const enFlatItems = Array.isArray(enJsonData?.data) ? enJsonData.data : [];
+        const enDbMap = new Map<string, boolean>();
+        for (const item of enDbList) {
+          enDbMap.set(`${item.namespace}::${item.key}`, true);
+        }
+        const enJsonItems = enFlatItems
+          .filter(
+            (item: { namespace: string; key: string }) =>
+              !enDbMap.has(`${item.namespace}::${item.key}`),
+          )
+          .map((item: { namespace: string; key: string; value: string }, index: number) => ({
+            id: -(index + 1),
+            locale: 'en',
+            namespace: item.namespace,
+            key: item.key,
+            value: item.value,
+            updatedAt: '',
+          }));
+        enDbList.push(...enJsonItems);
+      }
+
+      setEnItems(enDbList);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load data');
     } finally {
@@ -112,11 +170,26 @@ export default function I18nPage() {
     setSaving(true);
     try {
       // 1. Save the Chinese value
-      const response = await fetch(`/api/i18n/${editingItem.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: editValue }),
-      });
+      // 对于 JSON 基础文案（id < 0），使用 POST（upsert）创建到 DB
+      let response: Response;
+      if (editingItem.id < 0) {
+        response = await fetch('/api/i18n', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            locale: 'zh',
+            namespace: editingItem.namespace,
+            key: editingItem.key,
+            value: editValue,
+          }),
+        });
+      } else {
+        response = await fetch(`/api/i18n/${editingItem.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ value: editValue }),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
