@@ -141,19 +141,49 @@ function slugify(title: string, source: string, id: string): string {
 
 async function fetchJuejinContent(articleId: string): Promise<string | null> {
   try {
-    const res = await fetch(
-      'https://api.juejin.cn/content_api/v1/article/detail?aid=2608&uuid=&spider=0',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'User-Agent': UA },
-        body: JSON.stringify({ article_id: articleId, req_from: 1, client_type: 2608 }),
+    // Fetch the SSR-rendered article page and extract content from HTML
+    const res = await fetch(`https://juejin.cn/post/${articleId}`, {
+      headers: {
+        'User-Agent': UA,
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
       },
-    );
+    });
     if (!res.ok) return null;
-    const data = await res.json();
-    const markdownBody = data?.data?.article_info?.mark_content;
-    if (markdownBody && markdownBody.length >= 50) return markdownBody;
-    return null;
+    const html = await res.text();
+
+    const startMarker = 'class="article-viewer markdown-body result">';
+    const startIdx = html.indexOf(startMarker);
+    if (startIdx === -1) return null;
+
+    let body = html.substring(startIdx + startMarker.length);
+
+    // Skip leading <style> tags
+    while (body.trimStart().startsWith('<style')) {
+      const styleEnd = body.indexOf('</style>');
+      if (styleEnd === -1) break;
+      body = body.substring(styleEnd + 8);
+    }
+
+    // Cut at end markers
+    for (const marker of [
+      'class="tag-list-box"',
+      'class="article-end"',
+      'class="article-suspended-panel"',
+      'class="recommended-area"',
+    ]) {
+      const idx = body.indexOf(marker);
+      if (idx > 0) {
+        let cutoff = idx;
+        while (cutoff > 0 && body[cutoff] !== '<') cutoff--;
+        body = body.substring(0, cutoff);
+        break;
+      }
+    }
+
+    body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+    const md = htmlToMarkdown(body.trim());
+    return md.length >= 50 ? md : null;
   } catch {
     return null;
   }

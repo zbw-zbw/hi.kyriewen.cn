@@ -114,29 +114,52 @@ async function fetchCsdn(url) {
   return md.length >= 50 ? md : null;
 }
 
-/* ── Juejin content extractor (uses detail API for Markdown) ──── */
+/* ── Juejin content extractor (fetch SSR HTML + parse) ────────── */
 
 async function fetchJuejin(url) {
-  // Extract article ID from URL: https://juejin.cn/post/7048763434
-  const idMatch = url.match(/\/post\/(\d+)/);
-  if (!idMatch) return null;
-  const articleId = idMatch[1];
+  const res = await fetchWithRetry(url, {
+    headers: {
+      'User-Agent': UA,
+      'Accept': 'text/html,application/xhtml+xml',
+      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+    },
+  });
+  if (!res || !res.ok) return null;
+  const html = await res.text();
 
-  try {
-    // Use Juejin detail API to get Markdown content directly
-    const res = await fetchWithRetry('https://api.juejin.cn/content_api/v1/article/detail', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ article_id: articleId }),
-    });
-    if (!res || !res.ok) return null;
-    const data = await res.json();
-    const markdownBody = data?.data?.article_info?.mark_content;
-    if (markdownBody && markdownBody.length >= 50) return markdownBody;
-    return null;
-  } catch {
-    return null;
+  // Extract content from SSR-rendered article-viewer div
+  const startMarker = 'class="article-viewer markdown-body result">';
+  const si = html.indexOf(startMarker);
+  if (si === -1) return null;
+
+  let body = html.substring(si + startMarker.length);
+
+  // Skip leading <style> tags
+  while (body.trimStart().startsWith('<style')) {
+    const se = body.indexOf('</style>');
+    if (se === -1) break;
+    body = body.substring(se + 8);
   }
+
+  // Cut at end markers
+  for (const mk of [
+    'class="tag-list-box"',
+    'class="article-end"',
+    'class="article-suspended-panel"',
+    'class="recommended-area"',
+  ]) {
+    const idx = body.indexOf(mk);
+    if (idx > 0) {
+      let c = idx;
+      while (c > 0 && body[c] !== '<') c--;
+      body = body.substring(0, c);
+      break;
+    }
+  }
+
+  body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+  const md = toMd(body.trim());
+  return md.length >= 50 ? md : null;
 }
 
 /* ── Content dispatcher ─────────────────────────────────────────── */
