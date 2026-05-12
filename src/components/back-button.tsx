@@ -52,9 +52,8 @@ interface SmartBackButtonProps {
 
 /**
  * 智能返回按钮：根据来源页决定返回目标。
- * - 如果从列表页进入 → 返回列表页
  * - 如果从首页进入 → 返回首页
- * - 其他情况 → 返回列表页（默认）
+ * - 其他所有情况（列表页、外部链接、直接访问等）→ 返回对应列表页
  */
 export function SmartBackButton({
   label,
@@ -79,13 +78,14 @@ export function SmartBackButton({
         setTargetHref(listHref);
         return;
       }
-      // 判断来源路径
-      const referrerPath = referrerUrl.pathname;
-      if (referrerPath.includes(listPathMatch)) {
-        setTargetHref(listHref);
-      } else {
-        // 从首页或其他页面进来
+      // 去掉 locale 前缀后判断是否是首页
+      const referrerPath = referrerUrl.pathname.replace(/^\/(en|zh)/, '') || '/';
+      const isFromHome = referrerPath === '/';
+      if (isFromHome) {
         setTargetHref(homeHref);
+      } else {
+        // 从列表页或其他页面进入，统一返回列表页
+        setTargetHref(listHref);
       }
     } catch {
       setTargetHref(listHref);

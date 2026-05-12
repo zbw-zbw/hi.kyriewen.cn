@@ -111,10 +111,10 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <head>
-        {/* 防主题闪烁：在 hydration 前同步设置 dark class */}
+        {/* 防闪烁：在 hydration 前同步设置 dark class + color-scheme + 背景色 */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(t!=='light'&&d)){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}}catch(e){}})()`,
+            __html: `(function(){try{var s=localStorage.getItem('theme');var q=window.matchMedia('(prefers-color-scheme:dark)').matches;var dark=s==='dark'||(s!=='light'&&q);var h=document.documentElement;if(dark){h.classList.add('dark');h.style.colorScheme='dark';h.style.backgroundColor='#0a0a0a'}else{h.classList.remove('dark');h.style.colorScheme='light';h.style.backgroundColor='#fafafa'}}catch(e){}})()`,
           }}
         />
         {/* 防闪烁：在 hydration 前同步设置 data-accent 属性 */}
