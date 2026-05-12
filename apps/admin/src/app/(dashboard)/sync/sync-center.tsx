@@ -127,10 +127,21 @@ export function SyncCenter() {
         let friendlyMessage = 'Completed successfully';
         if (taskId === 'sync-articles' && Array.isArray(result.results)) {
           const parts = result.results.map(
-            (r: { source: string; imported: number; skipped: number; error?: string }) =>
-              r.error
-                ? `${r.source}: error`
-                : `${r.source === 'juejin' ? '掘金' : r.source.toUpperCase()}: +${r.imported} new, ${r.skipped} skipped`,
+            (r: {
+              source: string;
+              imported: number;
+              skipped: number;
+              contentFailed?: number;
+              error?: string;
+            }) => {
+              if (r.error) return `${r.source}: error`;
+              const label = r.source === 'juejin' ? '掘金' : r.source.toUpperCase();
+              let msg = `${label}: +${r.imported} new, ${r.skipped} skipped`;
+              if (r.contentFailed && r.contentFailed > 0) {
+                msg += ` ⚠️ ${r.contentFailed} content failed`;
+              }
+              return msg;
+            },
           );
           friendlyMessage = parts.join(' · ');
         } else if (typeof result.imported === 'number') {
