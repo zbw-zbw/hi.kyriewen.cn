@@ -140,23 +140,30 @@ function slugify(title: string, source: string, id: string): string {
 /* ── Fetch full article content ──────────────────────────────────── */
 
 async function fetchJuejinContent(articleId: string): Promise<string | null> {
+  const contentProxy = process.env.CONTENT_PROXY || 'http://proxy.kyriewen.cn:3100';
+  const proxyToken = process.env.PROXY_TOKEN || 'content-proxy-secret';
+
   try {
-    // Fetch the SSR-rendered article page and extract content from HTML
-    const res = await fetch(`https://juejin.cn/post/${articleId}`, {
+    // Use Playwright-based content-proxy to bypass Juejin WAF
+    const proxyRes = await fetch(`${contentProxy}/fetch`, {
+      method: 'POST',
       headers: {
-        'User-Agent': UA,
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${proxyToken}`,
       },
+      body: JSON.stringify({ url: `https://juejin.cn/post/${articleId}` }),
     });
-    if (!res.ok) return null;
-    const html = await res.text();
 
-    const startMarker = 'class="article-viewer markdown-body result">';
-    const startIdx = html.indexOf(startMarker);
-    if (startIdx === -1) return null;
+    if (!proxyRes.ok) {
+      console.log(`[juejin] content-proxy returned ${proxyRes.status} for ${articleId}`);
+      return null;
+    }
 
-    let body = html.substring(startIdx + startMarker.length);
+    const { html } = (await proxyRes.json()) as { html?: string };
+    if (!html) return null;
+
+    // Clean up the HTML extracted by the proxy
+    let body = html;
 
     // Skip leading <style> tags
     while (body.trimStart().startsWith('<style')) {
@@ -165,26 +172,11 @@ async function fetchJuejinContent(articleId: string): Promise<string | null> {
       body = body.substring(styleEnd + 8);
     }
 
-    // Cut at end markers
-    for (const marker of [
-      'class="tag-list-box"',
-      'class="article-end"',
-      'class="article-suspended-panel"',
-      'class="recommended-area"',
-    ]) {
-      const idx = body.indexOf(marker);
-      if (idx > 0) {
-        let cutoff = idx;
-        while (cutoff > 0 && body[cutoff] !== '<') cutoff--;
-        body = body.substring(0, cutoff);
-        break;
-      }
-    }
-
     body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
     const md = htmlToMarkdown(body.trim());
     return md.length >= 50 ? md : null;
-  } catch {
+  } catch (error) {
+    console.log(`[juejin] content-proxy error for ${articleId}:`, error);
     return null;
   }
 }

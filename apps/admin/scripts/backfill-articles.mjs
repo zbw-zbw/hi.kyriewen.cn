@@ -4,16 +4,26 @@
  * Fetches articles with missing/short content via Admin API,
  * then scrapes the full content from each source.
  *
+ * For Juejin: uses a Playwright-based content-proxy service to bypass WAF.
+ * For CSDN:   direct HTTP fetch still works.
+ *
  * Usage:
  *   node scripts/backfill-articles.mjs           # all sources
  *   node scripts/backfill-articles.mjs --csdn    # CSDN only
  *   node scripts/backfill-articles.mjs --juejin  # Juejin only
+ *
+ * Environment:
+ *   ADMIN_API       – Admin backend URL (default: https://admin.kyriewen.cn)
+ *   CONTENT_PROXY   – content-proxy service URL (default: http://proxy.kyriewen.cn:3100)
+ *   PROXY_TOKEN     – Auth token for content-proxy (default: content-proxy-secret)
  */
 
 // Fix TLS certificate issues with Node.js 22+
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 const ADMIN_API = process.env.ADMIN_API || 'https://admin.kyriewen.cn';
+const CONTENT_PROXY = process.env.CONTENT_PROXY || 'http://proxy.kyriewen.cn:3100';
+const PROXY_TOKEN = process.env.PROXY_TOKEN || 'content-proxy-secret';
 const sourceArg = process.argv[2];
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
@@ -114,52 +124,45 @@ async function fetchCsdn(url) {
   return md.length >= 50 ? md : null;
 }
 
-/* ── Juejin content extractor (fetch SSR HTML + parse) ────────── */
+/* ── Juejin content extractor (via content-proxy Playwright service) ── */
 
 async function fetchJuejin(url) {
-  const res = await fetchWithRetry(url, {
-    headers: {
-      'User-Agent': UA,
-      'Accept': 'text/html,application/xhtml+xml',
-      'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
-    },
-  });
-  if (!res || !res.ok) return null;
-  const html = await res.text();
+  try {
+    const proxyRes = await fetch(`${CONTENT_PROXY}/fetch`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${PROXY_TOKEN}`,
+      },
+      body: JSON.stringify({ url }),
+    });
 
-  // Extract content from SSR-rendered article-viewer div
-  const startMarker = 'class="article-viewer markdown-body result">';
-  const si = html.indexOf(startMarker);
-  if (si === -1) return null;
-
-  let body = html.substring(si + startMarker.length);
-
-  // Skip leading <style> tags
-  while (body.trimStart().startsWith('<style')) {
-    const se = body.indexOf('</style>');
-    if (se === -1) break;
-    body = body.substring(se + 8);
-  }
-
-  // Cut at end markers
-  for (const mk of [
-    'class="tag-list-box"',
-    'class="article-end"',
-    'class="article-suspended-panel"',
-    'class="recommended-area"',
-  ]) {
-    const idx = body.indexOf(mk);
-    if (idx > 0) {
-      let c = idx;
-      while (c > 0 && body[c] !== '<') c--;
-      body = body.substring(0, c);
-      break;
+    if (!proxyRes.ok) {
+      const errBody = await proxyRes.text().catch(() => '');
+      console.log(`  [proxy ${proxyRes.status}] ${errBody.slice(0, 100)}`);
+      return null;
     }
-  }
 
-  body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
-  const md = toMd(body.trim());
-  return md.length >= 50 ? md : null;
+    const { html } = await proxyRes.json();
+    if (!html) return null;
+
+    // Clean up the HTML from the proxy
+    let body = html;
+
+    // Skip leading <style> tags
+    while (body.trimStart().startsWith('<style')) {
+      const se = body.indexOf('</style>');
+      if (se === -1) break;
+      body = body.substring(se + 8);
+    }
+
+    body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
+    const md = toMd(body.trim());
+    return md.length >= 50 ? md : null;
+  } catch (error) {
+    console.log(`  [proxy error] ${error.message}`);
+    return null;
+  }
 }
 
 /* ── Content dispatcher ─────────────────────────────────────────── */

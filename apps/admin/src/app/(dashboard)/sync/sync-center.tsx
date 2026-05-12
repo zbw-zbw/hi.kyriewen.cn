@@ -73,13 +73,52 @@ const TASKS: SyncTask[] = [
 type TaskStatus = 'idle' | 'running' | 'success' | 'error';
 type ArticleSource = 'csdn' | 'juejin';
 
+/**
+ * Generate a browser console script that opens each Juejin article in a new
+ * window (same origin, bypasses WAF), waits for the DOM to render, extracts
+ * the article HTML, converts it to Markdown, and uploads it to Admin API.
+ *
+ * Must be run from the browser console while on juejin.cn.
+ */
 function generateBackfillScript(): string {
   const adminApi = 'https://admin.kyriewen.cn';
+  /* ------------------------------------------------------------------ *
+   *  The script is intentionally compact because it will be copy-pasted *
+   *  into a browser console. Variable names are kept short on purpose.  *
+   * ------------------------------------------------------------------ */
   return `(async()=>{
+/* ── helpers ── */
 const API='${adminApi}';
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
 const strip=h=>h.replace(/<[^>]+>/g,'');
 const dec=t=>t.replace(/&#x([0-9a-fA-F]+);/g,(_,h)=>String.fromCharCode(parseInt(h,16))).replace(/&#(\\d+);/g,(_,d)=>String.fromCharCode(+d)).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ');
 const toMd=html=>{let m=html;m=m.replace(/<pre[^>]*><code[^>]*(?:class="[^"]*language-(\\w+)[^"]*")?[^>]*>([\\s\\S]*?)<\\/code><\\/pre>/gi,(_,l,c)=>'\\n\`\`\`'+(l||'')+'\\n'+dec(c.replace(/<[^>]+>/g,''))+'\\n\`\`\`\\n');m=m.replace(/<h([1-5])[^>]*>([\\s\\S]*?)<\\/h\\1>/gi,(_,n,c)=>'\\n'+'#'.repeat(+n)+' '+strip(c)+'\\n');m=m.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\\/?>/gi,'![$2]($1)');m=m.replace(/<img[^>]*src="([^"]*)"[^>]*\\/?>/gi,'![]($1)');m=m.replace(/<a[^>]*href="([^"]*)"[^>]*>([\\s\\S]*?)<\\/a>/gi,(_,h,t)=>{const s=strip(t).trim();return s?'['+s+']('+h+')':'';});m=m.replace(/<strong[^>]*>([\\s\\S]*?)<\\/strong>/gi,'**$1**');m=m.replace(/<em[^>]*>([\\s\\S]*?)<\\/em>/gi,'*$1*');m=m.replace(/<code[^>]*>([\\s\\S]*?)<\\/code>/gi,(_,c)=>'\`'+dec(c)+'\`');m=m.replace(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi,(_,c)=>'- '+strip(c).trim()+'\\n');m=m.replace(/<blockquote[^>]*>([\\s\\S]*?)<\\/blockquote>/gi,(_,c)=>strip(c).trim().split('\\n').map(l=>'> '+l).join('\\n')+'\\n');m=m.replace(/<p[^>]*>([\\s\\S]*?)<\\/p>/gi,(_,c)=>'\\n'+strip(c).trim()+'\\n');m=m.replace(/<br[^>]*\\/?>/gi,'\\n');m=m.replace(/<[^>]+>/g,'');m=dec(m);return m.replace(/\\n{3,}/g,'\\n\\n').trim();};
+
+/* ── open a juejin article in a popup, wait for content, extract HTML ── */
+async function extractFromPopup(url){
+  const w=window.open(url,'_blank','width=900,height=700');
+  if(!w){console.log('  ❌ popup blocked! Allow popups for juejin.cn');return null;}
+  /* wait for the article content to render (poll every 500ms, max 20s) */
+  for(let t=0;t<40;t++){
+    await wait(500);
+    try{
+      const el=w.document.querySelector('.article-viewer.markdown-body.result');
+      if(el&&el.innerHTML.length>100){
+        const html=el.innerHTML;
+        w.close();
+        return html;
+      }
+    }catch(e){/* cross-origin or not ready yet */}
+  }
+  w.close();
+  return null;
+}
+
+/* ── main ── */
+if(!location.hostname.includes('juejin.cn')){
+  console.error('❌ Please run this script on juejin.cn!');
+  return;
+}
 console.log('📋 Fetching article list from Admin API...');
 const listRes=await fetch(API+'/api/blog/backfill?source=juejin');
 const{data:articles}=await listRes.json();
@@ -90,14 +129,10 @@ for(let i=0;i<articles.length;i++){
   if(!art.sourceUrl){fail++;continue;}
   console.log('['+(i+1)+'/'+articles.length+'] '+art.title.slice(0,40)+'...');
   try{
-    const r=await fetch(art.sourceUrl);
-    const html=await r.text();
-    const mk='class="article-viewer markdown-body result">';
-    const si=html.indexOf(mk);
-    if(si===-1){console.log('  ⚠️ no content marker');fail++;continue;}
-    let body=html.substring(si+mk.length);
-    while(body.trimStart().startsWith('<style')){const se=body.indexOf('</style>');if(se===-1)break;body=body.substring(se+8);}
-    for(const m of['class="tag-list-box"','class="article-end"','class="article-suspended-panel"','class="recommended-area"']){const idx=body.indexOf(m);if(idx>0){let c=idx;while(c>0&&body[c]!=='<')c--;body=body.substring(0,c);break;}}
+    const html=await extractFromPopup(art.sourceUrl);
+    if(!html){console.log('  ⚠️ no content');fail++;continue;}
+    let body=html;
+    body=body.replace(/<style[\\s\\S]*?<\\/style>/gi,'');
     body=body.replace(/<svg[\\s\\S]*?<\\/svg>/gi,'');
     const md=toMd(body.trim());
     if(md.length<50){console.log('  ⚠️ content too short');fail++;continue;}
@@ -105,7 +140,7 @@ for(let i=0;i<articles.length;i++){
     if(upRes.ok){console.log('  ✅ updated ('+md.length+' chars)');ok++;}
     else{console.log('  ❌ API error');fail++;}
   }catch(e){console.log('  ❌ '+e.message);fail++;}
-  if(i<articles.length-1)await new Promise(r=>setTimeout(r,1500));
+  await wait(2000);
 }
 console.log('\\n🎉 Done! ✅ '+ok+' updated, ❌ '+fail+' failed');
 })();`;
