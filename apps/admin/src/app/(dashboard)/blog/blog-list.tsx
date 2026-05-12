@@ -57,6 +57,7 @@ export function BlogList({ posts }: BlogListProps) {
   const router = useRouter();
   const [langFilter, setLangFilter] = useState<LangFilter>('all');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
+  const [titleSearch, setTitleSearch] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -71,9 +72,13 @@ export function BlogList({ posts }: BlogListProps) {
         const postSource = post.source || 'manual';
         if (postSource !== sourceFilter) return false;
       }
+      if (titleSearch.trim()) {
+        const query = titleSearch.toLowerCase();
+        if (!post.title.toLowerCase().includes(query)) return false;
+      }
       return true;
     });
-  }, [posts, langFilter, sourceFilter]);
+  }, [posts, langFilter, sourceFilter, titleSearch]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -257,7 +262,21 @@ export function BlogList({ posts }: BlogListProps) {
                   )}
                 </span>
               </th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Title</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">
+                <div className="flex items-center gap-2">
+                  <span>Title</span>
+                  <input
+                    type="text"
+                    value={titleSearch}
+                    onChange={(e) => {
+                      setTitleSearch(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="搜索..."
+                    className="border-border bg-background focus:ring-ring w-32 rounded border px-2 py-0.5 text-xs font-normal outline-none focus:ring-1"
+                  />
+                </div>
+              </th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">
                 <select
                   value={sourceFilter}

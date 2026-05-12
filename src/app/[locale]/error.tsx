@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { Link } from '@/i18n/navigation';
+import { AlertTriangle, RefreshCw, ArrowLeft } from 'lucide-react';
 
 /**
  * 路由级错误兜底 — 页面 Server Component 报错时触发。
@@ -24,7 +24,9 @@ export default function LocaleError({
   let title = 'Something went wrong';
   let description = 'An unexpected error occurred. Please try again or go back to the homepage.';
   let retryLabel = 'Try again';
-  let homeLabel = 'Back to Home';
+  let homeLabel = 'Back';
+
+  const router = useRouter();
 
   try {
     const t = useTranslations('error');
@@ -56,13 +58,13 @@ export default function LocaleError({
           <RefreshCw className="h-4 w-4" />
           {retryLabel}
         </button>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 rounded-md bg-[var(--fg)] px-4 py-2 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
+        <button
+          onClick={() => router.back()}
+          className="inline-flex cursor-pointer items-center gap-2 rounded-md bg-[var(--fg)] px-4 py-2 text-sm font-medium text-[var(--bg)] transition-colors hover:opacity-90"
         >
-          <Home className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" />
           {homeLabel}
-        </Link>
+        </button>
       </div>
     </div>
   );

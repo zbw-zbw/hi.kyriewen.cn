@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { TrendingUp, TrendingDown, Minus, Pencil, Trash2, Plus, X, RefreshCw } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Pencil, Trash2, Plus, X } from 'lucide-react';
 
 type PopularPost = {
   id: number;
@@ -59,7 +59,6 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
   const [blogPosts, setBlogPosts] = useState<BlogPostOption[]>([]);
   const [slugSearch, setSlugSearch] = useState('');
   const [showSlugDropdown, setShowSlugDropdown] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // 加载已发布的博客文章列表
@@ -93,7 +92,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
   // 选择文章后自动获取浏览量
   async function selectPost(post: BlogPostOption) {
     setFormData((prev) => ({ ...prev, slug: post.slug }));
-    setSlugSearch('');
+    setSlugSearch(post.title);
     setShowSlugDropdown(false);
 
     // 自动获取浏览量
@@ -111,50 +110,22 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
     }
   }
 
-  // 同步所有热门文章的浏览量
-  async function syncAllViews() {
-    if (initialData.length === 0) return;
-    setSyncing(true);
-    try {
-      const slugs = initialData.map((p) => `blog/${p.slug}`).join(',');
-      const viewsRes = await fetch(`/api/views?slugs=${encodeURIComponent(slugs)}`);
-      if (!viewsRes.ok) throw new Error('Failed to fetch views');
-
-      const viewsData = await viewsRes.json();
-      const viewsMap = viewsData.views ?? {};
-
-      let updatedCount = 0;
-      for (const post of initialData) {
-        const viewCount = viewsMap[`blog/${post.slug}`];
-        if (typeof viewCount === 'number' && viewCount !== (post.views ?? 0)) {
-          await fetch(`/api/popular/${post.id}`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ views: viewCount }),
-          });
-          updatedCount++;
-        }
-      }
-
-      toast.success(`已同步 ${updatedCount} 篇文章的浏览量`);
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : '同步失败');
-    } finally {
-      setSyncing(false);
-    }
-  }
-
   // 已添加到热门的 slug 集合
   const existingSlugs = new Set(initialData.map((p) => p.slug));
 
-  // 过滤可选的文章列表
+  // 过滤可选的文章列表（只显示已发布的、排除已添加的）
   const filteredBlogPosts = blogPosts.filter((post) => {
     if (existingSlugs.has(post.slug) && editingId === null) return false;
     if (!slugSearch.trim()) return true;
     const query = slugSearch.toLowerCase();
     return post.title.toLowerCase().includes(query) || post.slug.toLowerCase().includes(query);
   });
+
+  // 根据 slug 查找文章标题
+  function getTitleBySlug(slug: string): string {
+    const found = blogPosts.find((p) => p.slug === slug);
+    return found?.title ?? slug;
+  }
 
   function openCreateForm() {
     setEditingId(null);
@@ -238,25 +209,14 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
           <h2 className="text-2xl font-bold tracking-tight">Popular Posts</h2>
           <p className="text-muted-foreground">Track and manage popular posts.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={syncAllViews}
-            disabled={syncing || initialData.length === 0}
-            className="border-border hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-            {syncing ? '同步中...' : '同步浏览量'}
-          </button>
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
-          >
-            <Plus className="h-4 w-4" />
-            Add Post
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={openCreateForm}
+          className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Add Post
+        </button>
       </div>
 
       {/* Form */}
@@ -283,24 +243,29 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                 id="slug"
                 type="text"
                 required
-                value={formData.slug}
+                value={slugSearch || getTitleBySlug(formData.slug)}
                 onChange={(event) => {
-                  setFormData({ ...formData, slug: event.target.value });
                   setSlugSearch(event.target.value);
                   setShowSlugDropdown(true);
                 }}
                 onFocus={() => setShowSlugDropdown(true)}
-                placeholder="搜索或输入文章 slug..."
+                placeholder="搜索文章标题..."
                 className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
+              {/* hidden input 存储真正的 slug 值 */}
+              <input type="hidden" name="slug" value={formData.slug} />
               {showSlugDropdown && filteredBlogPosts.length > 0 && (
-                <div className="border-border bg-background absolute top-full left-0 z-20 mt-1 max-h-48 w-full overflow-y-auto rounded-md border shadow-lg">
-                  {filteredBlogPosts.slice(0, 10).map((post) => (
+                <div className="border-border bg-background absolute top-full left-0 z-20 mt-1 max-h-64 w-full overflow-y-auto rounded-md border shadow-lg">
+                  {filteredBlogPosts.map((post) => (
                     <button
                       key={`${post.slug}-${post.lang}`}
                       type="button"
                       onClick={() => selectPost(post)}
-                      className="hover:bg-accent flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors"
+                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
+                        formData.slug === post.slug
+                          ? 'bg-primary/10 text-primary font-medium'
+                          : 'hover:bg-accent'
+                      }`}
                     >
                       <span className="truncate">{post.title}</span>
                       <span className="bg-muted text-muted-foreground ml-2 shrink-0 rounded px-1.5 py-0.5 text-[10px] uppercase">
@@ -365,7 +330,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
           <table className="w-full text-sm">
             <thead>
               <tr className="border-border bg-muted/50 border-b">
-                <th className="px-4 py-3 text-left font-medium">Slug</th>
+                <th className="px-4 py-3 text-left font-medium">Title</th>
                 <th className="px-4 py-3 text-left font-medium">Views</th>
                 <th className="px-4 py-3 text-left font-medium">Trend</th>
                 <th className="px-4 py-3 text-right font-medium">Actions</th>
@@ -377,7 +342,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                   key={post.id}
                   className="border-border hover:bg-muted/30 border-b transition-colors last:border-0"
                 >
-                  <td className="px-4 py-3 font-mono text-xs">{post.slug}</td>
+                  <td className="px-4 py-3 text-sm">{getTitleBySlug(post.slug)}</td>
                   <td className="px-4 py-3 tabular-nums">{(post.views ?? 0).toLocaleString()}</td>
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5">
