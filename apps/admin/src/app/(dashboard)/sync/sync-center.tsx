@@ -73,6 +73,44 @@ const TASKS: SyncTask[] = [
 type TaskStatus = 'idle' | 'running' | 'success' | 'error';
 type ArticleSource = 'csdn' | 'juejin';
 
+function generateBackfillScript(): string {
+  const adminApi = 'https://admin.kyriewen.cn';
+  return `(async()=>{
+const API='${adminApi}';
+const strip=h=>h.replace(/<[^>]+>/g,'');
+const dec=t=>t.replace(/&#x([0-9a-fA-F]+);/g,(_,h)=>String.fromCharCode(parseInt(h,16))).replace(/&#(\\d+);/g,(_,d)=>String.fromCharCode(+d)).replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&nbsp;/g,' ');
+const toMd=html=>{let m=html;m=m.replace(/<pre[^>]*><code[^>]*(?:class="[^"]*language-(\\w+)[^"]*")?[^>]*>([\\s\\S]*?)<\\/code><\\/pre>/gi,(_,l,c)=>'\\n\`\`\`'+(l||'')+'\\n'+dec(c.replace(/<[^>]+>/g,''))+'\\n\`\`\`\\n');m=m.replace(/<h([1-5])[^>]*>([\\s\\S]*?)<\\/h\\1>/gi,(_,n,c)=>'\\n'+'#'.repeat(+n)+' '+strip(c)+'\\n');m=m.replace(/<img[^>]*src="([^"]*)"[^>]*alt="([^"]*)"[^>]*\\/?>/gi,'![$2]($1)');m=m.replace(/<img[^>]*src="([^"]*)"[^>]*\\/?>/gi,'![]($1)');m=m.replace(/<a[^>]*href="([^"]*)"[^>]*>([\\s\\S]*?)<\\/a>/gi,(_,h,t)=>{const s=strip(t).trim();return s?'['+s+']('+h+')':'';});m=m.replace(/<strong[^>]*>([\\s\\S]*?)<\\/strong>/gi,'**$1**');m=m.replace(/<em[^>]*>([\\s\\S]*?)<\\/em>/gi,'*$1*');m=m.replace(/<code[^>]*>([\\s\\S]*?)<\\/code>/gi,(_,c)=>'\`'+dec(c)+'\`');m=m.replace(/<li[^>]*>([\\s\\S]*?)<\\/li>/gi,(_,c)=>'- '+strip(c).trim()+'\\n');m=m.replace(/<blockquote[^>]*>([\\s\\S]*?)<\\/blockquote>/gi,(_,c)=>strip(c).trim().split('\\n').map(l=>'> '+l).join('\\n')+'\\n');m=m.replace(/<p[^>]*>([\\s\\S]*?)<\\/p>/gi,(_,c)=>'\\n'+strip(c).trim()+'\\n');m=m.replace(/<br[^>]*\\/?>/gi,'\\n');m=m.replace(/<[^>]+>/g,'');m=dec(m);return m.replace(/\\n{3,}/g,'\\n\\n').trim();};
+console.log('📋 Fetching article list from Admin API...');
+const listRes=await fetch(API+'/api/blog/backfill?source=juejin');
+const{data:articles}=await listRes.json();
+console.log('Found '+articles.length+' juejin articles');
+let ok=0,fail=0;
+for(let i=0;i<articles.length;i++){
+  const art=articles[i];
+  if(!art.sourceUrl){fail++;continue;}
+  console.log('['+(i+1)+'/'+articles.length+'] '+art.title.slice(0,40)+'...');
+  try{
+    const r=await fetch(art.sourceUrl);
+    const html=await r.text();
+    const mk='class="article-viewer markdown-body result">';
+    const si=html.indexOf(mk);
+    if(si===-1){console.log('  ⚠️ no content marker');fail++;continue;}
+    let body=html.substring(si+mk.length);
+    while(body.trimStart().startsWith('<style')){const se=body.indexOf('</style>');if(se===-1)break;body=body.substring(se+8);}
+    for(const m of['class="tag-list-box"','class="article-end"','class="article-suspended-panel"','class="recommended-area"']){const idx=body.indexOf(m);if(idx>0){let c=idx;while(c>0&&body[c]!=='<')c--;body=body.substring(0,c);break;}}
+    body=body.replace(/<svg[\\s\\S]*?<\\/svg>/gi,'');
+    const md=toMd(body.trim());
+    if(md.length<50){console.log('  ⚠️ content too short');fail++;continue;}
+    const upRes=await fetch(API+'/api/blog/backfill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:art.id,content:md})});
+    if(upRes.ok){console.log('  ✅ updated ('+md.length+' chars)');ok++;}
+    else{console.log('  ❌ API error');fail++;}
+  }catch(e){console.log('  ❌ '+e.message);fail++;}
+  if(i<articles.length-1)await new Promise(r=>setTimeout(r,1500));
+}
+console.log('\\n🎉 Done! ✅ '+ok+' updated, ❌ '+fail+' failed');
+})();`;
+}
+
 export function SyncCenter() {
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>({});
   const [taskResults, setTaskResults] = useState<Record<string, string>>({});
@@ -254,16 +292,23 @@ export function SyncCenter() {
                 </div>
               </div>
 
-              {/* Article sync: content failed warning */}
-              {isArticleSync && result && result.includes('content failed') && (
-                <div className="mt-3 ml-14 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-800 dark:bg-amber-950/30">
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
-                    ⚠️
-                    部分文章正文抓取失败（CSDN/掘金有反爬限制）。请在本地终端运行以下命令补全正文：
+              {/* Article sync: backfill script button */}
+              {isArticleSync && (
+                <div className="mt-3 ml-14 rounded-md border border-blue-200 bg-blue-50 p-2.5 dark:border-blue-800 dark:bg-blue-950/30">
+                  <p className="text-xs text-blue-700 dark:text-blue-400">
+                    💡 掘金有反爬限制，需在掘金网站控制台运行脚本补全正文。
                   </p>
-                  <code className="mt-1.5 block rounded bg-amber-100 px-2 py-1 text-[11px] text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                    cd apps/admin &amp;&amp; node scripts/backfill-articles.mjs
-                  </code>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const script = generateBackfillScript();
+                      navigator.clipboard.writeText(script);
+                      toast.success('已复制！请打开 juejin.cn 任意页面，按 F12 打开控制台粘贴运行');
+                    }}
+                    className="mt-1.5 inline-flex cursor-pointer items-center gap-1.5 rounded bg-blue-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    📋 复制掘金 Backfill 脚本
+                  </button>
                 </div>
               )}
 

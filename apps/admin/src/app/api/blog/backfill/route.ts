@@ -6,6 +6,24 @@ import { blogPosts } from '@repo/db/schema';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+/* ── CORS helpers (allow browser console scripts from juejin.cn) ── */
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
+export function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
+function corsJson(data: unknown, init?: ResponseInit) {
+  const res = NextResponse.json(data, init);
+  for (const [k, v] of Object.entries(CORS_HEADERS)) res.headers.set(k, v);
+  return res;
+}
+
 /**
  * POST /api/blog/backfill
  * Receives article content from the browser (which can fetch CSDN from a domestic IP)
@@ -41,17 +59,14 @@ export async function POST(req: Request) {
         }
       }
 
-      return NextResponse.json({ ok: true, updated, failed });
+      return corsJson({ ok: true, updated, failed });
     }
 
     // Single mode
     const { id, content } = body as { id: number; content: string };
 
     if (!id || !content) {
-      return NextResponse.json(
-        { error: 'id and content are required' },
-        { status: 400 },
-      );
+      return corsJson({ error: 'id and content are required' }, { status: 400 });
     }
 
     const [row] = await db
@@ -61,13 +76,13 @@ export async function POST(req: Request) {
       .returning();
 
     if (!row) {
-      return NextResponse.json({ error: 'not_found' }, { status: 404 });
+      return corsJson({ error: 'not_found' }, { status: 404 });
     }
 
-    return NextResponse.json({ ok: true, id: row.id });
+    return corsJson({ ok: true, id: row.id });
   } catch (error) {
     console.error('[api/blog/backfill] POST failed', error);
-    return NextResponse.json({ error: 'db_error' }, { status: 500 });
+    return corsJson({ error: 'db_error' }, { status: 500 });
   }
 }
 
@@ -81,9 +96,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const source = searchParams.get('source'); // 'csdn' | 'juejin' | null (all)
 
-    const conditions = source
-      ? eq(blogPosts.source, source)
-      : undefined;
+    const conditions = source ? eq(blogPosts.source, source) : undefined;
 
     const query = db
       .select({
@@ -94,16 +107,14 @@ export async function GET(req: Request) {
       })
       .from(blogPosts);
 
-    const rows = conditions
-      ? await query.where(conditions)
-      : await query;
+    const rows = conditions ? await query.where(conditions) : await query;
 
     // Only return articles from external sources (csdn/juejin)
     const filtered = rows.filter((r) => r.source === 'csdn' || r.source === 'juejin');
 
-    return NextResponse.json({ data: filtered });
+    return corsJson({ data: filtered });
   } catch (error) {
     console.error('[api/blog/backfill] GET failed', error);
-    return NextResponse.json({ error: 'db_error' }, { status: 500 });
+    return corsJson({ error: 'db_error' }, { status: 500 });
   }
 }
