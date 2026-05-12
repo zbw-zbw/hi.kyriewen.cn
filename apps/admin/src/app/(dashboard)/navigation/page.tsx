@@ -29,7 +29,7 @@ const EMPTY_FORM: FormData = { href: '', key: '', labelZh: '', labelEn: '', sort
 
 /* ── Component ───────────────────────────────────────────────── */
 export default function NavigationPage() {
-  const { locale, t } = useAdminLocale();
+  const { locale } = useAdminLocale();
   const [items, setItems] = useState<NavigationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
