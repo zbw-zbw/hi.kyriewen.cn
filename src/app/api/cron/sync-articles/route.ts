@@ -139,48 +139,6 @@ function slugify(title: string, source: string, id: string): string {
 
 /* ── Fetch full article content ──────────────────────────────────── */
 
-async function fetchJuejinContent(articleId: string): Promise<string | null> {
-  const contentProxy = process.env.CONTENT_PROXY || 'http://proxy.kyriewen.cn:3100';
-  const proxyToken = process.env.PROXY_TOKEN || 'content-proxy-secret';
-
-  try {
-    // Use Playwright-based content-proxy to bypass Juejin WAF
-    const proxyRes = await fetch(`${contentProxy}/fetch`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${proxyToken}`,
-      },
-      body: JSON.stringify({ url: `https://juejin.cn/post/${articleId}` }),
-    });
-
-    if (!proxyRes.ok) {
-      console.log(`[juejin] content-proxy returned ${proxyRes.status} for ${articleId}`);
-      return null;
-    }
-
-    const { html } = (await proxyRes.json()) as { html?: string };
-    if (!html) return null;
-
-    // Clean up the HTML extracted by the proxy
-    let body = html;
-
-    // Skip leading <style> tags
-    while (body.trimStart().startsWith('<style')) {
-      const styleEnd = body.indexOf('</style>');
-      if (styleEnd === -1) break;
-      body = body.substring(styleEnd + 8);
-    }
-
-    body = body.replace(/<svg[\s\S]*?<\/svg>/gi, '');
-    const md = htmlToMarkdown(body.trim());
-    return md.length >= 50 ? md : null;
-  } catch (error) {
-    console.log(`[juejin] content-proxy error for ${articleId}:`, error);
-    return null;
-  }
-}
-
 async function fetchCsdnContent(articleUrl: string): Promise<string | null> {
   try {
     const res = await fetch(articleUrl, {
@@ -311,8 +269,7 @@ async function syncJuejin(userId: string) {
   );
 
   let imported = 0,
-    skipped = 0,
-    contentFailed = 0;
+    skipped = 0;
   for (const art of articles) {
     const id = art.article_info.article_id;
     if (existing.has(id)) {
@@ -320,15 +277,12 @@ async function syncJuejin(userId: string) {
       continue;
     }
 
-    // Fetch full Markdown content via detail API
-    const fullContent = await fetchJuejinContent(id);
-
     const tags = (art.tags || []).map((t) => t.tag_name);
     await db.insert(blogPosts).values({
       slug: slugify(art.article_info.title, 'juejin', id),
       title: art.article_info.title,
       summary: art.article_info.brief_content || null,
-      content: fullContent || art.article_info.brief_content || '',
+      content: art.article_info.brief_content || '',
       tags: JSON.stringify(tags),
       lang: 'zh',
       draft: 1,
@@ -339,12 +293,11 @@ async function syncJuejin(userId: string) {
       publishedAt: new Date(parseInt(art.article_info.ctime, 10) * 1000),
     });
     imported++;
-    if (!fullContent) contentFailed++;
 
     // Rate limiting
     await new Promise((r) => setTimeout(r, 300));
   }
-  return { source: 'juejin', fetched: articles.length, imported, skipped, contentFailed };
+  return { source: 'juejin', fetched: articles.length, imported, skipped };
 }
 
 /* ── GET handler ─────────────────────────────────────────────────── */
