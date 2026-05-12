@@ -86,7 +86,9 @@
       "changelogTitle": "最近更新",
       "stack": "技术栈",
       "category": "分类",
-      "year": "年份"
+      "year": "年份",
+      "prevProject": "上一个",
+      "nextProject": "下一个"
     }
   },
   "uses": {

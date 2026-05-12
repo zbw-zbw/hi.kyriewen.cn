@@ -86,7 +86,9 @@
       "changelogTitle": "What's new",
       "stack": "Built with",
       "category": "Category",
-      "year": "Year"
+      "year": "Year",
+      "prevProject": "Previous",
+      "nextProject": "Next"
     }
   },
   "uses": {

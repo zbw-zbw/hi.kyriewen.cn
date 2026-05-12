@@ -1,21 +1,23 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import type { TocEntry } from '@/lib/blog';
 import { cn } from '@/lib/utils';
 
-/** 滚动偏移量：导航栏(56px) + 留白(24px) = 80px，确保标题完整可见 */
 const STICKY_OFFSET = 80;
 
-interface TocProps {
+interface TocEntry {
+  id: string;
+  text: string;
+}
+
+interface ProjectTocProps {
   entries: TocEntry[];
   locale: 'en' | 'zh';
 }
 
-export function Toc({ entries, locale }: TocProps) {
+export function ProjectToc({ entries, locale }: ProjectTocProps) {
   const [activeId, setActiveId] = useState<string>(entries[0]?.id ?? '');
 
-  /** 点击目录项：使用 scrollIntoView 滚动，不改变 URL（不影响浏览器返回） */
   const handleClick = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
       event.preventDefault();
@@ -69,11 +71,11 @@ export function Toc({ entries, locale }: TocProps) {
 
   return (
     <nav
-      aria-label={locale === 'zh' ? '文章目录' : 'Table of contents'}
+      aria-label={locale === 'zh' ? '产品目录' : 'Product sections'}
       className="sticky top-16 hidden max-h-[calc(100vh-5rem)] w-56 shrink-0 self-start overflow-y-auto pl-6 text-sm lg:block"
     >
       <p className="mb-3 font-mono text-xs tracking-wider text-[var(--muted)] uppercase">
-        {locale === 'zh' ? '目录' : 'On this page'}
+        {locale === 'zh' ? '目录' : 'Sections'}
       </p>
       <ul className="space-y-1.5 border-l border-[var(--border)]">
         {entries.map((entry) => {
@@ -85,7 +87,6 @@ export function Toc({ entries, locale }: TocProps) {
                 onClick={(e) => handleClick(e, entry.id)}
                 className={cn(
                   '-ml-px block cursor-pointer border-l py-0.5 pl-3 leading-snug transition-colors',
-                  entry.depth === 3 && 'pl-6',
                   isActive
                     ? 'border-[var(--accent)] text-[var(--fg)]'
                     : 'border-transparent text-[var(--muted)] hover:text-[var(--fg)]',

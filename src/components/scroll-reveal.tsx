@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface ScrollRevealProps {
+  /** HTML id 属性，用于锚点定位。 */
+  id?: string;
   /** 入场延迟，秒。用于 stagger 多个元素。 */
   delay?: number;
   /** 入场动效幅度。 */
@@ -31,6 +33,7 @@ interface ScrollRevealProps {
  *   </ScrollReveal>
  */
 export function ScrollReveal({
+  id,
   delay = 0,
   variant = 'fadeUp',
   amount = 0.05,
@@ -54,11 +57,16 @@ export function ScrollReveal({
 
   if (reduceMotion) {
     const Tag = as;
-    return <Tag className={cn(className)}>{children}</Tag>;
+    return (
+      <Tag id={id} className={cn(className)}>
+        {children}
+      </Tag>
+    );
   }
 
   return (
     <MotionTag
+      id={id}
       className={cn(className)}
       initial="hidden"
       whileInView="visible"

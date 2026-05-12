@@ -132,6 +132,18 @@ export async function getProjectBySlug(slug: string): Promise<Project | undefine
   return all.find((p) => p.slug === slug);
 }
 
+export async function getAdjacentProjects(
+  slug: string,
+): Promise<{ previous: Project | null; next: Project | null }> {
+  const all = await getProjects();
+  const index = all.findIndex((p) => p.slug === slug);
+  if (index === -1) return { previous: null, next: null };
+  return {
+    previous: all[index - 1] ?? null,
+    next: all[index + 1] ?? null,
+  };
+}
+
 function rowToProject(row: Record<string, unknown>): Project {
   return {
     slug: row.slug as string,

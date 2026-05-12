@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 
 interface BackButtonProps {
@@ -27,6 +28,74 @@ export function BackButton({ label, className }: BackButtonProps) {
     <button
       type="button"
       onClick={handleBack}
+      className={
+        className ??
+        'inline-flex cursor-pointer items-center gap-1.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]'
+      }
+    >
+      <ArrowLeft className="h-3.5 w-3.5" />
+      {label}
+    </button>
+  );
+}
+
+interface SmartBackButtonProps {
+  label: string;
+  /** 从首页进入时返回的路径 */
+  homeHref: string;
+  /** 从列表页进入时返回的路径 */
+  listHref: string;
+  /** 列表页路径的匹配关键词（用于判断 referrer） */
+  listPathMatch: string;
+  className?: string;
+}
+
+/**
+ * 智能返回按钮：根据来源页决定返回目标。
+ * - 如果从列表页进入 → 返回列表页
+ * - 如果从首页进入 → 返回首页
+ * - 其他情况 → 返回列表页（默认）
+ */
+export function SmartBackButton({
+  label,
+  homeHref,
+  listHref,
+  listPathMatch,
+  className,
+}: SmartBackButtonProps) {
+  const router = useRouter();
+  const [targetHref, setTargetHref] = useState(listHref);
+
+  useEffect(() => {
+    const referrer = document.referrer;
+    if (!referrer) {
+      setTargetHref(listHref);
+      return;
+    }
+    try {
+      const referrerUrl = new URL(referrer);
+      const currentHost = window.location.host;
+      if (referrerUrl.host !== currentHost) {
+        setTargetHref(listHref);
+        return;
+      }
+      // 判断来源路径
+      const referrerPath = referrerUrl.pathname;
+      if (referrerPath.includes(listPathMatch)) {
+        setTargetHref(listHref);
+      } else {
+        // 从首页或其他页面进来
+        setTargetHref(homeHref);
+      }
+    } catch {
+      setTargetHref(listHref);
+    }
+  }, [homeHref, listHref, listPathMatch]);
+
+  return (
+    <button
+      type="button"
+      onClick={() => router.push(targetHref)}
       className={
         className ??
         'inline-flex cursor-pointer items-center gap-1.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]'

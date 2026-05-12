@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Save, Send, ArrowLeft, Languages, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Save, Send, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { TiptapEditor, markdownToHtml, htmlToMarkdown } from './tiptap-editor';
 import { MdUpload } from './md-upload';
 
@@ -61,7 +61,6 @@ export function BlogEditor({ post }: BlogEditorProps) {
   });
 
   const [saving, setSaving] = useState(false);
-  const [translating, setTranslating] = useState(false);
   const [showPreview, setShowPreview] = useState(true);
 
   // Auto-generate slug from title (only in create mode)
@@ -269,27 +268,6 @@ export function BlogEditor({ post }: BlogEditorProps) {
     toast.success(autoPublish ? '英文版已自动翻译并发布 ✅' : '已自动创建英文版草稿');
   }
 
-  // Manual translate button handler — reuses autoTranslateToEnglish
-  async function handleTranslate() {
-    if (lang !== 'zh') {
-      toast.error('Auto-translate only works for Chinese articles.');
-      return;
-    }
-    if (!title.trim() || !slug.trim()) {
-      toast.error('Please fill in title and slug first.');
-      return;
-    }
-
-    setTranslating(true);
-    try {
-      await autoTranslateToEnglish();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Translation failed');
-    } finally {
-      setTranslating(false);
-    }
-  }
-
   const inputClass =
     'w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-ring';
 
@@ -483,7 +461,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
         <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={handleSave}
-            disabled={saving || translating}
+            disabled={saving}
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
@@ -491,28 +469,11 @@ export function BlogEditor({ post }: BlogEditorProps) {
           </button>
           <button
             onClick={handlePublish}
-            disabled={saving || translating}
+            disabled={saving}
             className="border-border bg-background hover:bg-accent hover:text-accent-foreground inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
             {saving ? 'Publishing...' : 'Save & Publish'}
-          </button>
-          <button
-            onClick={handleTranslate}
-            disabled={saving || translating || lang !== 'zh'}
-            title={
-              lang !== 'zh'
-                ? 'Only available for Chinese articles'
-                : 'Translate to English and create draft'
-            }
-            className="border-primary/30 bg-primary/5 text-primary hover:bg-primary/10 inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-          >
-            {translating ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Languages className="h-4 w-4" />
-            )}
-            {translating ? 'Translating...' : 'Auto Translate → EN'}
           </button>
         </div>
       </div>
