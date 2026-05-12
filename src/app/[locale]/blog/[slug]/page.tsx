@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { SmartBackButton } from '@/components/back-button';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 import { Link } from '@/i18n/navigation';
 import { Mdx } from '@/components/mdx';
@@ -163,13 +164,12 @@ export default async function BlogPostPage({
         <article className="min-w-0 flex-1 lg:max-w-2xl">
           {/* 吸顶返回按钮 */}
           <div className="sticky top-14 z-10 -mx-4 bg-[var(--bg)] px-4 pt-6 pb-4 sm:-mx-6 sm:px-6">
-            <Link
-              href="/blog"
-              className="inline-flex items-center gap-1.5 py-2 text-sm text-[var(--muted)] hover:text-[var(--fg)]"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              {t('backLabel')}
-            </Link>
+            <SmartBackButton
+              label={t('backLabel')}
+              homeHref="/"
+              listHref="/blog"
+              listPathMatch="/blog"
+            />
             {/* 底部渐变遮罩 */}
             <div className="pointer-events-none absolute inset-x-0 bottom-0 h-4 translate-y-full bg-gradient-to-b from-[var(--bg)] to-transparent" />
           </div>

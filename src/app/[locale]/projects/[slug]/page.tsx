@@ -295,6 +295,9 @@ export default async function ProjectDetailPage({
                   <div className="min-w-0">
                     <p className="text-xs text-[var(--muted)]">{t('prevProject')}</p>
                     <p className="truncate text-sm font-medium">{previous.name}</p>
+                    <p className="truncate text-xs text-[var(--muted)]">
+                      {previous.tagline[locale]}
+                    </p>
                   </div>
                 </Link>
               ) : (
@@ -308,6 +311,7 @@ export default async function ProjectDetailPage({
                   <div className="min-w-0">
                     <p className="text-xs text-[var(--muted)]">{t('nextProject')}</p>
                     <p className="truncate text-sm font-medium">{next.name}</p>
+                    <p className="truncate text-xs text-[var(--muted)]">{next.tagline[locale]}</p>
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-[var(--muted)] transition-transform group-hover:translate-x-0.5" />
                 </Link>

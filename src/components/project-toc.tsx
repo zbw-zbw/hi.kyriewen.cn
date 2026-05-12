@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 
-const STICKY_OFFSET = 80;
+/** 滚动偏移量：导航栏(56px) + 吸顶返回按钮区域(~76px) = 132px */
+const STICKY_OFFSET = 132;
 
 interface TocEntry {
   id: string;

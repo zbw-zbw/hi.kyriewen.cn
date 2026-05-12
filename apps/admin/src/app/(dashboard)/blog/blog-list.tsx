@@ -24,7 +24,7 @@ interface BlogPost {
 }
 
 type LangFilter = 'all' | 'en' | 'zh';
-type SourceFilter = 'all' | 'manual' | 'juejin';
+type SourceFilter = 'all' | 'manual' | 'juejin' | 'file';
 
 const PAGE_SIZE = 20;
 
@@ -35,11 +35,15 @@ interface BlogListProps {
 const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
   juejin: {
     label: '掘金',
-    color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    color: 'bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   },
   manual: {
     label: '手动',
-    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    color: 'bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+  },
+  file: {
+    label: '文件',
+    color: 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   },
 };
 
@@ -286,9 +290,10 @@ export function BlogList({ posts }: BlogListProps) {
                   }}
                   className="text-muted-foreground hover:text-foreground cursor-pointer appearance-none border-none bg-transparent text-sm font-medium outline-none"
                 >
-                  <option value="all">Source ▾</option>
+                  <option value="all">来源 ▾</option>
                   <option value="manual">手动</option>
                   <option value="juejin">掘金</option>
+                  <option value="file">文件</option>
                 </select>
               </th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">
@@ -300,14 +305,14 @@ export function BlogList({ posts }: BlogListProps) {
                   }}
                   className="text-muted-foreground hover:text-foreground cursor-pointer appearance-none border-none bg-transparent text-sm font-medium outline-none"
                 >
-                  <option value="all">Lang ▾</option>
+                  <option value="all">语言 ▾</option>
                   <option value="en">EN</option>
                   <option value="zh">ZH</option>
                 </select>
               </th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Status</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">Updated</th>
-              <th className="text-muted-foreground px-4 py-3 text-right font-medium">Actions</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">状态</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">更新时间</th>
+              <th className="text-muted-foreground px-4 py-3 text-right font-medium">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -365,12 +370,12 @@ export function BlogList({ posts }: BlogListProps) {
                   </td>
                   <td className="px-4 py-3">
                     {post.draft ? (
-                      <span className="inline-flex rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                        Draft
+                      <span className="inline-flex rounded-full bg-yellow-200 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        草稿
                       </span>
                     ) : (
-                      <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        Published
+                      <span className="inline-flex rounded-full bg-green-200 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                        已发布
                       </span>
                     )}
                   </td>

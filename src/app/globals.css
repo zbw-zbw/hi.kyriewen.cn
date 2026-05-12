@@ -135,9 +135,6 @@ body {
   color: var(--fg);
   font-family: var(--font-sans);
   min-height: 100vh;
-  transition:
-    background-color 0.2s ease,
-    color 0.2s ease;
 }
 
 ::selection {
@@ -157,7 +154,7 @@ body {
 
 /* MDX: rehype-autolink-headings 把 h2/h3 的内容 wrap 成 <a>，这里把它还原成正常标题样式。 */
 .prose-kw :is(h2, h3, h4) {
-  scroll-margin-top: 5rem;
+  scroll-margin-top: 8.25rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }

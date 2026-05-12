@@ -111,6 +111,12 @@ export default async function LocaleLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <head>
+        {/* 防主题闪烁：在 hydration 前同步设置 dark class */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');var d=window.matchMedia('(prefers-color-scheme:dark)').matches;if(t==='dark'||(t!=='light'&&d)){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark'}else{document.documentElement.classList.remove('dark');document.documentElement.style.colorScheme='light'}}catch(e){}})()`,
+          }}
+        />
         {/* 防闪烁：在 hydration 前同步设置 data-accent 属性 */}
         <ThemeAccentScript />
       </head>
