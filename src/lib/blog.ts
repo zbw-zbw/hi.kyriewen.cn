@@ -71,7 +71,11 @@ function readPostsForLocale(locale: Locale): Post[] {
 
 function dbRowToPost(row: typeof blogPosts.$inferSelect): Post {
   const tags: string[] = (() => {
-    try { return JSON.parse(row.tags); } catch { return []; }
+    try {
+      return JSON.parse(row.tags);
+    } catch {
+      return [];
+    }
   })();
   const date = row.publishedAt
     ? row.publishedAt.toISOString().slice(0, 10)
@@ -116,9 +120,7 @@ export async function getAllPosts(locale: Locale): Promise<Post[]> {
   const uniqueFilePosts = filePosts.filter((p) => !dbSlugs.has(p.slug));
   const merged = [...dbPosts, ...uniqueFilePosts];
 
-  return merged.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-  );
+  return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function getPostBySlug(locale: Locale, slug: string): Promise<Post | null> {
@@ -137,7 +139,10 @@ export async function getPostBySlug(locale: Locale, slug: string): Promise<Post 
       const posts = readPostsForLocale(locale);
       return posts.find((p) => p.slug === slug) ?? null;
     }
-    return dbRowToPost(rows[0]!);
+    const post = dbRowToPost(rows[0]!);
+    // Draft 文章不对外展示
+    if (post.draft) return null;
+    return post;
   } catch {
     // fallback to file on db error
     const posts = readPostsForLocale(locale);
@@ -156,7 +161,7 @@ export async function getPostBySlug(locale: Locale, slug: string): Promise<Post 
  */
 export async function getAdjacentPosts(
   locale: Locale,
-  slug: string
+  slug: string,
 ): Promise<{ previous: Post | null; next: Post | null }> {
   const posts = shouldReadBlogDb()
     ? await readDbPostsForLocale(locale)
@@ -173,7 +178,7 @@ export async function getAllPostSlugs(): Promise<{ locale: Locale; slug: string 
   const fileFallback = () => {
     const locales: Locale[] = ['en', 'zh'];
     return locales.flatMap((locale) =>
-      readPostsForLocale(locale).map((p) => ({ locale, slug: p.slug }))
+      readPostsForLocale(locale).map((p) => ({ locale, slug: p.slug })),
     );
   };
   if (!shouldReadBlogDb()) return fileFallback();
