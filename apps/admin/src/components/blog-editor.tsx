@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { Save, Send, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Save, Send, ArrowLeft, Eye, EyeOff } from 'lucide-react';
 import { TiptapEditor, markdownToHtml, htmlToMarkdown } from './tiptap-editor';
 import { MdUpload } from './md-upload';
 import { useAdminLocale } from '@/components/locale-provider';

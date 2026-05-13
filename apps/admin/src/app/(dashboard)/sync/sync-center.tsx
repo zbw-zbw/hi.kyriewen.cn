@@ -79,69 +79,66 @@ export function SyncCenter() {
   const [taskResults, setTaskResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
 
-  const triggerTask = useCallback(
-    async (taskId: string) => {
-      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'running' }));
-      setTaskResults((prev) => ({ ...prev, [taskId]: '' }));
+  const triggerTask = useCallback(async (taskId: string) => {
+    setTaskStatuses((prev) => ({ ...prev, [taskId]: 'running' }));
+    setTaskResults((prev) => ({ ...prev, [taskId]: '' }));
 
-      try {
-        const body: Record<string, unknown> = { taskId };
+    try {
+      const body: Record<string, unknown> = { taskId };
 
-        const response = await fetch('/api/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
+      const response = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error ?? `HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
-
-        // Build friendly result message
-        const result = data.result ?? {};
-        let friendlyMessage = 'Completed successfully';
-        if (taskId === 'sync-articles' && Array.isArray(result.results)) {
-          const parts = result.results.map(
-            (r: {
-              source: string;
-              imported: number;
-              skipped: number;
-              contentFailed?: number;
-              error?: string;
-            }) => {
-              if (r.error) return `${r.source}: error`;
-              const label = r.source === 'juejin' ? '掘金' : r.source.toUpperCase();
-              let msg = `${label}: +${r.imported} new, ${r.skipped} skipped`;
-              if (r.contentFailed && r.contentFailed > 0) {
-                msg += ` ⚠️ ${r.contentFailed} content failed`;
-              }
-              return msg;
-            },
-          );
-          friendlyMessage = parts.join(' · ');
-        } else if (typeof result.imported === 'number') {
-          friendlyMessage = `+${result.imported} imported, ${result.skipped ?? 0} skipped`;
-        } else if (typeof result.updated === 'number') {
-          friendlyMessage = `${result.updated} records updated`;
-        }
-
-        setTaskResults((prev) => ({ ...prev, [taskId]: friendlyMessage }));
-        toast.success(
-          `${TASKS.find((task) => task.id === taskId)?.name ?? taskId}: ${friendlyMessage}`,
-        );
-      } catch (error) {
-        setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        setTaskResults((prev) => ({ ...prev, [taskId]: message }));
-        toast.error(`${taskId} failed: ${message}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error ?? `HTTP ${response.status}`);
       }
-    },
-    [t],
-  );
+
+      const data = await response.json();
+      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
+
+      // Build friendly result message
+      const result = data.result ?? {};
+      let friendlyMessage = 'Completed successfully';
+      if (taskId === 'sync-articles' && Array.isArray(result.results)) {
+        const parts = result.results.map(
+          (r: {
+            source: string;
+            imported: number;
+            skipped: number;
+            contentFailed?: number;
+            error?: string;
+          }) => {
+            if (r.error) return `${r.source}: error`;
+            const label = r.source === 'juejin' ? '掘金' : r.source.toUpperCase();
+            let msg = `${label}: +${r.imported} new, ${r.skipped} skipped`;
+            if (r.contentFailed && r.contentFailed > 0) {
+              msg += ` ⚠️ ${r.contentFailed} content failed`;
+            }
+            return msg;
+          },
+        );
+        friendlyMessage = parts.join(' · ');
+      } else if (typeof result.imported === 'number') {
+        friendlyMessage = `+${result.imported} imported, ${result.skipped ?? 0} skipped`;
+      } else if (typeof result.updated === 'number') {
+        friendlyMessage = `${result.updated} records updated`;
+      }
+
+      setTaskResults((prev) => ({ ...prev, [taskId]: friendlyMessage }));
+      toast.success(
+        `${TASKS.find((task) => task.id === taskId)?.name ?? taskId}: ${friendlyMessage}`,
+      );
+    } catch (error) {
+      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      setTaskResults((prev) => ({ ...prev, [taskId]: message }));
+      toast.error(`${taskId} failed: ${message}`);
+    }
+  }, []);
 
   const triggerAll = useCallback(async () => {
     setRunningAll(true);

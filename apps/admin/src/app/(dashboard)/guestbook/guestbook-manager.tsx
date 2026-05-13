@@ -82,7 +82,7 @@ export default function GuestbookManager({
     } finally {
       setDeleteTarget(null);
     }
-  }, [deleteTarget, executeDelete]);
+  }, [deleteTarget, executeDelete, t]);
 
   const handleBatchDeleteConfirm = useCallback(async () => {
     setBatchDeleteOpen(false);
@@ -107,7 +107,7 @@ export default function GuestbookManager({
       toast.error(err instanceof Error ? err.message : 'Batch delete failed');
     }
     setSelectedIds(new Set());
-  }, [selectedIds]);
+  }, [selectedIds, t]);
 
   const handlePageChange = (p: number) => {
     setPage(p);
