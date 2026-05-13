@@ -921,10 +921,12 @@ const messages: Record<Locale, Record<string, string>> = { zh: zhMessages, en: e
 
 export function LocaleProvider({ children }: { children: React.ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>('zh');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('admin-locale') as Locale | null;
     if (saved === 'en' || saved === 'zh') setLocaleState(saved);
+    setMounted(true);
   }, []);
 
   const setLocale = useCallback((next: Locale) => {
@@ -932,13 +934,19 @@ export function LocaleProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('admin-locale', next);
   }, []);
 
+  // Use 'zh' consistently during SSR and first client render to avoid hydration mismatch.
+  // After mount, `locale` reflects the value from localStorage.
+  const effectiveLocale = mounted ? locale : 'zh';
+
   const t = useCallback(
-    (key: string) => messages[locale]?.[key] ?? messages.en[key] ?? key,
-    [locale],
+    (key: string) => messages[effectiveLocale]?.[key] ?? messages.en[key] ?? key,
+    [effectiveLocale],
   );
 
   return (
-    <LocaleContext.Provider value={{ locale, setLocale, t }}>{children}</LocaleContext.Provider>
+    <LocaleContext.Provider value={{ locale: effectiveLocale, setLocale, t }}>
+      {children}
+    </LocaleContext.Provider>
   );
 }
 
