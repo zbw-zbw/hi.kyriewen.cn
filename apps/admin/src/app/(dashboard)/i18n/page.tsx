@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Types ───────────────────────────────────────────────────── */
 interface I18nMessage {
@@ -15,6 +16,7 @@ interface I18nMessage {
 
 /* ── Component ───────────────────────────────────────────────── */
 export default function I18nPage() {
+  const { t } = useAdminLocale();
   const [zhItems, setZhItems] = useState<I18nMessage[]>([]);
   const [enItems, setEnItems] = useState<I18nMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -196,7 +198,7 @@ export default function I18nPage() {
         throw new Error(errorData.error || 'Update failed');
       }
 
-      toast.success('中文文案已保存，正在翻译英文…');
+      toast.success(t('common.save') + ' ✓');
       cancelEdit();
 
       // 2. Auto-translate to English
@@ -222,11 +224,11 @@ export default function I18nPage() {
                 value: translated,
               }),
             });
-            toast.success('英文翻译已同步');
+            toast.success(t('translate.toastSuccess'));
           }
         }
       } catch {
-        toast.error('自动翻译失败，请手动处理英文版本');
+        toast.error(t('translate.toastFailed'));
       }
 
       fetchItems();
@@ -264,10 +266,10 @@ export default function I18nPage() {
         }),
       });
 
-      toast.success(`"${item.key}" 翻译完成`);
+      toast.success(`"${item.key}" ${t('translate.toastSuccess')}`);
       fetchItems();
     } catch {
-      toast.error(`"${item.key}" 翻译失败`);
+      toast.error(`"${item.key}" ${t('translate.toastFailed')}`);
     } finally {
       setTranslatingIds((prev) => {
         const next = new Set(prev);
@@ -282,7 +284,11 @@ export default function I18nPage() {
     const untranslated = zhItems.filter((item) => !enMap.has(`${item.namespace}::${item.key}`));
 
     if (untranslated.length === 0) {
-      toast.success('所有文案已有英文翻译');
+      toast.success(
+        t('i18n.allTranslated') !== 'i18n.allTranslated'
+          ? t('i18n.allTranslated')
+          : 'All texts already have English translations',
+      );
       return;
     }
 
@@ -326,7 +332,7 @@ export default function I18nPage() {
       }
     }
 
-    toast.success(`批量翻译完成：${successCount} 成功，${failCount} 失败`);
+    toast.success(`${t('i18n.translating').replace('…', '')}: ${successCount} ✓, ${failCount} ✗`);
     setTranslatingAll(false);
     fetchItems();
   };
@@ -360,7 +366,7 @@ export default function I18nPage() {
       }
 
       if (messages.length === 0) {
-        toast.error('No messages found in file');
+        toast.error(t('i18n.empty'));
         return;
       }
 
@@ -399,10 +405,8 @@ export default function I18nPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">i18n Messages</h2>
-        <p className="text-muted-foreground">
-          配置中文文案，保存时自动翻译英文（DB overrides local JSON）。
-        </p>
+        <h2 className="text-2xl font-bold tracking-tight">{t('page.i18n.title')}</h2>
+        <p className="text-muted-foreground">{t('page.i18n.desc')}</p>
       </div>
 
       <div className="space-y-6">
@@ -413,7 +417,7 @@ export default function I18nPage() {
             type="text"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="搜索 namespace / key / value…"
+            placeholder="Search namespace / key / value…"
             className="border-input bg-background focus:ring-ring min-w-[200px] flex-1 rounded-md border px-3 py-1.5 text-sm outline-none focus:ring-2"
           />
 
@@ -424,12 +428,14 @@ export default function I18nPage() {
             disabled={translatingAll || untranslatedCount === 0}
             className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-blue-700 disabled:opacity-50"
           >
-            {translatingAll ? '翻译中…' : `翻译全部 (${untranslatedCount})`}
+            {translatingAll
+              ? t('i18n.translating')
+              : t('i18n.translateAll').replace('{count}', String(untranslatedCount))}
           </button>
 
           {/* Import button */}
           <label className="border-input hover:bg-accent inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors">
-            导入 JSON
+            {t('i18n.importJson')}
             <input
               ref={fileInputRef}
               type="file"
@@ -440,20 +446,20 @@ export default function I18nPage() {
           </label>
 
           {/* Count */}
-          <span className="text-muted-foreground text-sm">{filteredItems.length} 条文案</span>
+          <span className="text-muted-foreground text-sm">{filteredItems.length} items</span>
         </div>
 
         {/* ── Loading state ────────────────────────────────────── */}
         {loading && (
           <div className="text-muted-foreground flex items-center justify-center py-12">
-            Loading…
+            {t('common.loading')}
           </div>
         )}
 
         {/* ── Empty state ──────────────────────────────────────── */}
         {!loading && filteredItems.length === 0 && (
           <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-            {search ? '没有匹配的文案。' : '暂无 i18n 文案，点击"导入 JSON"添加。'}
+            {search ? t('i18n.noMatch') : t('i18n.empty')}
           </div>
         )}
 
@@ -473,10 +479,16 @@ export default function I18nPage() {
                   <table className="w-full text-sm">
                     <thead className="border-border bg-muted/50 border-b">
                       <tr>
-                        <th className="w-[25%] px-4 py-2 text-left font-medium">Key</th>
-                        <th className="px-4 py-2 text-left font-medium">中文</th>
-                        <th className="w-[80px] px-4 py-2 text-center font-medium">英文</th>
-                        <th className="w-[100px] px-4 py-2 text-right font-medium">操作</th>
+                        <th className="w-[25%] px-4 py-2 text-left font-medium">
+                          {t('i18n.colKey')}
+                        </th>
+                        <th className="px-4 py-2 text-left font-medium">{t('i18n.colZh')}</th>
+                        <th className="w-[80px] px-4 py-2 text-center font-medium">
+                          {t('i18n.colEn')}
+                        </th>
+                        <th className="w-[100px] px-4 py-2 text-right font-medium">
+                          {t('i18n.colActions')}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-border divide-y">
@@ -512,14 +524,14 @@ export default function I18nPage() {
                                     disabled={saving}
                                     className="bg-primary text-primary-foreground hover:bg-primary/90 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
                                   >
-                                    {saving ? '…' : '保存'}
+                                    {saving ? '…' : t('common.save')}
                                   </button>
                                   <button
                                     type="button"
                                     onClick={cancelEdit}
                                     className="border-input hover:bg-accent rounded border px-2 py-1 text-xs font-medium transition-colors"
                                   >
-                                    取消
+                                    {t('common.cancel')}
                                   </button>
                                 </div>
                               ) : (
@@ -548,7 +560,7 @@ export default function I18nPage() {
                                     onClick={() => startEdit(item)}
                                     className="text-primary hover:bg-primary/10 rounded px-2 py-1 text-xs font-medium transition-colors"
                                   >
-                                    编辑
+                                    {t('common.edit')}
                                   </button>
                                 )}
                                 {!hasEn && editingItem?.id !== item.id && (
@@ -558,7 +570,7 @@ export default function I18nPage() {
                                     disabled={isTranslating}
                                     className="rounded px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 disabled:opacity-50 dark:hover:bg-blue-900/20"
                                   >
-                                    {isTranslating ? '…' : '翻译'}
+                                    {isTranslating ? '…' : t('translate.buttonLabel')}
                                   </button>
                                 )}
                               </div>

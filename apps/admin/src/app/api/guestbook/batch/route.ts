@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { inArray } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { guestbookMessages } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,9 @@ export async function DELETE(req: Request) {
       .delete(guestbookMessages)
       .where(inArray(guestbookMessages.id, validIds))
       .returning({ id: guestbookMessages.id });
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/guestbook']).catch(() => {});
 
     return NextResponse.json({
       ok: true,

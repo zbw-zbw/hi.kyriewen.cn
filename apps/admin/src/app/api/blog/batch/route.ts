@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { inArray } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { blogPosts } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,9 @@ export async function PATCH(req: Request) {
       .set({ draft: 0, publishedAt: new Date(), updatedAt: new Date() })
       .where(inArray(blogPosts.id, validIds))
       .returning({ id: blogPosts.id });
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/blog']).catch(() => {});
 
     return NextResponse.json({
       ok: true,
@@ -67,6 +71,9 @@ export async function DELETE(req: Request) {
       .delete(blogPosts)
       .where(inArray(blogPosts.id, validIds))
       .returning({ id: blogPosts.id });
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/blog']).catch(() => {});
 
     return NextResponse.json({
       ok: true,

@@ -193,7 +193,7 @@ const PAGE_SIZE = 20;
 
 export default function ProjectsManager({ items }: { items: Project[] }) {
   const router = useRouter();
-  const { locale } = useAdminLocale();
+  const { locale, t } = useAdminLocale();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -231,7 +231,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.slug.trim() || !form.name.trim() || !form.category) {
-      toast.error('Slug, Name, and Category are required');
+      toast.error(t('projects.requiredFields'));
       return;
     }
 
@@ -288,11 +288,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
         throw new Error(errorData.error || 'Request failed');
       }
 
-      toast.success(isEdit ? 'Project updated' : 'Project created');
+      toast.success(isEdit ? t('projects.toastUpdated') : t('projects.toastCreated'));
       closeForm();
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setLoading(false);
     }
@@ -300,18 +300,18 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
 
   /* ── Delete ────────────────────────────────────────────────── */
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this project?')) return;
+    if (!confirm(t('projects.confirmDelete'))) return;
     setDeletingId(id);
     try {
       const response = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Delete failed');
+        throw new Error(errorData.error || t('common.deleteFailed'));
       }
-      toast.success('Project deleted');
+      toast.success(t('projects.toastDeleted'));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed');
+      toast.error(error instanceof Error ? error.message : t('common.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -346,7 +346,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
           onClick={openCreateForm}
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
         >
-          + Add New
+          {t('common.addNew')}
         </button>
       </div>
 
@@ -354,17 +354,17 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
       {showForm && (
         <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">
-            {editingId !== null ? 'Edit Project' : 'New Project'}
+            {editingId !== null ? t('projects.editTitle') : t('projects.newTitle')}
           </h3>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* ─── Section A: Basic Info ──────────────────────── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                Basic Info
+                {t('projects.basicInfo')}
               </legend>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Slug *</span>
+                  <span className={labelClass}>{t('projects.fieldSlug')}</span>
                   <input
                     type="text"
                     value={form.slug}
@@ -375,7 +375,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Name *</span>
+                  <span className={labelClass}>{t('projects.fieldName')}</span>
                   <input
                     type="text"
                     value={form.name}
@@ -386,7 +386,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Category *</span>
+                  <span className={labelClass}>{t('projects.fieldCategory')}</span>
                   <select
                     value={form.category}
                     onChange={(e) => updateField('category', e.target.value)}
@@ -400,7 +400,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   </select>
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Year *</span>
+                  <span className={labelClass}>{t('projects.fieldYear')}</span>
                   <input
                     type="number"
                     value={form.year}
@@ -412,7 +412,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Accent</span>
+                  <span className={labelClass}>{t('projects.fieldAccent')}</span>
                   <input
                     type="text"
                     value={form.accent}
@@ -422,7 +422,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Color Theme</span>
+                  <span className={labelClass}>{t('projects.fieldColorTheme')}</span>
                   <input
                     type="text"
                     value={form.colorTheme}
@@ -432,7 +432,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Sort Order</span>
+                  <span className={labelClass}>{t('common.sortOrder')}</span>
                   <input
                     type="number"
                     value={form.sortOrder}
@@ -447,7 +447,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                     onChange={(e) => updateField('featured', e.target.checked)}
                     className="border-input size-4 rounded"
                   />
-                  <span className={labelClass}>Featured</span>
+                  <span className={labelClass}>{t('projects.fieldFeatured')}</span>
                 </label>
                 <label className="flex items-center gap-2 self-end py-2">
                   <input
@@ -456,7 +456,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                     onChange={(e) => updateField('pinned', e.target.checked)}
                     className="border-input size-4 rounded"
                   />
-                  <span className={labelClass}>Pinned</span>
+                  <span className={labelClass}>{t('projects.fieldPinned')}</span>
                 </label>
               </div>
             </fieldset>
@@ -464,11 +464,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             {/* ─── Section B: Copy (ZH only, auto-translate EN on save) ── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                文案（保存时自动翻译英文）
+                {t('projects.copySection')}
               </legend>
               <div className="grid gap-4">
                 <label className="space-y-1.5">
-                  <span className={labelClass}>标语</span>
+                  <span className={labelClass}>{t('projects.fieldTaglineZh')}</span>
                   <input
                     type="text"
                     value={form.taglineZh}
@@ -478,7 +478,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>描述</span>
+                  <span className={labelClass}>{t('projects.fieldDescriptionZh')}</span>
                   <textarea
                     value={form.descriptionZh}
                     onChange={(e) => updateField('descriptionZh', e.target.value)}
@@ -488,7 +488,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>案例（Markdown）</span>
+                  <span className={labelClass}>{t('projects.fieldCaseStudyZh')}</span>
                   <textarea
                     value={form.caseStudyZh}
                     onChange={(e) => updateField('caseStudyZh', e.target.value)}
@@ -503,11 +503,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             {/* ─── Section C: Links ──────────────────────────── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                Links
+                {t('projects.links')}
               </legend>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Repo URL</span>
+                  <span className={labelClass}>{t('projects.fieldRepo')}</span>
                   <input
                     type="text"
                     value={form.repo}
@@ -517,7 +517,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Live URL</span>
+                  <span className={labelClass}>{t('projects.fieldLive')}</span>
                   <input
                     type="text"
                     value={form.live}
@@ -527,7 +527,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Chrome Store ID</span>
+                  <span className={labelClass}>{t('projects.fieldChromeStoreId')}</span>
                   <input
                     type="text"
                     value={form.chromeStoreId}
@@ -542,11 +542,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             {/* ─── Section D: Media ──────────────────────────── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                Media
+                {t('projects.media')}
               </legend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-1.5">
-                  <span className={labelClass}>Hero Image</span>
+                  <span className={labelClass}>{t('projects.fieldHeroImage')}</span>
                   <ImageUploader
                     value={form.heroImage}
                     onChange={(url) => updateField('heroImage', url)}
@@ -554,7 +554,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </div>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Cover Video URL</span>
+                  <span className={labelClass}>{t('projects.fieldCoverVideo')}</span>
                   <input
                     type="text"
                     value={form.coverVideo}
@@ -564,7 +564,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5 sm:col-span-2">
-                  <span className={labelClass}>Gallery URLs (comma-separated)</span>
+                  <span className={labelClass}>{t('projects.fieldGallery')}</span>
                   <textarea
                     value={form.galleryText}
                     onChange={(e) => updateField('galleryText', e.target.value)}
@@ -579,10 +579,10 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             {/* ─── Section E: Stack ──────────────────────────── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                Tech Stack
+                {t('projects.techStack')}
               </legend>
               <label className="space-y-1.5">
-                <span className={labelClass}>Stack (comma-separated)</span>
+                <span className={labelClass}>{t('projects.fieldStack')}</span>
                 <input
                   type="text"
                   value={form.stackText}
@@ -596,11 +596,11 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             {/* ─── Section F: Metrics ────────────────────────── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                Metrics
+                {t('projects.metrics')}
               </legend>
               <div className="grid gap-4 sm:grid-cols-3">
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Users</span>
+                  <span className={labelClass}>{t('projects.fieldUsers')}</span>
                   <input
                     type="number"
                     value={form.metricsUsers}
@@ -610,7 +610,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Stars</span>
+                  <span className={labelClass}>{t('projects.fieldStars')}</span>
                   <input
                     type="number"
                     value={form.metricsStars}
@@ -620,7 +620,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                   />
                 </label>
                 <label className="space-y-1.5">
-                  <span className={labelClass}>Rating</span>
+                  <span className={labelClass}>{t('projects.fieldRating')}</span>
                   <input
                     type="number"
                     value={form.metricsRating}
@@ -636,10 +636,10 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
             {/* ─── Section G: Changelog ──────────────────────── */}
             <fieldset className="space-y-4">
               <legend className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
-                Changelog
+                {t('projects.changelog')}
               </legend>
               <label className="space-y-1.5">
-                <span className={labelClass}>Changelog JSON</span>
+                <span className={labelClass}>{t('projects.fieldChangelog')}</span>
                 <textarea
                   value={form.changelogText}
                   onChange={(e) => updateField('changelogText', e.target.value)}
@@ -657,14 +657,18 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                 disabled={loading}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
               >
-                {loading ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
+                {loading
+                  ? t('common.saving')
+                  : editingId !== null
+                    ? t('common.update')
+                    : t('common.create')}
               </button>
               <button
                 type="button"
                 onClick={closeForm}
                 className="border-input hover:bg-accent inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -692,23 +696,23 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-          No projects yet. Click &quot;Add New&quot; to create one.
+          {t('projects.empty')}
         </div>
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="border-border bg-muted/50 border-b">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Name</th>
+                <th className="px-4 py-3 text-left font-medium">{t('common.name')}</th>
                 <th className="px-4 py-3 text-left font-medium">
-                  {langTab === 'en' ? 'Tagline (EN)' : '标语 (ZH)'}
+                  {langTab === 'en' ? t('projects.colTaglineEn') : t('projects.colTaglineZh')}
                 </th>
-                <th className="px-4 py-3 text-left font-medium">Category</th>
-                <th className="px-4 py-3 text-center font-medium">Year</th>
-                <th className="px-4 py-3 text-center font-medium">Status</th>
-                <th className="px-4 py-3 text-left font-medium">Slug</th>
-                <th className="px-4 py-3 text-center font-medium">Order</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-left font-medium">{t('projects.fieldCategory')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('projects.fieldYear')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('projects.colStatus')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('projects.fieldSlug')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('common.sortOrder')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
@@ -738,7 +742,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                         onClick={() => openEditForm(item)}
                         className="rounded-md px-2 py-1 text-xs font-medium text-blue-600 transition-colors hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/20"
                       >
-                        Edit
+                        {t('common.edit')}
                       </button>
                       <button
                         type="button"
@@ -746,7 +750,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
                         disabled={deletingId === item.id}
                         className="rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-900/20"
                       >
-                        {deletingId === item.id ? '…' : 'Delete'}
+                        {deletingId === item.id ? '…' : t('common.delete')}
                       </button>
                     </div>
                   </td>
@@ -770,7 +774,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
               disabled={safePage <= 1}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Prev
+              {t('common.prev')}
             </button>
             <button
               type="button"
@@ -778,7 +782,7 @@ export default function ProjectsManager({ items }: { items: Project[] }) {
               disabled={safePage >= totalPages}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { newsletterIssues } from '@repo/db/schema';
 import { desc } from 'drizzle-orm';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,10 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const issues = await db
-      .select()
-      .from(newsletterIssues)
-      .orderBy(desc(newsletterIssues.sentAt));
+    const issues = await db.select().from(newsletterIssues).orderBy(desc(newsletterIssues.sentAt));
     return NextResponse.json(issues);
   } catch (err) {
     console.error('[newsletter] list error', err);
@@ -36,17 +34,12 @@ export async function POST(req: Request) {
     };
 
     if (!body.subject || !body.htmlContent) {
-      return NextResponse.json(
-        { error: 'subject and htmlContent are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'subject and htmlContent are required' }, { status: 400 });
     }
 
     const apiKey = process.env.RESEND_API_KEY;
     const audienceId = process.env.RESEND_AUDIENCE_ID;
-    const fromEmail =
-      process.env.NEWSLETTER_FROM_EMAIL ??
-      'Kyriewen <coderkyriewen@gmail.com>';
+    const fromEmail = process.env.NEWSLETTER_FROM_EMAIL ?? 'Kyriewen <coderkyriewen@gmail.com>';
 
     if (!apiKey || !audienceId) {
       // Save as draft without sending
@@ -95,12 +88,9 @@ export async function POST(req: Request) {
 
       // Try to get audience size for recipient count
       try {
-        const audienceRes = await fetch(
-          `https://api.resend.com/audiences/${audienceId}/contacts`,
-          {
-            headers: { Authorization: `Bearer ${apiKey}` },
-          }
-        );
+        const audienceRes = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
         if (audienceRes.ok) {
           const audienceData = (await audienceRes.json()) as {
             data: Array<{ id: string }>;
@@ -112,14 +102,10 @@ export async function POST(req: Request) {
       }
     } else {
       const errorText = await broadcastRes.text().catch(() => '');
-      console.error(
-        '[newsletter] Resend broadcast error',
-        broadcastRes.status,
-        errorText
-      );
+      console.error('[newsletter] Resend broadcast error', broadcastRes.status, errorText);
       return NextResponse.json(
         { error: 'Failed to send broadcast', resendStatus: broadcastRes.status },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -135,6 +121,9 @@ export async function POST(req: Request) {
         resendBroadcastId: broadcastId,
       })
       .returning();
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/newsletter']).catch(() => {});
 
     return NextResponse.json({
       ok: true,

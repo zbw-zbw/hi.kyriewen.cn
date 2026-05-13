@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Lucide icon name options ────────────────────────────────── */
 const ICON_OPTIONS = [
@@ -62,6 +63,7 @@ const PAGE_SIZE = 20;
 
 export default function SocialManager({ items }: { items: SocialLink[] }) {
   const router = useRouter();
+  const { t } = useAdminLocale();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -102,7 +104,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.name.trim() || !form.href.trim() || !form.iconName.trim()) {
-      toast.error('Name, URL, and Icon are required');
+      toast.error(t('social.requiredFields'));
       return;
     }
 
@@ -132,11 +134,11 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
         throw new Error(errorData.error || 'Request failed');
       }
 
-      toast.success(isEdit ? 'Social link updated' : 'Social link created');
+      toast.success(isEdit ? t('social.toastUpdated') : t('social.toastCreated'));
       closeForm();
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setLoading(false);
     }
@@ -153,10 +155,10 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
         throw new Error(errorData.error || 'Delete failed');
       }
 
-      toast.success('Social link deleted');
+      toast.success(t('social.toastDeleted'));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed');
+      toast.error(error instanceof Error ? error.message : t('common.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -165,6 +167,12 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
   /* ── Render ────────────────────────────────────────────────── */
   return (
     <div className="space-y-6">
+      {/* Page heading */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{t('page.social.title')}</h2>
+        <p className="text-muted-foreground">{t('page.social.desc')}</p>
+      </div>
+
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
@@ -175,7 +183,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
           onClick={openCreateForm}
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
         >
-          + Add New
+          {t('common.addNew')}
         </button>
       </div>
 
@@ -183,12 +191,12 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
       {showForm && (
         <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">
-            {editingId !== null ? 'Edit Social Link' : 'New Social Link'}
+            {editingId !== null ? t('social.editTitle') : t('social.newTitle')}
           </h3>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             {/* Name */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">Name *</span>
+              <span className="text-sm font-medium">{t('social.fieldName')}</span>
               <input
                 type="text"
                 value={form.name}
@@ -201,7 +209,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
 
             {/* URL */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">URL *</span>
+              <span className="text-sm font-medium">{t('social.fieldUrl')}</span>
               <input
                 type="text"
                 value={form.href}
@@ -214,7 +222,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
 
             {/* Icon Name */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">Icon *</span>
+              <span className="text-sm font-medium">{t('social.fieldIcon')}</span>
               <select
                 value={form.iconName}
                 onChange={(event) => setForm({ ...form, iconName: event.target.value })}
@@ -230,7 +238,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
 
             {/* Handle */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">Handle</span>
+              <span className="text-sm font-medium">{t('social.fieldHandle')}</span>
               <input
                 type="text"
                 value={form.handle}
@@ -242,7 +250,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
 
             {/* Sort Order */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">Sort Order</span>
+              <span className="text-sm font-medium">{t('common.sortOrder')}</span>
               <input
                 type="number"
                 value={form.sortOrder}
@@ -261,7 +269,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 onChange={(event) => setForm({ ...form, isEmail: event.target.checked })}
                 className="border-input size-4 rounded"
               />
-              <span className="text-sm font-medium">Is Email Link</span>
+              <span className="text-sm font-medium">{t('social.isEmailLink')}</span>
             </label>
 
             {/* Actions */}
@@ -271,14 +279,18 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                 disabled={loading}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
               >
-                {loading ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
+                {loading
+                  ? t('common.saving')
+                  : editingId !== null
+                    ? t('common.update')
+                    : t('common.create')}
               </button>
               <button
                 type="button"
                 onClick={closeForm}
                 className="border-input hover:bg-accent inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -288,20 +300,20 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-          No social links yet. Click &quot;Add New&quot; to create one.
+          {t('social.empty')}
         </div>
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead className="border-border bg-muted/50 border-b">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Name</th>
-                <th className="px-4 py-3 text-left font-medium">URL</th>
-                <th className="px-4 py-3 text-left font-medium">Icon</th>
-                <th className="px-4 py-3 text-left font-medium">Handle</th>
-                <th className="px-4 py-3 text-center font-medium">Email</th>
-                <th className="px-4 py-3 text-center font-medium">Order</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-left font-medium">{t('social.colName')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('social.colUrl')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('social.colIcon')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('social.colHandle')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('social.colEmail')}</th>
+                <th className="px-4 py-3 text-center font-medium">{t('social.colOrder')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-border divide-y">
@@ -326,7 +338,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                         onClick={() => openEditForm(item)}
                         className="text-primary hover:bg-primary/10 rounded px-2 py-1 text-xs font-medium transition-colors"
                       >
-                        Edit
+                        {t('common.edit')}
                       </button>
                       <button
                         type="button"
@@ -334,7 +346,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
                         disabled={deletingId === item.id}
                         className="text-destructive hover:bg-destructive/10 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
                       >
-                        {deletingId === item.id ? 'Deleting…' : 'Delete'}
+                        {deletingId === item.id ? t('common.deleting') : t('common.delete')}
                       </button>
                     </div>
                   </td>
@@ -358,7 +370,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
               disabled={safePage <= 1}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Prev
+              {t('common.prev')}
             </button>
             <button
               type="button"
@@ -366,7 +378,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
               disabled={safePage >= totalPages}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </div>

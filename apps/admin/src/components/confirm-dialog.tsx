@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -18,12 +19,15 @@ export function ConfirmDialog({
   open,
   title,
   description,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   variant = 'default',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useAdminLocale();
+  const resolvedConfirmLabel = confirmLabel ?? t('common.confirm');
+  const resolvedCancelLabel = cancelLabel ?? t('common.cancel');
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -83,7 +87,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="border-border hover:bg-muted rounded-lg border px-3 py-1.5 text-sm font-medium transition-colors"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
           <button
             ref={confirmButtonRef}
@@ -95,7 +99,7 @@ export function ConfirmDialog({
                 : 'bg-primary text-primary-foreground hover:bg-primary/90'
             }`}
           >
-            {confirmLabel}
+            {resolvedConfirmLabel}
           </button>
         </div>
       </div>

@@ -2,11 +2,9 @@ import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { popularPosts } from '@repo/db/schema';
 import { eq } from 'drizzle-orm';
+import { triggerRevalidation } from '@/lib/revalidate';
 
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const body = await request.json();
@@ -28,26 +26,18 @@ export async function PATCH(
       .returning();
 
     if (!updated) {
-      return NextResponse.json(
-        { error: 'Popular post not found' },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'Popular post not found' }, { status: 404 });
     }
 
+    triggerRevalidation(['/']).catch(() => {});
     return NextResponse.json(updated);
   } catch (error) {
     console.error('Failed to update popular post:', error);
-    return NextResponse.json(
-      { error: 'Failed to update popular post' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to update popular post' }, { status: 500 });
   }
 }
 
-export async function DELETE(
-  _request: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
 
@@ -57,18 +47,13 @@ export async function DELETE(
       .returning();
 
     if (!deleted) {
-      return NextResponse.json(
-        { error: 'Popular post not found' },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: 'Popular post not found' }, { status: 404 });
     }
 
+    triggerRevalidation(['/']).catch(() => {});
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to delete popular post:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete popular post' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to delete popular post' }, { status: 500 });
   }
 }

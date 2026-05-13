@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { asc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { usesSections, usesItems } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,10 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const sections = await db
-      .select()
-      .from(usesSections)
-      .orderBy(asc(usesSections.sortOrder));
+    const sections = await db.select().from(usesSections).orderBy(asc(usesSections.sortOrder));
 
     const items = await db
       .select()
@@ -58,6 +56,9 @@ export async function POST(req: Request) {
         sortOrder: sortOrder ?? 0,
       })
       .returning();
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/uses']).catch(() => {});
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (error) {

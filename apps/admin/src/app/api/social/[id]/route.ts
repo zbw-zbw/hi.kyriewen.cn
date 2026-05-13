@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { socialLinks } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -9,10 +10,7 @@ export const dynamic = 'force-dynamic';
 /**
  * PATCH /api/social/[id] — 更新 socialLink
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -48,6 +46,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    triggerRevalidation(['/']).catch(() => {});
     return NextResponse.json({ data: updated });
   } catch (error) {
     console.error('[api/social] PATCH failed', error);
@@ -58,10 +57,7 @@ export async function PATCH(
 /**
  * DELETE /api/social/[id] — 删除 socialLink
  */
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -69,15 +65,13 @@ export async function DELETE(
   }
 
   try {
-    const [deleted] = await db
-      .delete(socialLinks)
-      .where(eq(socialLinks.id, id))
-      .returning();
+    const [deleted] = await db.delete(socialLinks).where(eq(socialLinks.id, id)).returning();
 
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    triggerRevalidation(['/']).catch(() => {});
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error('[api/social] DELETE failed', error);

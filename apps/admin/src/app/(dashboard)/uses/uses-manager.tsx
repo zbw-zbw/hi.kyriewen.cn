@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Types ───────────────────────────────────────────────────── */
 interface UsesSection {
@@ -78,6 +79,7 @@ export default function UsesManager({
   items: UsesItem[];
 }) {
   const router = useRouter();
+  const { t } = useAdminLocale();
   const [loading, setLoading] = useState(false);
 
   // Section state
@@ -160,36 +162,36 @@ export default function UsesManager({
           throw new Error(data.error || 'Request failed');
         }
 
-        toast.success(isEdit ? 'Section updated' : 'Section created');
+        toast.success(isEdit ? t('uses.sectionUpdated') : t('uses.sectionCreated'));
         setShowSectionForm(false);
         setSectionForm(EMPTY_SECTION_FORM);
         setEditingSectionId(null);
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed');
+        toast.error(error instanceof Error ? error.message : t('common.error'));
       } finally {
         setLoading(false);
       }
     },
-    [editingSectionId, sectionForm, router],
+    [editingSectionId, sectionForm, router, t],
   );
 
   const handleDeleteSection = useCallback(
     async (id: number) => {
-      if (!confirm('Delete this section and all its items?')) return;
+      if (!confirm(t('uses.confirmDeleteSection'))) return;
       setLoading(true);
       try {
         const res = await fetch(`/api/uses/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Delete failed');
-        toast.success('Section deleted');
+        toast.success(t('uses.sectionDeleted'));
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed');
+        toast.error(error instanceof Error ? error.message : t('common.error'));
       } finally {
         setLoading(false);
       }
     },
-    [router],
+    [router, t],
   );
 
   /* ── Item Handlers ───────────────────────────────────────────── */
@@ -268,36 +270,36 @@ export default function UsesManager({
           throw new Error(data.error || 'Request failed');
         }
 
-        toast.success(isEdit ? 'Item updated' : 'Item created');
+        toast.success(isEdit ? t('uses.itemUpdated') : t('uses.itemCreated'));
         setShowItemFormFor(null);
         setItemForm(EMPTY_ITEM_FORM);
         setEditingItemId(null);
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed');
+        toast.error(error instanceof Error ? error.message : t('common.error'));
       } finally {
         setLoading(false);
       }
     },
-    [editingItemId, itemForm, router],
+    [editingItemId, itemForm, router, t],
   );
 
   const handleDeleteItem = useCallback(
     async (id: number) => {
-      if (!confirm('Delete this item?')) return;
+      if (!confirm(t('uses.confirmDeleteItem'))) return;
       setLoading(true);
       try {
         const res = await fetch(`/api/uses/items/${id}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Delete failed');
-        toast.success('Item deleted');
+        toast.success(t('uses.itemDeleted'));
         router.refresh();
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed');
+        toast.error(error instanceof Error ? error.message : t('common.error'));
       } finally {
         setLoading(false);
       }
     },
-    [router],
+    [router, t],
   );
 
   /* ── Render helpers ──────────────────────────────────────────── */
@@ -325,7 +327,7 @@ export default function UsesManager({
           disabled={loading}
           className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          + New Section
+          {t('uses.newSection')}
         </button>
       </div>
 
@@ -335,11 +337,13 @@ export default function UsesManager({
           onSubmit={handleSectionSubmit}
           className="border-border bg-card space-y-3 rounded-lg border p-4"
         >
-          <h3 className="font-semibold">{editingSectionId ? 'Edit Section' : 'New Section'}</h3>
+          <h3 className="font-semibold">
+            {editingSectionId ? t('uses.editSectionTitle') : t('uses.newSectionTitle')}
+          </h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="text-muted-foreground mb-1 block text-xs font-medium">
-                Section ID
+                {t('uses.fieldSectionId')}
               </label>
               <input
                 type="text"
@@ -352,7 +356,7 @@ export default function UsesManager({
             </div>
             <div>
               <label className="text-muted-foreground mb-1 block text-xs font-medium">
-                Sort Order
+                {t('common.sortOrder')}
               </label>
               <input
                 type="number"
@@ -383,7 +387,11 @@ export default function UsesManager({
               disabled={loading}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
             >
-              {loading ? 'Saving...' : editingSectionId ? 'Update' : 'Create'}
+              {loading
+                ? t('common.saving')
+                : editingSectionId
+                  ? t('common.update')
+                  : t('common.create')}
             </button>
             <button
               type="button"
@@ -393,7 +401,7 @@ export default function UsesManager({
               }}
               className="border-input hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </form>
@@ -402,7 +410,7 @@ export default function UsesManager({
       {/* Sections List */}
       {sections.length === 0 && !showSectionForm && (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-          No sections yet. Click &quot;+ New Section&quot; to get started.
+          {t('uses.emptySection')}
         </div>
       )}
 
@@ -436,14 +444,14 @@ export default function UsesManager({
                   onClick={() => openEditSection(section)}
                   className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
                 >
-                  Edit
+                  {t('common.edit')}
                 </button>
                 <button
                   onClick={() => handleDeleteSection(section.id)}
                   disabled={loading}
                   className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
                 >
-                  Delete
+                  {t('common.delete')}
                 </button>
               </div>
             </div>
@@ -457,11 +465,11 @@ export default function UsesManager({
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-border text-muted-foreground border-b text-left text-xs">
-                          <th className="pr-3 pb-2 font-medium">Name</th>
-                          <th className="pr-3 pb-2 font-medium">Rating</th>
-                          <th className="pr-3 pb-2 font-medium">Since</th>
-                          <th className="pr-3 pb-2 font-medium">Note / Verdict</th>
-                          <th className="pb-2 font-medium">Actions</th>
+                          <th className="pr-3 pb-2 font-medium">{t('uses.colName')}</th>
+                          <th className="pr-3 pb-2 font-medium">{t('uses.colRating')}</th>
+                          <th className="pr-3 pb-2 font-medium">{t('uses.colSince')}</th>
+                          <th className="pr-3 pb-2 font-medium">{t('uses.colNoteVerdict')}</th>
+                          <th className="pb-2 font-medium">{t('common.actions')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-border divide-y">
@@ -528,7 +536,7 @@ export default function UsesManager({
                                 </p>
                                 {verdict && (
                                   <p className="text-muted-foreground truncate text-xs italic">
-                                    Verdict: {verdict}
+                                    {t('uses.verdict')} {verdict}
                                   </p>
                                 )}
                               </td>
@@ -538,14 +546,14 @@ export default function UsesManager({
                                     onClick={() => openEditItem(item)}
                                     className="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
                                   >
-                                    Edit
+                                    {t('common.edit')}
                                   </button>
                                   <button
                                     onClick={() => handleDeleteItem(item.id)}
                                     disabled={loading}
                                     className="rounded px-2 py-1 text-xs text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950"
                                   >
-                                    Delete
+                                    {t('common.delete')}
                                   </button>
                                 </div>
                               </td>
@@ -558,7 +566,7 @@ export default function UsesManager({
                 )}
 
                 {sectionItems.length === 0 && showItemFormFor !== section.id && (
-                  <p className="text-muted-foreground text-sm">No items yet.</p>
+                  <p className="text-muted-foreground text-sm">{t('uses.emptyItems')}</p>
                 )}
 
                 {/* Item Form */}
@@ -568,7 +576,7 @@ export default function UsesManager({
                     className="border-border bg-background space-y-3 rounded-md border p-4"
                   >
                     <h4 className="text-sm font-semibold">
-                      {editingItemId ? 'Edit Item' : 'New Item'}
+                      {editingItemId ? t('uses.editItemTitle') : t('uses.newItemTitle')}
                     </h4>
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       <div>
@@ -626,7 +634,7 @@ export default function UsesManager({
                       </div>
                       <div>
                         <label className="text-muted-foreground mb-1 block text-xs font-medium">
-                          Sort Order
+                          {t('common.sortOrder')}
                         </label>
                         <input
                           type="number"
@@ -668,7 +676,11 @@ export default function UsesManager({
                         disabled={loading}
                         className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                       >
-                        {loading ? 'Saving...' : editingItemId ? 'Update' : 'Create'}
+                        {loading
+                          ? t('common.saving')
+                          : editingItemId
+                            ? t('common.update')
+                            : t('common.create')}
                       </button>
                       <button
                         type="button"
@@ -678,7 +690,7 @@ export default function UsesManager({
                         }}
                         className="border-input hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium"
                       >
-                        Cancel
+                        {t('common.cancel')}
                       </button>
                     </div>
                   </form>
@@ -691,7 +703,7 @@ export default function UsesManager({
                     disabled={loading}
                     className="border-border text-muted-foreground rounded-md border border-dashed px-3 py-2 text-xs hover:border-blue-400 hover:text-blue-600 disabled:opacity-50"
                   >
-                    + Add Item
+                    {t('uses.addItem')}
                   </button>
                 )}
               </div>

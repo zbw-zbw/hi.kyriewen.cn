@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { asc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { socialLinks } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,10 +12,7 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET() {
   try {
-    const rows = await db
-      .select()
-      .from(socialLinks)
-      .orderBy(asc(socialLinks.sortOrder));
+    const rows = await db.select().from(socialLinks).orderBy(asc(socialLinks.sortOrder));
 
     return NextResponse.json({ data: rows });
   } catch (error) {
@@ -40,10 +38,7 @@ export async function POST(req: Request) {
     };
 
     if (!name?.trim() || !href?.trim() || !iconName?.trim()) {
-      return NextResponse.json(
-        { error: 'name, href, and iconName are required' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'name, href, and iconName are required' }, { status: 400 });
     }
 
     const [created] = await db
@@ -58,6 +53,7 @@ export async function POST(req: Request) {
       })
       .returning();
 
+    triggerRevalidation(['/']).catch(() => {});
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (error) {
     console.error('[api/social] POST failed', error);

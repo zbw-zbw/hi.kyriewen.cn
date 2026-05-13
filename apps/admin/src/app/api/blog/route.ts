@@ -5,6 +5,7 @@ import { NextResponse } from 'next/server';
 import { desc, eq, and } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { blogPosts } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -141,6 +142,9 @@ export async function POST(req: Request) {
         publishedAt: resolvedPublishedAt,
       })
       .returning();
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/blog']).catch(() => {});
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (error) {

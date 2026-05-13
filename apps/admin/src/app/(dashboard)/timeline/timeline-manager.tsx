@@ -55,7 +55,7 @@ const PAGE_SIZE = 20;
 
 export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
   const router = useRouter();
-  const { locale } = useAdminLocale();
+  const { locale, t } = useAdminLocale();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(EMPTY_FORM);
@@ -98,7 +98,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.date.trim() || !form.titleZh.trim() || !form.type.trim()) {
-      toast.error('Date, Title (ZH), and Type are required');
+      toast.error(t('timeline.requiredFields'));
       return;
     }
 
@@ -160,11 +160,11 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
         throw new Error(errorData.error || 'Request failed');
       }
 
-      toast.success(isEdit ? 'Timeline event updated' : 'Timeline event created');
+      toast.success(isEdit ? t('timeline.updated') : t('timeline.created'));
       closeForm();
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -183,10 +183,10 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
         throw new Error(errorData.error || 'Delete failed');
       }
 
-      toast.success('Timeline event deleted');
+      toast.success(t('timeline.deleted'));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed');
+      toast.error(error instanceof Error ? error.message : t('common.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -205,7 +205,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
           onClick={openCreateForm}
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
         >
-          + Add New
+          {t('common.addNew')}
         </button>
       </div>
 
@@ -213,12 +213,12 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
       {showForm && (
         <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <h3 className="mb-4 text-lg font-semibold">
-            {editingId !== null ? 'Edit Event' : 'New Event'}
+            {editingId !== null ? t('timeline.editTitle') : t('timeline.newTitle')}
           </h3>
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
             {/* Date */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">Date *</span>
+              <span className="text-sm font-medium">{t('timeline.fieldDate')}</span>
               <input
                 type="date"
                 value={form.date}
@@ -230,7 +230,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
 
             {/* Type */}
             <label className="space-y-1.5">
-              <span className="text-sm font-medium">Type *</span>
+              <span className="text-sm font-medium">{t('timeline.fieldType')}</span>
               <select
                 value={form.type}
                 onChange={(e) => setForm({ ...form, type: e.target.value })}
@@ -271,7 +271,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
 
             {/* URL */}
             <label className="space-y-1.5 sm:col-span-2">
-              <span className="text-sm font-medium">URL</span>
+              <span className="text-sm font-medium">{t('timeline.fieldUrl')}</span>
               <input
                 type="text"
                 value={form.url}
@@ -288,14 +288,18 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
                 disabled={loading}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
               >
-                {loading ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
+                {loading
+                  ? t('common.saving')
+                  : editingId !== null
+                    ? t('common.update')
+                    : t('common.create')}
               </button>
               <button
                 type="button"
                 onClick={closeForm}
                 className="border-input hover:bg-accent rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </form>
@@ -331,19 +335,19 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
       {/* ── Table ────────────────────────────────────────────── */}
       {items.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-          No timeline events yet. Click &quot;+ Add New&quot; to create one.
+          {t('timeline.empty')}
         </div>
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-border bg-muted/50 border-b">
-                <th className="px-4 py-3 text-left font-medium">Date</th>
-                <th className="px-4 py-3 text-left font-medium">Title</th>
-                <th className="px-4 py-3 text-left font-medium">Description</th>
-                <th className="px-4 py-3 text-left font-medium">Type</th>
-                <th className="px-4 py-3 text-left font-medium">URL</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-left font-medium">{t('timeline.colDate')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('timeline.colTitle')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('timeline.colDesc')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('timeline.colType')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('timeline.colUrl')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -389,7 +393,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
                       onClick={() => openEditForm(item)}
                       className="text-primary hover:bg-primary/10 mr-2 rounded px-2 py-1 text-xs font-medium transition-colors"
                     >
-                      Edit
+                      {t('common.edit')}
                     </button>
                     <button
                       type="button"
@@ -397,7 +401,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
                       disabled={deletingId === item.id}
                       className="text-destructive hover:bg-destructive/10 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
                     >
-                      {deletingId === item.id ? 'Deleting…' : 'Delete'}
+                      {deletingId === item.id ? t('common.deleting') : t('common.delete')}
                     </button>
                   </td>
                 </tr>
@@ -420,7 +424,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
               disabled={safePage <= 1}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Prev
+              {t('common.prev')}
             </button>
             <button
               type="button"
@@ -428,7 +432,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
               disabled={safePage >= totalPages}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </div>

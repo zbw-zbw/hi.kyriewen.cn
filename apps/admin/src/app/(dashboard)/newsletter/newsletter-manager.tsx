@@ -2,16 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import {
-  Send,
-  Loader2,
-  Mail,
-  Calendar,
-  Users,
-  Plus,
-  X,
-  Eye,
-} from 'lucide-react';
+import { Send, Loader2, Mail, Calendar, Users, Plus, X, Eye } from 'lucide-react';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface Issue {
   id: number;
@@ -29,9 +21,8 @@ export default function NewsletterManager({
 }: {
   initialIssues: Array<Record<string, unknown>>;
 }) {
-  const [issues, setIssues] = useState<Issue[]>(
-    initialIssues as unknown as Issue[]
-  );
+  const { t } = useAdminLocale();
+  const [issues, setIssues] = useState<Issue[]>(initialIssues as unknown as Issue[]);
   const [showCompose, setShowCompose] = useState(false);
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
 
@@ -43,11 +34,11 @@ export default function NewsletterManager({
 
   const handleSend = () => {
     if (!subject.trim() || !htmlContent.trim()) {
-      toast.error('Subject and content are required');
+      toast.error(t('newsletter.requiredFields'));
       return;
     }
 
-    if (!confirm('Are you sure you want to send this newsletter to ALL subscribers?')) {
+    if (!confirm(t('newsletter.confirmSend'))) {
       return;
     }
 
@@ -66,9 +57,9 @@ export default function NewsletterManager({
         if (!res.ok) throw new Error(data.error ?? 'Send failed');
 
         if (data.sent) {
-          toast.success('Newsletter sent successfully!');
+          toast.success(t('newsletter.sent'));
         } else {
-          toast.warning('Saved as draft (Resend not configured)');
+          toast.warning(t('newsletter.savedAsDraft'));
         }
 
         if (data.issue) {
@@ -91,7 +82,7 @@ export default function NewsletterManager({
       <button
         type="button"
         onClick={() => setShowCompose((v) => !v)}
-        className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
       >
         {showCompose ? (
           <>
@@ -99,51 +90,46 @@ export default function NewsletterManager({
           </>
         ) : (
           <>
-            <Plus className="h-4 w-4" /> Compose Newsletter
+            <Plus className="h-4 w-4" /> {t('newsletter.compose')}
           </>
         )}
       </button>
 
       {/* Compose form */}
       {showCompose && (
-        <div className="space-y-4 rounded-lg border bg-card p-6">
-          <h3 className="text-lg font-semibold">New Newsletter</h3>
+        <div className="bg-card space-y-4 rounded-lg border p-6">
+          <h3 className="text-lg font-semibold">{t('newsletter.newTitle')}</h3>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Subject *</label>
+            <label className="text-sm font-medium">{t('newsletter.fieldSubject')}</label>
             <input
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="e.g. Issue #04 — What I shipped this month"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Preview Text{' '}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </label>
+            <label className="text-sm font-medium">{t('newsletter.fieldPreviewText')}</label>
             <input
               type="text"
               value={previewText}
               onChange={(e) => setPreviewText(e.target.value)}
               placeholder="Short preview shown in email clients"
-              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              className="bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">HTML Content *</label>
+            <label className="text-sm font-medium">{t('newsletter.fieldHtmlContent')}</label>
             <textarea
               value={htmlContent}
               onChange={(e) => setHtmlContent(e.target.value)}
               placeholder="Paste your HTML email content here..."
               rows={12}
-              className="w-full rounded-md border bg-background px-3 py-2 font-mono text-sm"
+              className="bg-background w-full rounded-md border px-3 py-2 font-mono text-sm"
             />
           </div>
 
@@ -152,23 +138,23 @@ export default function NewsletterManager({
               type="button"
               onClick={handleSend}
               disabled={pending}
-              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
             >
               {pending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Send className="h-4 w-4" />
               )}
-              {pending ? 'Sending...' : 'Send to All Subscribers'}
+              {pending ? t('newsletter.sending') : t('newsletter.sendAll')}
             </button>
 
             {htmlContent && (
               <button
                 type="button"
                 onClick={() => setPreviewHtml(htmlContent)}
-                className="inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors hover:bg-accent"
+                className="hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
-                <Eye className="h-4 w-4" /> Preview
+                <Eye className="h-4 w-4" /> {t('newsletter.preview')}
               </button>
             )}
           </div>
@@ -182,12 +168,12 @@ export default function NewsletterManager({
             <button
               type="button"
               onClick={() => setPreviewHtml(null)}
-              className="absolute right-4 top-4 rounded-md p-1 hover:bg-gray-100"
+              className="absolute top-4 right-4 rounded-md p-1 hover:bg-gray-100"
             >
               <X className="h-5 w-5" />
             </button>
             <h3 className="mb-4 text-lg font-semibold text-gray-900">
-              Email Preview
+              {t('newsletter.emailPreview')}
             </h3>
             <div
               className="prose prose-sm max-w-none"
@@ -200,31 +186,27 @@ export default function NewsletterManager({
       {/* Issues list */}
       <div>
         <h3 className="mb-3 text-lg font-semibold">
-          Sent Issues ({issues.length})
+          {t('newsletter.sentIssues').replace('{count}', String(issues.length))}
         </h3>
         {issues.length === 0 ? (
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <Mail className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">
-              No newsletters sent yet. Compose your first one above.
-            </p>
+          <div className="bg-card rounded-lg border p-8 text-center">
+            <Mail className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
+            <p className="text-muted-foreground text-sm">{t('newsletter.empty')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {issues.map((issue) => (
               <div
                 key={issue.id}
-                className="flex items-center justify-between rounded-lg border bg-card p-4"
+                className="bg-card flex items-center justify-between rounded-lg border p-4"
               >
                 <div className="flex-1">
                   <h4 className="text-sm font-medium">{issue.subject}</h4>
                   {issue.previewText && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {issue.previewText}
-                    </p>
+                    <p className="text-muted-foreground mt-0.5 text-xs">{issue.previewText}</p>
                   )}
                 </div>
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                <div className="text-muted-foreground flex items-center gap-4 text-xs">
                   <span className="flex items-center gap-1">
                     <Users className="h-3 w-3" />
                     {issue.recipientCount}
@@ -233,14 +215,14 @@ export default function NewsletterManager({
                     <Calendar className="h-3 w-3" />
                     {issue.sentAt
                       ? new Date(issue.sentAt).toLocaleDateString()
-                      : 'Draft'}
+                      : t('newsletter.draft')}
                   </span>
                   <button
                     type="button"
                     onClick={() => setPreviewHtml(issue.htmlContent)}
-                    className="flex items-center gap-1 hover:text-foreground"
+                    className="hover:text-foreground flex items-center gap-1"
                   >
-                    <Eye className="h-3 w-3" /> View
+                    <Eye className="h-3 w-3" /> {t('newsletter.view')}
                   </button>
                 </div>
               </div>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { and, eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { i18nMessages } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -74,6 +75,9 @@ export async function POST(req: Request) {
       })
       .returning();
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
+
     return NextResponse.json({ data: upserted }, { status: 201 });
   } catch (error) {
     console.error('[api/i18n] POST failed', error);
@@ -126,6 +130,9 @@ export async function PUT(req: Request) {
       }),
     );
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
+
     return NextResponse.json({ data: results.filter(Boolean) });
   } catch (error) {
     console.error('[api/i18n] PUT failed', error);
@@ -150,6 +157,9 @@ export async function DELETE(req: Request) {
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

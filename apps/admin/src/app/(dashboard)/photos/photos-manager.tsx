@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { ImageUploader } from '@/components/image-uploader';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface Photo {
   id: number;
@@ -86,6 +87,7 @@ function buildExifString(form: FormData): string | null {
 
 export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
   const router = useRouter();
+  const { t } = useAdminLocale();
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
@@ -177,29 +179,29 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
         throw new Error(errorData.error ?? 'Request failed');
       }
 
-      toast.success(editingId ? 'Photo updated' : 'Photo created');
+      toast.success(editingId ? t('photos.toastUpdated') : t('photos.toastCreated'));
       closeForm();
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setSubmitting(false);
     }
   }
 
   async function handleDelete(photoId: number) {
-    if (!confirm('Are you sure you want to delete this photo?')) return;
+    if (!confirm(t('photos.confirmDelete'))) return;
 
     try {
       const response = await fetch(`/api/photos/${photoId}`, { method: 'DELETE' });
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error ?? 'Delete failed');
+        throw new Error(errorData.error ?? t('common.deleteFailed'));
       }
-      toast.success('Photo deleted');
+      toast.success(t('photos.toastDeleted'));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     }
   }
 
@@ -212,15 +214,15 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Photos</h2>
-          <p className="text-muted-foreground">Manage your photo gallery.</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t('page.photos.title')}</h2>
+          <p className="text-muted-foreground">{t('page.photos.desc')}</p>
         </div>
         <button
           onClick={openCreateForm}
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Add Photo
+          {t('photos.addPhoto')}
         </button>
       </div>
 
@@ -228,7 +230,9 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
       {showForm && (
         <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">{editingId ? 'Edit Photo' : 'New Photo'}</h3>
+            <h3 className="text-lg font-semibold">
+              {editingId ? t('photos.editTitle') : t('photos.newTitle')}
+            </h3>
             <button onClick={closeForm} className="text-muted-foreground hover:text-foreground">
               <X className="h-5 w-5" />
             </button>
@@ -237,7 +241,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Image Upload */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Image *</label>
+              <label className="text-sm font-medium">{t('photos.fieldImage')}</label>
               <ImageUploader
                 value={form.src}
                 onChange={(url) => updateField('src', url)}
@@ -247,7 +251,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
 
             {/* Alt */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Alt Text *</label>
+              <label className="text-sm font-medium">{t('photos.fieldAlt')}</label>
               <input
                 type="text"
                 value={form.alt}
@@ -260,7 +264,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
             {/* Width / Height / Sort Order */}
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Width *</label>
+                <label className="text-sm font-medium">{t('photos.fieldWidth')}</label>
                 <input
                   type="number"
                   value={form.width || ''}
@@ -271,7 +275,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Height *</label>
+                <label className="text-sm font-medium">{t('photos.fieldHeight')}</label>
                 <input
                   type="number"
                   value={form.height || ''}
@@ -282,7 +286,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Sort Order</label>
+                <label className="text-sm font-medium">{t('common.sortOrder')}</label>
                 <input
                   type="number"
                   value={form.sortOrder}
@@ -295,7 +299,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
             {/* Location / Taken At */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Location</label>
+                <label className="text-sm font-medium">{t('photos.fieldLocation')}</label>
                 <input
                   type="text"
                   value={form.location}
@@ -305,7 +309,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Taken At *</label>
+                <label className="text-sm font-medium">{t('photos.fieldTakenAt')}</label>
                 <input
                   type="date"
                   value={form.takenAt}
@@ -318,7 +322,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
 
             {/* Story ZH (auto-translate to EN on save) */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">故事描述（保存时自动翻译英文）</label>
+              <label className="text-sm font-medium">{t('photos.fieldStory')}</label>
               <textarea
                 value={form.storyZh}
                 onChange={(event) => updateField('storyZh', event.target.value)}
@@ -334,14 +338,14 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 onClick={() => setExifOpen(!exifOpen)}
                 className="hover:bg-muted/50 flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
               >
-                <span>EXIF Data</span>
+                <span>{t('photos.exifData')}</span>
                 {exifOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </button>
               {exifOpen && (
                 <div className="border-border space-y-4 border-t px-4 py-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Camera</label>
+                      <label className="text-sm font-medium">{t('photos.fieldCamera')}</label>
                       <input
                         type="text"
                         value={form.camera}
@@ -351,7 +355,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Lens</label>
+                      <label className="text-sm font-medium">{t('photos.fieldLens')}</label>
                       <input
                         type="text"
                         value={form.lens}
@@ -363,7 +367,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                   </div>
                   <div className="grid gap-4 sm:grid-cols-3">
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">ISO</label>
+                      <label className="text-sm font-medium">{t('photos.fieldIso')}</label>
                       <input
                         type="number"
                         value={form.iso}
@@ -375,7 +379,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Aperture</label>
+                      <label className="text-sm font-medium">{t('photos.fieldAperture')}</label>
                       <input
                         type="text"
                         value={form.aperture}
@@ -385,7 +389,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Shutter</label>
+                      <label className="text-sm font-medium">{t('photos.fieldShutter')}</label>
                       <input
                         type="text"
                         value={form.shutter}
@@ -406,14 +410,18 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 onClick={closeForm}
                 className="border-input hover:bg-muted rounded-md border px-4 py-2 text-sm font-medium transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={submitting}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {submitting ? 'Saving...' : editingId ? 'Update' : 'Create'}
+                {submitting
+                  ? t('common.saving')
+                  : editingId
+                    ? t('common.update')
+                    : t('common.create')}
               </button>
             </div>
           </form>
@@ -423,7 +431,7 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
       {/* Photo Grid */}
       {initialPhotos.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-          No photos yet. Click &quot;Add Photo&quot; to get started.
+          {t('photos.empty')}
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -457,14 +465,14 @@ export function PhotosManager({ initialPhotos }: { initialPhotos: Photo[] }) {
                 <button
                   onClick={() => openEditForm(photo)}
                   className="bg-background/80 text-foreground hover:bg-background rounded-md p-1.5 shadow-sm backdrop-blur"
-                  title="Edit"
+                  title={t('common.edit')}
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => handleDelete(photo.id)}
                   className="bg-background/80 text-destructive hover:bg-background rounded-md p-1.5 shadow-sm backdrop-blur"
-                  title="Delete"
+                  title={t('common.delete')}
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>

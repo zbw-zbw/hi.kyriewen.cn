@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { Database, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useAdminLocale } from '@/components/locale-provider';
 
 const SEED_TABLES = [
   { key: 'projects', label: 'Projects', desc: '8 items from projects.ts' },
@@ -19,6 +20,7 @@ const SEED_TABLES = [
 type TableKey = (typeof SEED_TABLES)[number]['key'];
 
 export default function SeedPanel() {
+  const { t } = useAdminLocale();
   const [selected, setSelected] = useState<Set<TableKey>>(new Set());
   const [pending, startTransition] = useTransition();
   const [results, setResults] = useState<Record<string, number> | null>(null);
@@ -27,7 +29,7 @@ export default function SeedPanel() {
     if (selected.size === SEED_TABLES.length) {
       setSelected(new Set());
     } else {
-      setSelected(new Set(SEED_TABLES.map((t) => t.key)));
+      setSelected(new Set(SEED_TABLES.map((table) => table.key)));
     }
   };
 
@@ -42,7 +44,7 @@ export default function SeedPanel() {
 
   const handleSeed = () => {
     if (selected.size === 0) {
-      toast.error('Please select at least one table');
+      toast.error(t('seed.selectAtLeastOne'));
       return;
     }
 
@@ -71,11 +73,8 @@ export default function SeedPanel() {
       <div className="flex items-start gap-3 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-4">
         <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-500" />
         <div className="text-sm">
-          <p className="font-medium text-yellow-500">Caution</p>
-          <p className="text-muted-foreground mt-1">
-            This will <strong>clear existing data</strong> in the selected tables and replace with
-            content from local files. Use this only for initial setup or data reset.
-          </p>
+          <p className="font-medium text-yellow-500">{t('seed.caution')}</p>
+          <p className="text-muted-foreground mt-1">{t('seed.cautionDesc')}</p>
         </div>
       </div>
 
@@ -86,7 +85,7 @@ export default function SeedPanel() {
           onClick={toggleAll}
           className="text-primary text-sm font-medium underline-offset-4 hover:underline"
         >
-          {selected.size === SEED_TABLES.length ? 'Deselect All' : 'Select All'}
+          {selected.size === SEED_TABLES.length ? t('seed.deselectAll') : t('seed.selectAll')}
         </button>
         <span className="text-muted-foreground text-xs">
           {selected.size} / {SEED_TABLES.length} selected
@@ -136,13 +135,13 @@ export default function SeedPanel() {
         className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:pointer-events-none disabled:opacity-50"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
-        {pending ? 'Importing...' : 'Import Selected'}
+        {pending ? t('seed.importing') : t('seed.importSelected')}
       </button>
 
       {/* Results */}
       {results && (
         <div className="bg-card rounded-lg border p-4">
-          <h3 className="mb-2 text-sm font-medium">Import Results</h3>
+          <h3 className="mb-2 text-sm font-medium">{t('seed.importResults')}</h3>
           <div className="space-y-1">
             {Object.entries(results).map(([table, count]) => (
               <div key={table} className="flex items-center justify-between text-sm">

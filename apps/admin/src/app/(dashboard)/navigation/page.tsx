@@ -29,7 +29,7 @@ const EMPTY_FORM: FormData = { href: '', key: '', labelZh: '', labelEn: '', sort
 
 /* ── Component ───────────────────────────────────────────────── */
 export default function NavigationPage() {
-  const { locale } = useAdminLocale();
+  const { locale, t } = useAdminLocale();
   const [items, setItems] = useState<NavigationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -87,7 +87,7 @@ export default function NavigationPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!form.href.trim() || !form.key.trim()) {
-      toast.error('Href and Key are required');
+      toast.error(t('navigation.requiredFields'));
       return;
     }
 
@@ -137,11 +137,11 @@ export default function NavigationPage() {
         throw new Error(errorData.error || 'Request failed');
       }
 
-      toast.success(isEdit ? 'Navigation item updated' : 'Navigation item created');
+      toast.success(isEdit ? t('navigation.toastUpdated') : t('navigation.toastCreated'));
       closeForm();
       fetchItems();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setSubmitting(false);
     }
@@ -161,10 +161,10 @@ export default function NavigationPage() {
         throw new Error(errorData.error || 'Toggle failed');
       }
 
-      toast.success(`Navigation item ${item.visible === 1 ? 'hidden' : 'shown'}`);
+      toast.success(t('navigation.toastUpdated'));
       fetchItems();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Toggle failed');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     }
   };
 
@@ -179,10 +179,10 @@ export default function NavigationPage() {
         throw new Error(errorData.error || 'Delete failed');
       }
 
-      toast.success('Navigation item deleted');
+      toast.success(t('navigation.toastDeleted'));
       fetchItems();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Delete failed');
+      toast.error(error instanceof Error ? error.message : t('common.deleteFailed'));
     } finally {
       setDeletingId(null);
     }
@@ -191,15 +191,17 @@ export default function NavigationPage() {
   /* ── Render ────────────────────────────────────────────────── */
   if (loading) {
     return (
-      <div className="text-muted-foreground flex items-center justify-center py-12">Loading…</div>
+      <div className="text-muted-foreground flex items-center justify-center py-12">
+        {t('common.loading')}
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Navigation</h2>
-        <p className="text-muted-foreground">Manage your site navigation menu items.</p>
+        <h2 className="text-2xl font-bold tracking-tight">{t('page.navigation.title')}</h2>
+        <p className="text-muted-foreground">{t('page.navigation.desc')}</p>
       </div>
 
       <div className="space-y-6">
@@ -213,7 +215,7 @@ export default function NavigationPage() {
             onClick={openCreateForm}
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm transition-colors"
           >
-            + Add New
+            {t('common.addNew')}
           </button>
         </div>
 
@@ -221,12 +223,12 @@ export default function NavigationPage() {
         {showForm && (
           <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
             <h3 className="mb-4 text-lg font-semibold">
-              {editingId !== null ? 'Edit Navigation Item' : 'New Navigation Item'}
+              {editingId !== null ? t('navigation.editTitle') : t('navigation.newTitle')}
             </h3>
             <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-2">
               {/* Href */}
               <label className="space-y-1.5">
-                <span className="text-sm font-medium">Href *</span>
+                <span className="text-sm font-medium">{t('navigation.fieldHref')}</span>
                 <input
                   type="text"
                   value={form.href}
@@ -239,7 +241,7 @@ export default function NavigationPage() {
 
               {/* Key */}
               <label className="space-y-1.5">
-                <span className="text-sm font-medium">Key *</span>
+                <span className="text-sm font-medium">{t('navigation.fieldKey')}</span>
                 <input
                   type="text"
                   value={form.key}
@@ -265,8 +267,10 @@ export default function NavigationPage() {
               {/* Label EN */}
               <label className="space-y-1.5">
                 <span className="text-sm font-medium">
-                  English Label{' '}
-                  <span className="text-muted-foreground text-xs">(auto-translated if empty)</span>
+                  {t('navigation.fieldLabelEn')}{' '}
+                  <span className="text-muted-foreground text-xs">
+                    {t('navigation.autoTranslateHint')}
+                  </span>
                 </span>
                 <input
                   type="text"
@@ -279,7 +283,7 @@ export default function NavigationPage() {
 
               {/* Sort Order */}
               <label className="space-y-1.5">
-                <span className="text-sm font-medium">Sort Order</span>
+                <span className="text-sm font-medium">{t('common.sortOrder')}</span>
                 <input
                   type="number"
                   value={form.sortOrder}
@@ -297,14 +301,18 @@ export default function NavigationPage() {
                   disabled={submitting}
                   className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
                 >
-                  {submitting ? 'Saving…' : editingId !== null ? 'Update' : 'Create'}
+                  {submitting
+                    ? t('common.saving')
+                    : editingId !== null
+                      ? t('common.update')
+                      : t('common.create')}
                 </button>
                 <button
                   type="button"
                   onClick={closeForm}
                   className="border-input hover:bg-accent inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium transition-colors"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>
@@ -332,7 +340,7 @@ export default function NavigationPage() {
         {/* ── Table ────────────────────────────────────────────── */}
         {items.length === 0 ? (
           <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-            No navigation items yet. Click &quot;Add New&quot; to create one.
+            No navigation items yet. Click &quot;{t('common.addNew')}&quot; to create one.
           </div>
         ) : (
           <div className="border-border overflow-x-auto rounded-lg border">
@@ -401,7 +409,7 @@ export default function NavigationPage() {
                           onClick={() => openEditForm(item)}
                           className="text-primary hover:bg-primary/10 rounded px-2 py-1 text-xs font-medium transition-colors"
                         >
-                          Edit
+                          {t('common.edit')}
                         </button>
                         <button
                           type="button"
@@ -409,7 +417,7 @@ export default function NavigationPage() {
                           disabled={deletingId === item.id}
                           className="text-destructive hover:bg-destructive/10 rounded px-2 py-1 text-xs font-medium transition-colors disabled:opacity-50"
                         >
-                          {deletingId === item.id ? 'Deleting…' : 'Delete'}
+                          {deletingId === item.id ? t('common.deleting') : t('common.delete')}
                         </button>
                       </div>
                     </td>

@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { TrendingUp, TrendingDown, Minus, Pencil, Trash2, Plus, X } from 'lucide-react';
+import { useAdminLocale } from '@/components/locale-provider';
 
 type PopularPost = {
   id: number;
@@ -39,44 +40,38 @@ function TrendIcon({ trend }: { trend: string | null }) {
   }
 }
 
-function TrendLabel({ trend }: { trend: string | null }) {
+function TrendLabel({ trend, t }: { trend: string | null; t: (key: string) => string }) {
   switch (trend) {
     case 'up':
-      return <span className="text-green-500">Up</span>;
+      return <span className="text-green-500">{t('popular.trendUp')}</span>;
     case 'down':
-      return <span className="text-red-500">Down</span>;
+      return <span className="text-red-500">{t('popular.trendDown')}</span>;
     default:
-      return <span className="text-muted-foreground">Flat</span>;
+      return <span className="text-muted-foreground">{t('popular.trendFlat')}</span>;
   }
 }
 
-export function PopularManager({ initialData }: { initialData: PopularPost[] }) {
+export function PopularManager({
+  initialData,
+  initialBlogPosts,
+  initialViewsMap,
+}: {
+  initialData: PopularPost[];
+  initialBlogPosts: BlogPostOption[];
+  initialViewsMap: Record<string, number>;
+}) {
   const router = useRouter();
+  const { t } = useAdminLocale();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState<FormData>(EMPTY_FORM);
+  const [selectedLang, setSelectedLang] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [blogPosts, setBlogPosts] = useState<BlogPostOption[]>([]);
+  const blogPosts = initialBlogPosts;
+  const viewsMap = initialViewsMap;
   const [slugSearch, setSlugSearch] = useState('');
   const [showSlugDropdown, setShowSlugDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // 加载已发布的博客文章列表
-  useEffect(() => {
-    fetch('/api/blog')
-      .then((res) => res.json())
-      .then((data) => {
-        const posts = Array.isArray(data?.data) ? data.data : [];
-        setBlogPosts(
-          posts.map((p: { slug: string; title: string; lang: string }) => ({
-            slug: p.slug,
-            title: p.title,
-            lang: p.lang,
-          })),
-        );
-      })
-      .catch(() => {});
-  }, []);
 
   // 点击外部关闭下拉
   useEffect(() => {
@@ -89,24 +84,17 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 选择文章后自动获取浏览量
-  async function selectPost(post: BlogPostOption) {
+  // 选择文章后自动填充浏览量（使用服务端传入的 viewsMap，避免请求主站 API）
+  function selectPost(post: BlogPostOption) {
     setFormData((prev) => ({ ...prev, slug: post.slug }));
+    setSelectedLang(post.lang);
     setSlugSearch(post.title);
     setShowSlugDropdown(false);
 
-    // 自动获取浏览量
-    try {
-      const viewsRes = await fetch(`/api/views?slugs=blog/${post.slug}`);
-      if (viewsRes.ok) {
-        const viewsData = await viewsRes.json();
-        const viewCount = viewsData.views?.[`blog/${post.slug}`];
-        if (typeof viewCount === 'number') {
-          setFormData((prev) => ({ ...prev, views: viewCount }));
-        }
-      }
-    } catch {
-      // 获取浏览量失败时保持手动输入的值
+    // 从服务端预加载的 viewsMap 中获取浏览量
+    const viewCount = viewsMap[`blog/${post.slug}`];
+    if (typeof viewCount === 'number') {
+      setFormData((prev) => ({ ...prev, views: viewCount }));
     }
   }
 
@@ -141,6 +129,8 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
       views: post.views ?? 0,
       trend: post.trend ?? 'flat',
     });
+    setSelectedLang('');
+    setSlugSearch('');
     setShowForm(true);
   }
 
@@ -148,6 +138,8 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
     setShowForm(false);
     setEditingId(null);
     setFormData(EMPTY_FORM);
+    setSelectedLang('');
+    setSlugSearch('');
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -170,18 +162,18 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
         throw new Error(errorBody.error || 'Request failed');
       }
 
-      toast.success(isEditing ? 'Post updated' : 'Post created');
+      toast.success(isEditing ? t('popular.toastUpdated') : t('popular.toastCreated'));
       closeForm();
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setLoading(false);
     }
   }
 
   async function handleDelete(postId: number) {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    if (!confirm(t('popular.confirmDelete'))) return;
 
     setLoading(true);
     try {
@@ -192,10 +184,10 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
         throw new Error(errorBody.error || 'Delete failed');
       }
 
-      toast.success('Post deleted');
+      toast.success(t('popular.toastDeleted'));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Something went wrong');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setLoading(false);
     }
@@ -206,8 +198,8 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Popular Posts</h2>
-          <p className="text-muted-foreground">Track and manage popular posts.</p>
+          <h2 className="text-2xl font-bold tracking-tight">{t('page.popular.title')}</h2>
+          <p className="text-muted-foreground">{t('page.popular.desc')}</p>
         </div>
         <button
           type="button"
@@ -215,7 +207,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
           className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Add Post
+          {t('popular.addPost')}
         </button>
       </div>
 
@@ -224,7 +216,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
         <div className="border-border bg-background rounded-lg border p-6">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold">
-              {editingId !== null ? 'Edit Post' : 'New Post'}
+              {editingId !== null ? t('popular.editTitle') : t('popular.newTitle')}
             </h3>
             <button
               type="button"
@@ -237,7 +229,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
           <form onSubmit={handleSubmit} className="grid gap-4 sm:grid-cols-3">
             <div className="relative space-y-1.5" ref={dropdownRef}>
               <label htmlFor="slug" className="text-sm font-medium">
-                选择文章
+                {t('popular.selectPost')}
               </label>
               <input
                 id="slug"
@@ -249,7 +241,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                   setShowSlugDropdown(true);
                 }}
                 onFocus={() => setShowSlugDropdown(true)}
-                placeholder="搜索文章标题..."
+                placeholder={t('popular.searchPlaceholder')}
                 className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
               {/* hidden input 存储真正的 slug 值 */}
@@ -262,7 +254,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                       type="button"
                       onClick={() => selectPost(post)}
                       className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
-                        formData.slug === post.slug
+                        formData.slug === post.slug && selectedLang === post.lang
                           ? 'bg-primary/10 text-primary font-medium'
                           : 'hover:bg-accent'
                       }`}
@@ -278,7 +270,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
             </div>
             <div className="space-y-1.5">
               <label htmlFor="views" className="text-sm font-medium">
-                Views
+                {t('popular.views')}
               </label>
               <input
                 id="views"
@@ -294,7 +286,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
             </div>
             <div className="space-y-1.5">
               <label htmlFor="trend" className="text-sm font-medium">
-                Trend
+                {t('popular.trend')}
               </label>
               <select
                 id="trend"
@@ -302,9 +294,9 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                 onChange={(event) => setFormData({ ...formData, trend: event.target.value })}
                 className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               >
-                <option value="up">Up</option>
-                <option value="flat">Flat</option>
-                <option value="down">Down</option>
+                <option value="up">{t('popular.trendUp')}</option>
+                <option value="flat">{t('popular.trendFlat')}</option>
+                <option value="down">{t('popular.trendDown')}</option>
               </select>
             </div>
             <div className="sm:col-span-3">
@@ -313,7 +305,11 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                 disabled={loading}
                 className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
               >
-                {loading ? 'Saving...' : editingId !== null ? 'Update' : 'Create'}
+                {loading
+                  ? t('common.saving')
+                  : editingId !== null
+                    ? t('common.update')
+                    : t('common.create')}
               </button>
             </div>
           </form>
@@ -323,17 +319,17 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
       {/* Table */}
       {initialData.length === 0 ? (
         <div className="border-border text-muted-foreground rounded-lg border border-dashed p-12 text-center">
-          No popular posts yet. Click &quot;Add Post&quot; to create one.
+          {t('popular.empty')}
         </div>
       ) : (
         <div className="border-border overflow-x-auto rounded-lg border">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-border bg-muted/50 border-b">
-                <th className="px-4 py-3 text-left font-medium">Title</th>
-                <th className="px-4 py-3 text-left font-medium">Views</th>
-                <th className="px-4 py-3 text-left font-medium">Trend</th>
-                <th className="px-4 py-3 text-right font-medium">Actions</th>
+                <th className="px-4 py-3 text-left font-medium">{t('popular.colTitle')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('popular.views')}</th>
+                <th className="px-4 py-3 text-left font-medium">{t('popular.trend')}</th>
+                <th className="px-4 py-3 text-right font-medium">{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -347,7 +343,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                   <td className="px-4 py-3">
                     <span className="inline-flex items-center gap-1.5">
                       <TrendIcon trend={post.trend} />
-                      <TrendLabel trend={post.trend} />
+                      <TrendLabel trend={post.trend} t={t} />
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -356,7 +352,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                         type="button"
                         onClick={() => openEditForm(post)}
                         className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-md p-1.5 transition-colors"
-                        title="Edit"
+                        title={t('common.edit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -365,7 +361,7 @@ export function PopularManager({ initialData }: { initialData: PopularPost[] }) 
                         onClick={() => handleDelete(post.id)}
                         disabled={loading}
                         className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-md p-1.5 transition-colors"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

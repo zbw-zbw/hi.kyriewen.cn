@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Save, Send, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
 import { TiptapEditor, markdownToHtml, htmlToMarkdown } from './tiptap-editor';
 import { MdUpload } from './md-upload';
+import { useAdminLocale } from '@/components/locale-provider';
 
 /* ── Types ───────────────────────────────────────────────────── */
 interface BlogPost {
@@ -43,6 +44,7 @@ function slugify(text: string): string {
 /* ── Component ───────────────────────────────────────────────── */
 export function BlogEditor({ post }: BlogEditorProps) {
   const router = useRouter();
+  const { t } = useAdminLocale();
   const isEditing = Boolean(post);
 
   // Frontmatter state
@@ -122,7 +124,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
   // Save handler
   async function handleSave() {
     if (!title.trim() || !slug.trim()) {
-      toast.error('Title and slug are required.');
+      toast.error(t('blogEditor.requiredFields'));
       return;
     }
 
@@ -143,11 +145,11 @@ export function BlogEditor({ post }: BlogEditorProps) {
         throw new Error(errorData.error ?? 'Failed to save post');
       }
 
-      toast.success(isEditing ? 'Post updated!' : 'Post created!');
+      toast.success(isEditing ? t('blogEditor.toastUpdated') : t('blogEditor.toastCreated'));
       router.push('/blog');
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to save post');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setSaving(false);
     }
@@ -156,7 +158,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
   // Publish handler
   async function handlePublish() {
     if (!title.trim() || !slug.trim()) {
-      toast.error('Title and slug are required.');
+      toast.error(t('blogEditor.requiredFields'));
       return;
     }
 
@@ -177,7 +179,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
         throw new Error(errorData.error ?? 'Failed to publish post');
       }
 
-      toast.success('Post published!');
+      toast.success(t('blogEditor.toastPublished'));
 
       router.push('/blog');
       router.refresh();
@@ -190,7 +192,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
         });
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to publish post');
+      toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
       setSaving(false);
     }
@@ -282,7 +284,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
             className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to posts
+            {t('blogEditor.backToPosts')}
           </button>
           <MdUpload onImport={handleMdImport} />
         </div>
@@ -291,7 +293,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
         <div className="border-border rounded-lg border p-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium">Title</label>
+              <label className="mb-1 block text-sm font-medium">{t('blogEditor.fieldTitle')}</label>
               <input
                 type="text"
                 value={title}
@@ -301,7 +303,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Slug</label>
+              <label className="mb-1 block text-sm font-medium">{t('blogEditor.fieldSlug')}</label>
               <input
                 type="text"
                 value={slug}
@@ -311,14 +313,16 @@ export function BlogEditor({ post }: BlogEditorProps) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Language</label>
+              <label className="mb-1 block text-sm font-medium">{t('blogEditor.fieldLang')}</label>
               <select value={lang} onChange={(e) => setLang(e.target.value)} className={inputClass}>
-                <option value="zh">Chinese (中文)</option>
-                <option value="en">English</option>
+                <option value="zh">{t('blogEditor.langZh')}</option>
+                <option value="en">{t('blogEditor.langEn')}</option>
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label className="mb-1 block text-sm font-medium">Summary</label>
+              <label className="mb-1 block text-sm font-medium">
+                {t('blogEditor.fieldSummary')}
+              </label>
               <textarea
                 value={summary}
                 onChange={(e) => setSummary(e.target.value)}
@@ -328,7 +332,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Tags (comma separated)</label>
+              <label className="mb-1 block text-sm font-medium">{t('blogEditor.fieldTags')}</label>
               <input
                 type="text"
                 value={tagsInput}
@@ -338,7 +342,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">Cover Image URL</label>
+              <label className="mb-1 block text-sm font-medium">{t('blogEditor.fieldCover')}</label>
               <input
                 type="text"
                 value={coverImage}
@@ -350,7 +354,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
             {post?.source && (
               <div className="sm:col-span-2">
                 <label className="text-muted-foreground mb-1 block text-sm font-medium">
-                  Source
+                  {t('blogEditor.fieldSource')}
                 </label>
                 <div className="text-muted-foreground flex items-center gap-2 text-sm">
                   <span className="bg-muted rounded px-2 py-0.5 text-xs font-medium">
@@ -363,7 +367,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
                       rel="noopener noreferrer"
                       className="text-primary underline"
                     >
-                      View original
+                      {t('blogEditor.viewOriginal')}
                     </a>
                   )}
                 </div>
@@ -403,7 +407,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
                 className="cursor-pointer text-sm font-medium"
                 onClick={() => setDraft((v) => !v)}
               >
-                Draft (not published)
+                {t('blogEditor.draftLabel')}
               </label>
             </div>
           </div>
@@ -414,14 +418,14 @@ export function BlogEditor({ post }: BlogEditorProps) {
       <div className="min-h-0 flex-1 overflow-auto py-4">
         {/* Editor + Preview toggle */}
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-medium">Content</h3>
+          <h3 className="text-sm font-medium">{t('blogEditor.content')}</h3>
           <button
             type="button"
             onClick={() => setShowPreview((v) => !v)}
             className="border-border hover:bg-accent inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors"
           >
             {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
-            {showPreview ? 'Hide Preview' : 'Show Preview'}
+            {showPreview ? t('blogEditor.hidePreview') : t('blogEditor.showPreview')}
           </button>
         </div>
 
@@ -441,7 +445,9 @@ export function BlogEditor({ post }: BlogEditorProps) {
             <div className="border-border bg-muted/30 min-w-0 overflow-auto rounded-lg border p-4">
               <div className="border-border mb-2 flex items-center gap-2 border-b pb-2">
                 <Eye className="text-muted-foreground h-4 w-4" />
-                <span className="text-muted-foreground text-xs font-medium">Preview</span>
+                <span className="text-muted-foreground text-xs font-medium">
+                  {t('blogEditor.preview')}
+                </span>
               </div>
               <div
                 className="prose prose-sm dark:prose-invert max-w-none wrap-break-word"
@@ -465,7 +471,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Save className="h-4 w-4" />
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? t('common.saving') : t('common.save')}
           </button>
           <button
             onClick={handlePublish}
@@ -473,7 +479,7 @@ export function BlogEditor({ post }: BlogEditorProps) {
             className="border-border bg-background hover:bg-accent hover:text-accent-foreground inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
           >
             <Send className="h-4 w-4" />
-            {saving ? 'Publishing...' : 'Save & Publish'}
+            {saving ? t('common.saving') : t('blogEditor.saveAndPublish')}
           </button>
         </div>
       </div>

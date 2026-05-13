@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { Trash2, Loader2, MessageSquare, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface Message {
   id: number;
@@ -26,6 +27,7 @@ export default function GuestbookManager({
   initialMessages: Message[];
   initialTotal: number;
 }) {
+  const { t } = useAdminLocale();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [total, setTotal] = useState(initialTotal);
   const [filter, setFilter] = useState<FilterType>('all');
@@ -74,7 +76,7 @@ export default function GuestbookManager({
     if (deleteTarget === null) return;
     try {
       await executeDelete(deleteTarget);
-      toast.success('Message deleted');
+      toast.success(t('guestbook.toastDeleted'));
     } catch (err) {
       toast.error(String(err));
     } finally {
@@ -96,7 +98,7 @@ export default function GuestbookManager({
         throw new Error(errorData.error ?? 'Batch delete failed');
       }
       const { deletedCount } = await res.json();
-      toast.success(`Deleted ${deletedCount} messages`);
+      toast.success(t('guestbook.toastBatchDeleted').replace('{count}', String(deletedCount)));
       setMessages((prev) =>
         prev.filter((m) => !ids.includes(m.id) && !ids.includes(m.parentId ?? -1)),
       );
@@ -150,7 +152,11 @@ export default function GuestbookManager({
                   : 'bg-muted text-muted-foreground hover:bg-accent'
               }`}
             >
-              {type === 'all' ? 'All' : type === 'guestbook' ? 'Guestbook' : 'Blog Comments'}
+              {type === 'all'
+                ? t('guestbook.filterAll')
+                : type === 'guestbook'
+                  ? t('guestbook.filterGuestbook')
+                  : t('guestbook.filterBlogComments')}
             </button>
           ))}
         </div>
@@ -187,7 +193,7 @@ export default function GuestbookManager({
                 </svg>
               )}
             </span>
-            Select All
+            {t('guestbook.selectAll')}
           </label>
 
           {selectedIds.size > 0 && (
@@ -197,7 +203,7 @@ export default function GuestbookManager({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
-              Delete ({selectedIds.size})
+              {t('guestbook.batchDelete').replace('{count}', String(selectedIds.size))}
             </button>
           )}
         </div>
@@ -211,7 +217,7 @@ export default function GuestbookManager({
       ) : messages.length === 0 ? (
         <div className="bg-card flex-1 rounded-lg border p-8 text-center">
           <MessageSquare className="text-muted-foreground mx-auto mb-3 h-8 w-8" />
-          <p className="text-muted-foreground text-sm">No messages found.</p>
+          <p className="text-muted-foreground text-sm">{t('guestbook.empty')}</p>
         </div>
       ) : (
         <div className="min-h-0 flex-1 space-y-2 overflow-auto">
@@ -280,7 +286,7 @@ export default function GuestbookManager({
                   )}
                   {msg.parentId && (
                     <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px]">
-                      reply
+                      {t('guestbook.reply')}
                     </span>
                   )}
                   <time className="text-muted-foreground ml-auto text-xs">
@@ -320,7 +326,7 @@ export default function GuestbookManager({
             disabled={page <= 1}
             className="border-border hover:bg-accent inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
-            <ChevronLeft className="h-4 w-4" /> Prev
+            <ChevronLeft className="h-4 w-4" /> {t('common.prev')}
           </button>
           <button
             type="button"
@@ -328,7 +334,7 @@ export default function GuestbookManager({
             disabled={page >= totalPages}
             className="border-border hover:bg-accent inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
-            Next <ChevronRight className="h-4 w-4" />
+            {t('common.next')} <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -336,9 +342,9 @@ export default function GuestbookManager({
       {/* Single delete confirm */}
       <ConfirmDialog
         open={deleteTarget !== null}
-        title="Delete Message"
-        description="Are you sure you want to delete this message and all its replies? This action cannot be undone."
-        confirmLabel="Delete"
+        title={t('guestbook.deleteTitle')}
+        description={t('guestbook.deleteDesc')}
+        confirmLabel={t('common.delete')}
         variant="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
@@ -347,9 +353,9 @@ export default function GuestbookManager({
       {/* Batch delete confirm */}
       <ConfirmDialog
         open={batchDeleteOpen}
-        title="Batch Delete"
-        description={`Are you sure you want to delete ${selectedIds.size} selected messages? This action cannot be undone.`}
-        confirmLabel={`Delete ${selectedIds.size} Messages`}
+        title={t('guestbook.batchDeleteTitle')}
+        description={t('guestbook.deleteDesc')}
+        confirmLabel={t('guestbook.batchDelete').replace('{count}', String(selectedIds.size))}
         variant="danger"
         onConfirm={handleBatchDeleteConfirm}
         onCancel={() => setBatchDeleteOpen(false)}

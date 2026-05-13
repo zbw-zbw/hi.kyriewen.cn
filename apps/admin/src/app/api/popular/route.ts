@@ -2,21 +2,16 @@ import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { popularPosts } from '@repo/db/schema';
 import { desc } from 'drizzle-orm';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export async function GET() {
   try {
-    const posts = await db
-      .select()
-      .from(popularPosts)
-      .orderBy(desc(popularPosts.views));
+    const posts = await db.select().from(popularPosts).orderBy(desc(popularPosts.views));
 
     return NextResponse.json(posts);
   } catch (error) {
     console.error('Failed to fetch popular posts:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch popular posts' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to fetch popular posts' }, { status: 500 });
   }
 }
 
@@ -30,10 +25,7 @@ export async function POST(request: Request) {
     };
 
     if (!slug) {
-      return NextResponse.json(
-        { error: 'slug is required' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'slug is required' }, { status: 400 });
     }
 
     const [created] = await db
@@ -45,12 +37,10 @@ export async function POST(request: Request) {
       })
       .returning();
 
+    triggerRevalidation(['/']).catch(() => {});
     return NextResponse.json(created, { status: 201 });
   } catch (error) {
     console.error('Failed to create popular post:', error);
-    return NextResponse.json(
-      { error: 'Failed to create popular post' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to create popular post' }, { status: 500 });
   }
 }

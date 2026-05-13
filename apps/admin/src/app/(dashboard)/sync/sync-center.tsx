@@ -15,6 +15,7 @@ import {
   Mail,
   FileText,
 } from 'lucide-react';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface SyncTask {
   id: string;
@@ -73,68 +74,74 @@ const TASKS: SyncTask[] = [
 type TaskStatus = 'idle' | 'running' | 'success' | 'error';
 
 export function SyncCenter() {
+  const { t } = useAdminLocale();
   const [taskStatuses, setTaskStatuses] = useState<Record<string, TaskStatus>>({});
   const [taskResults, setTaskResults] = useState<Record<string, string>>({});
   const [runningAll, setRunningAll] = useState(false);
 
-  const triggerTask = useCallback(async (taskId: string) => {
-    setTaskStatuses((prev) => ({ ...prev, [taskId]: 'running' }));
-    setTaskResults((prev) => ({ ...prev, [taskId]: '' }));
+  const triggerTask = useCallback(
+    async (taskId: string) => {
+      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'running' }));
+      setTaskResults((prev) => ({ ...prev, [taskId]: '' }));
 
-    try {
-      const body: Record<string, unknown> = { taskId };
+      try {
+        const body: Record<string, unknown> = { taskId };
 
-      const response = await fetch('/api/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
+        const response = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error ?? `HTTP ${response.status}`);
-      }
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error ?? `HTTP ${response.status}`);
+        }
 
-      const data = await response.json();
-      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
+        const data = await response.json();
+        setTaskStatuses((prev) => ({ ...prev, [taskId]: 'success' }));
 
-      // Build friendly result message
-      const result = data.result ?? {};
-      let friendlyMessage = 'Completed successfully';
-      if (taskId === 'sync-articles' && Array.isArray(result.results)) {
-        const parts = result.results.map(
-          (r: {
-            source: string;
-            imported: number;
-            skipped: number;
-            contentFailed?: number;
-            error?: string;
-          }) => {
-            if (r.error) return `${r.source}: error`;
-            const label = r.source === 'juejin' ? '掘金' : r.source.toUpperCase();
-            let msg = `${label}: +${r.imported} new, ${r.skipped} skipped`;
-            if (r.contentFailed && r.contentFailed > 0) {
-              msg += ` ⚠️ ${r.contentFailed} content failed`;
-            }
-            return msg;
-          },
+        // Build friendly result message
+        const result = data.result ?? {};
+        let friendlyMessage = 'Completed successfully';
+        if (taskId === 'sync-articles' && Array.isArray(result.results)) {
+          const parts = result.results.map(
+            (r: {
+              source: string;
+              imported: number;
+              skipped: number;
+              contentFailed?: number;
+              error?: string;
+            }) => {
+              if (r.error) return `${r.source}: error`;
+              const label = r.source === 'juejin' ? '掘金' : r.source.toUpperCase();
+              let msg = `${label}: +${r.imported} new, ${r.skipped} skipped`;
+              if (r.contentFailed && r.contentFailed > 0) {
+                msg += ` ⚠️ ${r.contentFailed} content failed`;
+              }
+              return msg;
+            },
+          );
+          friendlyMessage = parts.join(' · ');
+        } else if (typeof result.imported === 'number') {
+          friendlyMessage = `+${result.imported} imported, ${result.skipped ?? 0} skipped`;
+        } else if (typeof result.updated === 'number') {
+          friendlyMessage = `${result.updated} records updated`;
+        }
+
+        setTaskResults((prev) => ({ ...prev, [taskId]: friendlyMessage }));
+        toast.success(
+          `${TASKS.find((task) => task.id === taskId)?.name ?? taskId}: ${friendlyMessage}`,
         );
-        friendlyMessage = parts.join(' · ');
-      } else if (typeof result.imported === 'number') {
-        friendlyMessage = `+${result.imported} imported, ${result.skipped ?? 0} skipped`;
-      } else if (typeof result.updated === 'number') {
-        friendlyMessage = `${result.updated} records updated`;
+      } catch (error) {
+        setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        setTaskResults((prev) => ({ ...prev, [taskId]: message }));
+        toast.error(`${taskId} failed: ${message}`);
       }
-
-      setTaskResults((prev) => ({ ...prev, [taskId]: friendlyMessage }));
-      toast.success(`${TASKS.find((t) => t.id === taskId)?.name ?? taskId}: ${friendlyMessage}`);
-    } catch (error) {
-      setTaskStatuses((prev) => ({ ...prev, [taskId]: 'error' }));
-      const message = error instanceof Error ? error.message : 'Unknown error';
-      setTaskResults((prev) => ({ ...prev, [taskId]: message }));
-      toast.error(`${taskId} failed: ${message}`);
-    }
-  }, []);
+    },
+    [t],
+  );
 
   const triggerAll = useCallback(async () => {
     setRunningAll(true);
@@ -142,8 +149,8 @@ export function SyncCenter() {
       await triggerTask(task.id);
     }
     setRunningAll(false);
-    toast.success('All sync tasks completed!');
-  }, [triggerTask]);
+    toast.success(t('sync.toastAllCompleted'));
+  }, [triggerTask, t]);
 
   function getStatusIcon(status: TaskStatus) {
     switch (status) {
@@ -173,7 +180,7 @@ export function SyncCenter() {
           ) : (
             <RefreshCw className="h-4 w-4" />
           )}
-          {runningAll ? 'Running All...' : 'Run All Tasks'}
+          {runningAll ? t('sync.runningAll') : t('sync.runAll')}
         </button>
       </div>
 
@@ -221,7 +228,7 @@ export function SyncCenter() {
                     className="border-border hover:bg-accent inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
                   >
                     <Play className="h-3.5 w-3.5" />
-                    Run
+                    {t('sync.run')}
                   </button>
                 </div>
               </div>

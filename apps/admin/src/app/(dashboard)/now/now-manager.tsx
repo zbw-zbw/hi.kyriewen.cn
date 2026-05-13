@@ -35,6 +35,7 @@ interface NowManagerProps {
 
 function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
   const router = useRouter();
+  const { t } = useAdminLocale();
 
   function getConfigValue(key: string) {
     return initialConfig.find((c) => c.key === key)?.value ?? '';
@@ -80,10 +81,10 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
         }),
       });
       if (!response.ok) throw new Error('Failed to save config');
-      toast.success('Config saved');
+      toast.success(t('now.configSaved'));
       router.refresh();
     } catch {
-      toast.error('Failed to save config');
+      toast.error(t('now.configSaveFailed'));
     } finally {
       setSaving(false);
     }
@@ -91,11 +92,11 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
 
   return (
     <div className="border-border bg-background rounded-lg border p-6">
-      <h3 className="mb-4 text-lg font-semibold">Now Config</h3>
+      <h3 className="mb-4 text-lg font-semibold">{t('now.configTitle')}</h3>
 
       <div className="space-y-4">
         <div>
-          <label className="mb-1 block text-sm font-medium">Updated At</label>
+          <label className="mb-1 block text-sm font-medium">{t('now.fieldUpdatedAt')}</label>
           <input
             type="text"
             value={updatedAt}
@@ -124,7 +125,7 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
           className="bg-foreground text-background inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {saving ? 'Saving…' : 'Save Config'}
+          {saving ? t('common.saving') : t('now.saveConfig')}
         </button>
       </div>
     </div>
@@ -275,7 +276,7 @@ const ITEMS_PAGE_SIZE = 20;
 
 function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
   const router = useRouter();
-  const { locale } = useAdminLocale();
+  const { locale, t } = useAdminLocale();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [itemTab, setItemTab] = useState<'en' | 'zh'>(locale);
@@ -295,7 +296,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to create item');
-    toast.success('Item created');
+    toast.success(t('now.itemCreated'));
     setShowAddForm(false);
     router.refresh();
   }
@@ -307,26 +308,26 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
       body: JSON.stringify(data),
     });
     if (!response.ok) throw new Error('Failed to update item');
-    toast.success('Item updated');
+    toast.success(t('now.itemUpdated'));
     setEditingId(null);
     router.refresh();
   }
 
   async function handleDelete(itemId: number) {
-    if (!confirm('Delete this item?')) return;
+    if (!confirm(t('now.confirmDelete'))) return;
     const response = await fetch(`/api/now/${itemId}`, { method: 'DELETE' });
     if (!response.ok) {
-      toast.error('Failed to delete item');
+      toast.error(t('now.deleteFailed'));
       return;
     }
-    toast.success('Item deleted');
+    toast.success(t('now.itemDeleted'));
     router.refresh();
   }
 
   return (
     <div className="border-border bg-background rounded-lg border p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Now Items</h3>
+        <h3 className="text-lg font-semibold">{t('now.itemsTitle')}</h3>
         <div className="flex items-center gap-2">
           {/* List-level language tab */}
           <div className="border-border flex gap-1 rounded-md border p-1">
@@ -362,7 +363,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
             className="bg-foreground text-background inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-opacity hover:opacity-90"
           >
             <Plus className="h-4 w-4" />
-            Add Item
+            {t('now.addItem')}
           </button>
         </div>
       </div>
@@ -379,7 +380,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
       )}
 
       {initialItems.length === 0 ? (
-        <p className="text-muted-foreground py-8 text-center">No items yet. Add your first one!</p>
+        <p className="text-muted-foreground py-8 text-center">{t('now.emptyItems')}</p>
       ) : (
         <div className="divide-border divide-y">
           {paginatedItems.map((item) =>
@@ -453,7 +454,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
               disabled={safePage <= 1}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Prev
+              {t('common.prev')}
             </button>
             <button
               type="button"
@@ -461,7 +462,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
               disabled={safePage >= totalPages}
               className="border-border hover:bg-accent rounded-md border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-40"
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         </div>

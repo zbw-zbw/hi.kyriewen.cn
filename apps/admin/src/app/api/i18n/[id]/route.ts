@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { i18nMessages } from '@repo/db/schema';
+import { triggerRevalidation } from '@/lib/revalidate';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -34,6 +35,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
 
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
+
     return NextResponse.json({ data: updated });
   } catch (error) {
     console.error('[api/i18n] PATCH failed', error);
@@ -57,6 +61,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (!deleted) {
       return NextResponse.json({ error: 'not_found' }, { status: 404 });
     }
+
+    // Trigger main site cache invalidation (non-blocking)
+    triggerRevalidation(['/']).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch (error) {

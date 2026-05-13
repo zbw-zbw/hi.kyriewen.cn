@@ -5,6 +5,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Pencil, Trash2, Plus, ChevronLeft, ChevronRight, Send } from 'lucide-react';
 import { ConfirmDialog } from '@/components/confirm-dialog';
+import { useAdminLocale } from '@/components/locale-provider';
 
 interface BlogPost {
   id: number;
@@ -59,6 +60,7 @@ function getSourceBadge(source: string | null) {
 
 export function BlogList({ posts }: BlogListProps) {
   const router = useRouter();
+  const { t } = useAdminLocale();
   const [langFilter, setLangFilter] = useState<LangFilter>('all');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [titleSearch, setTitleSearch] = useState('');
@@ -209,14 +211,14 @@ export function BlogList({ posts }: BlogListProps) {
                 className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
               >
                 <Send className="h-4 w-4" />
-                Publish ({selectedIds.size})
+                {t('blog.batchPublish').replace('{count}', String(selectedIds.size))}
               </button>
               <button
                 onClick={() => setBatchDeleteOpen(true)}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors"
               >
                 <Trash2 className="h-4 w-4" />
-                Delete ({selectedIds.size})
+                {t('blog.batchDelete').replace('{count}', String(selectedIds.size))}
               </button>
             </>
           )}
@@ -225,7 +227,7 @@ export function BlogList({ posts }: BlogListProps) {
             className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors"
           >
             <Plus className="h-4 w-4" />
-            New Post
+            {t('blog.newPost')}
           </button>
         </div>
       </div>
@@ -319,7 +321,7 @@ export function BlogList({ posts }: BlogListProps) {
             {paginatedPosts.length === 0 ? (
               <tr>
                 <td colSpan={7} className="text-muted-foreground px-4 py-12 text-center">
-                  No posts found.
+                  {t('blog.noPostsFound')}
                 </td>
               </tr>
             ) : (
@@ -385,7 +387,7 @@ export function BlogList({ posts }: BlogListProps) {
                       <button
                         onClick={() => router.push(`/blog/${post.id}`)}
                         className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-md p-1.5 transition-colors"
-                        title="Edit"
+                        title={t('common.edit')}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
@@ -393,7 +395,7 @@ export function BlogList({ posts }: BlogListProps) {
                         onClick={() => setDeleteTarget({ id: post.id, title: post.title })}
                         disabled={deleting === post.id}
                         className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-md p-1.5 transition-colors disabled:opacity-50"
-                        title="Delete"
+                        title={t('common.delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -417,14 +419,14 @@ export function BlogList({ posts }: BlogListProps) {
             disabled={safePage <= 1}
             className="border-border hover:bg-accent inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
-            <ChevronLeft className="h-4 w-4" /> Prev
+            <ChevronLeft className="h-4 w-4" /> {t('common.prev')}
           </button>
           <button
             onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             disabled={safePage >= totalPages}
             className="border-border hover:bg-accent inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50"
           >
-            Next <ChevronRight className="h-4 w-4" />
+            {t('common.next')} <ChevronRight className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -432,13 +434,11 @@ export function BlogList({ posts }: BlogListProps) {
       {/* Single delete confirm */}
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Post"
+        title={t('blog.deletePostTitle')}
         description={
-          deleteTarget
-            ? `Are you sure you want to delete "${deleteTarget.title}"? This action cannot be undone.`
-            : ''
+          deleteTarget ? t('blog.deletePostDesc').replace('{title}', deleteTarget.title) : ''
         }
-        confirmLabel="Delete"
+        confirmLabel={t('common.delete')}
         variant="danger"
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteTarget(null)}
@@ -447,9 +447,9 @@ export function BlogList({ posts }: BlogListProps) {
       {/* Batch delete confirm */}
       <ConfirmDialog
         open={batchDeleteOpen}
-        title="Batch Delete"
-        description={`Are you sure you want to delete ${selectedIds.size} selected posts? This action cannot be undone.`}
-        confirmLabel={`Delete ${selectedIds.size} Posts`}
+        title={t('blog.batchDeleteTitle')}
+        description={t('blog.batchDeleteDesc').replace('{count}', String(selectedIds.size))}
+        confirmLabel={t('blog.batchDeleteConfirm').replace('{count}', String(selectedIds.size))}
         variant="danger"
         onConfirm={handleBatchDeleteConfirm}
         onCancel={() => setBatchDeleteOpen(false)}
@@ -458,9 +458,9 @@ export function BlogList({ posts }: BlogListProps) {
       {/* Batch publish confirm */}
       <ConfirmDialog
         open={batchPublishOpen}
-        title="Batch Publish"
-        description={`Are you sure you want to publish ${selectedIds.size} selected posts? They will be visible to all visitors.`}
-        confirmLabel={`Publish ${selectedIds.size} Posts`}
+        title={t('blog.batchPublishTitle')}
+        description={t('blog.batchPublishDesc').replace('{count}', String(selectedIds.size))}
+        confirmLabel={t('blog.batchPublishConfirm').replace('{count}', String(selectedIds.size))}
         onConfirm={handleBatchPublishConfirm}
         onCancel={() => setBatchPublishOpen(false)}
       />
