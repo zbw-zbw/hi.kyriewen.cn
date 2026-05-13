@@ -1,6 +1,7 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import { Toaster } from 'sonner';
+import { Analytics } from '@vercel/analytics/next';
 import { ThemeProvider } from '@/components/theme-provider';
 import { LocaleProvider } from '@/components/locale-provider';
 
@@ -17,6 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <LocaleProvider>{children}</LocaleProvider>
         </ThemeProvider>
         <Toaster position="top-right" richColors />
+        <Analytics />
       </body>
     </html>
   );
