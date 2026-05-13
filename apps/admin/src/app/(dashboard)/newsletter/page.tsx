@@ -15,15 +15,5 @@ export default async function NewsletterPage() {
     // table may not exist yet
   }
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Newsletter</h2>
-        <p className="text-muted-foreground">
-          Compose and send newsletters to your subscribers via Resend.
-        </p>
-      </div>
-      <NewsletterManager initialIssues={issues} />
-    </div>
-  );
+  return <NewsletterManager initialIssues={issues} />;
 }

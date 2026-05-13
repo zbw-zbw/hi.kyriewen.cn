@@ -176,7 +176,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
-          {items.length} social link{items.length !== 1 ? 's' : ''}
+          {t('common.countSocialLinks').replace('{count}', String(items.length))}
         </p>
         <button
           type="button"
@@ -361,7 +361,7 @@ export default function SocialManager({ items }: { items: SocialLink[] }) {
       {items.length > PAGE_SIZE && (
         <div className="border-border flex items-center justify-between border-t pt-3">
           <span className="text-muted-foreground text-sm">
-            Page {safePage} of {totalPages} · {items.length} items
+            {t('common.pagination').replace('{page}', String(safePage)).replace('{total}', String(totalPages)).replace('{count}', String(items.length))}
           </span>
           <div className="flex gap-1">
             <button

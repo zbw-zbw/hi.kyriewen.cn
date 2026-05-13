@@ -129,7 +129,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
           }
         }
       } catch {
-        toast.error('自动翻译失败，将使用中文值作为英文');
+        toast.error(t('timeline.translateFailed'));
         if (!titleEn) titleEn = form.titleZh.trim();
       }
     }
@@ -195,10 +195,16 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
   /* ── Render ────────────────────────────────────────────────── */
   return (
     <div className="space-y-6">
+      {/* Page heading */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{t('page.timeline.title')}</h2>
+        <p className="text-muted-foreground">{t('page.timeline.desc')}</p>
+      </div>
+
       {/* Header with Add button */}
       <div className="flex items-center justify-between">
         <p className="text-muted-foreground text-sm">
-          {items.length} event{items.length !== 1 ? 's' : ''}
+          {t('common.countEvents').replace('{count}', String(items.length))}
         </p>
         <button
           type="button"
@@ -246,12 +252,12 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
 
             {/* Title ZH (auto-translate to EN on save) */}
             <label className="space-y-1.5 sm:col-span-2">
-              <span className="text-sm font-medium">标题 *</span>
+              <span className="text-sm font-medium">{t('timeline.fieldTitleZh')}</span>
               <input
                 type="text"
                 value={form.titleZh}
                 onChange={(e) => setForm({ ...form, titleZh: e.target.value })}
-                placeholder="中文标题（保存时自动翻译英文）"
+                placeholder={t('timeline.titlePlaceholder')}
                 required
                 className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
@@ -259,11 +265,11 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
 
             {/* Description ZH (auto-translate to EN on save) */}
             <label className="space-y-1.5 sm:col-span-2">
-              <span className="text-sm font-medium">描述</span>
+              <span className="text-sm font-medium">{t('timeline.fieldDescZh')}</span>
               <textarea
                 value={form.descriptionZh}
                 onChange={(e) => setForm({ ...form, descriptionZh: e.target.value })}
-                placeholder="中文描述（可选）"
+                placeholder={t('timeline.descPlaceholder')}
                 rows={3}
                 className="border-input bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm outline-none focus:ring-2"
               />
@@ -415,7 +421,7 @@ export default function TimelineManager({ items }: { items: TimelineEvent[] }) {
       {items.length > PAGE_SIZE && (
         <div className="border-border flex items-center justify-between border-t pt-3">
           <span className="text-muted-foreground text-sm">
-            Page {safePage} of {totalPages} · {items.length} items
+            {t('common.pagination').replace('{page}', String(safePage)).replace('{total}', String(totalPages)).replace('{count}', String(items.length))}
           </span>
           <div className="flex gap-1">
             <button

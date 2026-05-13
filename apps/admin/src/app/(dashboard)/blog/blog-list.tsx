@@ -33,34 +33,24 @@ interface BlogListProps {
   posts: BlogPost[];
 }
 
-const SOURCE_LABELS: Record<string, { label: string; color: string }> = {
+const SOURCE_COLORS: Record<string, { key: string; color: string }> = {
   juejin: {
-    label: '掘金',
+    key: 'blog.sourceJuejin',
     color: 'bg-blue-200 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   },
   manual: {
-    label: '手动',
+    key: 'blog.sourceManual',
     color: 'bg-purple-200 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
   },
   file: {
-    label: '文件',
+    key: 'blog.sourceFile',
     color: 'bg-green-200 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   },
 };
 
-function getSourceBadge(source: string | null) {
-  const key = source || 'manual';
-  const config = SOURCE_LABELS[key] ?? SOURCE_LABELS.manual!;
-  return (
-    <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${config.color}`}>
-      {config.label}
-    </span>
-  );
-}
-
 export function BlogList({ posts }: BlogListProps) {
   const router = useRouter();
-  const { t } = useAdminLocale();
+  const { locale, t } = useAdminLocale();
   const [langFilter, setLangFilter] = useState<LangFilter>('all');
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>('all');
   const [titleSearch, setTitleSearch] = useState('');
@@ -135,10 +125,10 @@ export function BlogList({ posts }: BlogListProps) {
     if (!deleteTarget) return;
     try {
       await executeDelete(deleteTarget.id);
-      toast.success(`Deleted "${deleteTarget.title}"`);
+      toast.success(t('blog.toastDeleted').replace('{title}', deleteTarget.title));
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete');
+      toast.error(error instanceof Error ? error.message : t('blog.toastDeleteFailed'));
     } finally {
       setDeleteTarget(null);
     }
@@ -155,12 +145,12 @@ export function BlogList({ posts }: BlogListProps) {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error ?? 'Batch delete failed');
+        throw new Error(errorData.error ?? t('blog.toastBatchDeleteFailed'));
       }
       const { deletedCount } = await response.json();
-      toast.success(`Deleted ${deletedCount} posts`);
+      toast.success(t('blog.toastBatchDeleted').replace('{count}', String(deletedCount)));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Batch delete failed');
+      toast.error(error instanceof Error ? error.message : t('blog.toastBatchDeleteFailed'));
     }
     setSelectedIds(new Set());
     router.refresh();
@@ -177,12 +167,12 @@ export function BlogList({ posts }: BlogListProps) {
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error ?? 'Batch publish failed');
+        throw new Error(errorData.error ?? t('blog.toastBatchPublishFailed'));
       }
       const { publishedCount } = await response.json();
-      toast.success(`Published ${publishedCount} posts`);
+      toast.success(t('blog.toastBatchPublished').replace('{count}', String(publishedCount)));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Batch publish failed');
+      toast.error(error instanceof Error ? error.message : t('blog.toastBatchPublishFailed'));
     }
     setSelectedIds(new Set());
     router.refresh();
@@ -190,7 +180,7 @@ export function BlogList({ posts }: BlogListProps) {
 
   function formatDate(date: Date | string | null): string {
     if (!date) return '—';
-    return new Date(date).toLocaleDateString('en-US', {
+    return new Date(date).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -199,6 +189,12 @@ export function BlogList({ posts }: BlogListProps) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
+      {/* Page heading */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{t('page.blog.title')}</h2>
+        <p className="text-muted-foreground">{t('page.blog.desc')}</p>
+      </div>
+
       {/* Toolbar */}
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">{/* 过滤器已移到表头列 */}</div>
@@ -270,7 +266,7 @@ export function BlogList({ posts }: BlogListProps) {
               </th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">
                 <div className="flex items-center gap-2">
-                  <span>Title</span>
+                  <span>{t('blog.colTitle')}</span>
                   <input
                     type="text"
                     value={titleSearch}
@@ -278,7 +274,7 @@ export function BlogList({ posts }: BlogListProps) {
                       setTitleSearch(e.target.value);
                       setCurrentPage(1);
                     }}
-                    placeholder="搜索..."
+                    placeholder={t('blog.searchPlaceholder')}
                     className="border-border bg-background focus:ring-ring w-32 rounded border px-2 py-0.5 text-xs font-normal outline-none focus:ring-1"
                   />
                 </div>
@@ -292,10 +288,10 @@ export function BlogList({ posts }: BlogListProps) {
                   }}
                   className="text-muted-foreground hover:text-foreground cursor-pointer appearance-none border-none bg-transparent text-sm font-medium outline-none"
                 >
-                  <option value="all">来源 ▾</option>
-                  <option value="manual">手动</option>
-                  <option value="juejin">掘金</option>
-                  <option value="file">文件</option>
+                  <option value="all">{t('blog.filterSource')}</option>
+                  <option value="manual">{t('blog.sourceManual')}</option>
+                  <option value="juejin">{t('blog.sourceJuejin')}</option>
+                  <option value="file">{t('blog.sourceFile')}</option>
                 </select>
               </th>
               <th className="text-muted-foreground px-4 py-3 text-left font-medium">
@@ -307,14 +303,14 @@ export function BlogList({ posts }: BlogListProps) {
                   }}
                   className="text-muted-foreground hover:text-foreground cursor-pointer appearance-none border-none bg-transparent text-sm font-medium outline-none"
                 >
-                  <option value="all">语言 ▾</option>
+                  <option value="all">{t('blog.filterLang')}</option>
                   <option value="en">EN</option>
                   <option value="zh">ZH</option>
                 </select>
               </th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">状态</th>
-              <th className="text-muted-foreground px-4 py-3 text-left font-medium">更新时间</th>
-              <th className="text-muted-foreground px-4 py-3 text-right font-medium">操作</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">{t('blog.colStatus')}</th>
+              <th className="text-muted-foreground px-4 py-3 text-left font-medium">{t('blog.colUpdated')}</th>
+              <th className="text-muted-foreground px-4 py-3 text-right font-medium">{t('blog.colActions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -364,7 +360,11 @@ export function BlogList({ posts }: BlogListProps) {
                   <td className="max-w-75 truncate px-4 py-3 font-medium" title={post.title}>
                     {post.title}
                   </td>
-                  <td className="px-4 py-3">{getSourceBadge(post.source)}</td>
+                  <td className="px-4 py-3">{(() => {
+                    const sk = post.source || 'manual';
+                    const cfg = SOURCE_COLORS[sk] ?? SOURCE_COLORS.manual!;
+                    return <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${cfg.color}`}>{t(cfg.key)}</span>;
+                  })()}</td>
                   <td className="px-4 py-3">
                     <span className="bg-accent text-accent-foreground inline-flex rounded-full px-2 py-0.5 text-xs font-medium">
                       {post.lang.toUpperCase()}
@@ -373,11 +373,11 @@ export function BlogList({ posts }: BlogListProps) {
                   <td className="px-4 py-3">
                     {post.draft ? (
                       <span className="inline-flex rounded-full bg-yellow-200 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400">
-                        草稿
+                        {t('blog.statusDraft')}
                       </span>
                     ) : (
                       <span className="inline-flex rounded-full bg-green-200 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                        已发布
+                        {t('blog.statusPublished')}
                       </span>
                     )}
                   </td>
@@ -411,7 +411,7 @@ export function BlogList({ posts }: BlogListProps) {
       {/* Pagination (sticky bottom) */}
       <div className="border-border flex shrink-0 items-center justify-between border-t pt-3">
         <span className="text-muted-foreground text-sm">
-          Page {safePage} of {totalPages} · {filteredPosts.length} posts
+          {t('common.pagination').replace('{page}', String(safePage)).replace('{total}', String(totalPages)).replace('{count}', String(filteredPosts.length))}
         </span>
         <div className="flex gap-1">
           <button

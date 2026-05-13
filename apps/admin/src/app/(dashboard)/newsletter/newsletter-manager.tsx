@@ -54,7 +54,7 @@ export default function NewsletterManager({
           }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error ?? 'Send failed');
+        if (!res.ok) throw new Error(data.error ?? t('common.sendFailed'));
 
         if (data.sent) {
           toast.success(t('newsletter.sent'));
@@ -78,6 +78,12 @@ export default function NewsletterManager({
 
   return (
     <div className="space-y-6">
+      {/* Page heading */}
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{t('newsletter.pageTitle')}</h2>
+        <p className="text-muted-foreground">{t('newsletter.pageDesc')}</p>
+      </div>
+
       {/* Compose toggle */}
       <button
         type="button"
@@ -86,7 +92,7 @@ export default function NewsletterManager({
       >
         {showCompose ? (
           <>
-            <X className="h-4 w-4" /> Cancel
+            <X className="h-4 w-4" /> {t('common.cancel')}
           </>
         ) : (
           <>
@@ -106,7 +112,7 @@ export default function NewsletterManager({
               type="text"
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. Issue #04 — What I shipped this month"
+              placeholder={t('newsletter.subjectPlaceholder')}
               className="bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
@@ -117,7 +123,7 @@ export default function NewsletterManager({
               type="text"
               value={previewText}
               onChange={(e) => setPreviewText(e.target.value)}
-              placeholder="Short preview shown in email clients"
+              placeholder={t('newsletter.previewPlaceholder')}
               className="bg-background w-full rounded-md border px-3 py-2 text-sm"
             />
           </div>
@@ -127,7 +133,7 @@ export default function NewsletterManager({
             <textarea
               value={htmlContent}
               onChange={(e) => setHtmlContent(e.target.value)}
-              placeholder="Paste your HTML email content here..."
+              placeholder={t('newsletter.htmlPlaceholder')}
               rows={12}
               className="bg-background w-full rounded-md border px-3 py-2 font-mono text-sm"
             />

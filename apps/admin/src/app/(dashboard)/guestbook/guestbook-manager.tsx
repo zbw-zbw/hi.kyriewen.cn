@@ -95,7 +95,7 @@ export default function GuestbookManager({
       });
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error ?? 'Batch delete failed');
+        throw new Error(errorData.error ?? t('common.batchDeleteFailed'));
       }
       const { deletedCount } = await res.json();
       toast.success(t('guestbook.toastBatchDeleted').replace('{count}', String(deletedCount)));
@@ -317,7 +317,7 @@ export default function GuestbookManager({
       {/* Pagination (sticky bottom) */}
       <div className="border-border flex shrink-0 items-center justify-between border-t pt-3">
         <span className="text-muted-foreground text-sm">
-          Page {page} of {totalPages} · {total} messages
+          {t('guestbook.paginationText').replace('{page}', String(page)).replace('{total}', String(totalPages)).replace('{count}', String(total))}
         </span>
         <div className="flex gap-1">
           <button

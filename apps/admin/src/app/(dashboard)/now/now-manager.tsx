@@ -108,11 +108,11 @@ function ConfigSection({ initialConfig }: { initialConfig: NowConfigRow[] }) {
 
         {/* Currently Building (ZH only, auto-translate EN on save) */}
         <div>
-          <label className="mb-1 block text-sm font-medium">正在做的事（保存时自动翻译英文）</label>
+          <label className="mb-1 block text-sm font-medium">{t('now.fieldBuilding')}</label>
           <textarea
             value={buildingZh}
             onChange={(e) => setBuildingZh(e.target.value)}
-            placeholder="正在做什么…"
+            placeholder={t('now.buildingPlaceholder')}
             rows={3}
             className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
@@ -163,6 +163,7 @@ function ItemForm({
   onCancel: () => void;
   submitLabel: string;
 }) {
+  const { t } = useAdminLocale();
   const [form, setForm] = useState<ItemFormData>(initial);
   const [submitting, setSubmitting] = useState(false);
 
@@ -213,31 +214,31 @@ function ItemForm({
       {/* ZH only — auto-translate EN on save */}
       <div className="space-y-3">
         <div>
-          <label className="mb-1 block text-sm font-medium">标签（保存时自动翻译英文）</label>
+          <label className="mb-1 block text-sm font-medium">{t('now.fieldLabel')}</label>
           <input
             type="text"
             value={form.labelZh}
             onChange={(e) => update('labelZh', e.target.value)}
             required
-            placeholder="中文标签"
+            placeholder={t('now.labelPlaceholder')}
             className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">内容</label>
+          <label className="mb-1 block text-sm font-medium">{t('now.fieldContent')}</label>
           <textarea
             value={form.valueZh}
             onChange={(e) => update('valueZh', e.target.value)}
             required
             rows={3}
-            placeholder="中文内容"
+            placeholder={t('now.contentPlaceholder')}
             className="border-border bg-background focus:ring-ring w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium">Sort Order</label>
+        <label className="mb-1 block text-sm font-medium">{t('common.sortOrder')}</label>
         <input
           type="number"
           value={form.sortOrder}
@@ -253,7 +254,7 @@ function ItemForm({
           className="bg-foreground text-background inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50"
         >
           <Save className="h-4 w-4" />
-          {submitting ? 'Saving…' : submitLabel}
+          {submitting ? t('common.saving') : submitLabel}
         </button>
         <button
           type="button"
@@ -261,7 +262,7 @@ function ItemForm({
           className="border-border hover:bg-accent inline-flex items-center gap-2 rounded-md border px-4 py-2 text-sm font-medium transition-colors"
         >
           <X className="h-4 w-4" />
-          Cancel
+          {t('common.cancel')}
         </button>
       </div>
     </form>
@@ -374,7 +375,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
             initial={EMPTY_FORM}
             onSubmit={handleCreate}
             onCancel={() => setShowAddForm(false)}
-            submitLabel="Create"
+            submitLabel={t('common.create')}
           />
         </div>
       )}
@@ -396,7 +397,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
                   }}
                   onSubmit={(data) => handleUpdate(item.id, data)}
                   onCancel={() => setEditingId(null)}
-                  submitLabel="Update"
+                  submitLabel={t('common.update')}
                 />
               </div>
             ) : (
@@ -422,7 +423,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
                       setShowAddForm(false);
                     }}
                     className="text-muted-foreground hover:bg-accent hover:text-foreground rounded-md p-2 transition-colors"
-                    title="Edit"
+                    title={t('common.edit')}
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
@@ -430,7 +431,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
                     type="button"
                     onClick={() => handleDelete(item.id)}
                     className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-md p-2 transition-colors"
-                    title="Delete"
+                    title={t('common.delete')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -445,7 +446,7 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
       {initialItems.length > ITEMS_PAGE_SIZE && (
         <div className="border-border mt-4 flex items-center justify-between border-t pt-3">
           <span className="text-muted-foreground text-sm">
-            Page {safePage} of {totalPages} · {initialItems.length} items
+            {t('common.pagination').replace('{page}', String(safePage)).replace('{total}', String(totalPages)).replace('{count}', String(initialItems.length))}
           </span>
           <div className="flex gap-1">
             <button
@@ -476,8 +477,13 @@ function ItemsSection({ initialItems }: { initialItems: NowItemRow[] }) {
 /* ------------------------------------------------------------------ */
 
 export default function NowManager({ initialItems, initialConfig }: NowManagerProps) {
+  const { t } = useAdminLocale();
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight">{t('page.now.title')}</h2>
+        <p className="text-muted-foreground">{t('page.now.desc')}</p>
+      </div>
       <ConfigSection initialConfig={initialConfig} />
       <ItemsSection initialItems={initialItems} />
     </div>

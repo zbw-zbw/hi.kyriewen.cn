@@ -29,15 +29,5 @@ export default async function ProjectsPage() {
     changelog: safeJsonParse<unknown[] | null>(row.changelog, null),
   }));
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Projects</h2>
-        <p className="text-muted-foreground">
-          Manage your project showcase.
-        </p>
-      </div>
-      <ProjectsManager items={items} />
-    </div>
-  );
+  return <ProjectsManager items={items} />;
 }

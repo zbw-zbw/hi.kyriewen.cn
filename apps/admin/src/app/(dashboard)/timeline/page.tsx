@@ -11,15 +11,5 @@ export default async function TimelinePage() {
     .from(timelineEvents)
     .orderBy(desc(timelineEvents.date));
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Timeline</h2>
-        <p className="text-muted-foreground">
-          Add milestones and events.
-        </p>
-      </div>
-      <TimelineManager items={items} />
-    </div>
-  );
+  return <TimelineManager items={items} />;
 }

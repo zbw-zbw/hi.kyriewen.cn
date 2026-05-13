@@ -12,17 +12,9 @@ export default async function NowPage() {
   const config = await db.select().from(nowConfig);
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Now</h2>
-        <p className="text-muted-foreground">
-          Update what you&apos;re currently doing.
-        </p>
-      </div>
-      <NowManager
+    <NowManager
         initialItems={JSON.parse(JSON.stringify(items))}
         initialConfig={JSON.parse(JSON.stringify(config))}
       />
-    </div>
   );
 }

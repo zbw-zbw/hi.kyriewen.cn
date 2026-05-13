@@ -41,15 +41,5 @@ export default async function EditBlogPostPage({
     tags: safeJsonParse<string[]>(post.tags, []),
   };
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Edit Post</h2>
-        <p className="text-muted-foreground">
-          Editing: {parsedPost.title}
-        </p>
-      </div>
-      <BlogEditor post={parsedPost} />
-    </div>
-  );
+  return <BlogEditor post={parsedPost} />;
 }
