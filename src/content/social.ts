@@ -25,9 +25,9 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
   {
     name: 'Email',
-    href: 'mailto:coderkyriewen@gmail.com',
+    href: 'mailto:support@kyriewen.cn',
     Icon: Mail,
-    handle: 'coderkyriewen@gmail.com',
+    handle: 'support@kyriewen.cn',
     isEmail: true,
   },
   {

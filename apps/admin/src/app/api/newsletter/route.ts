@@ -39,7 +39,7 @@ export async function POST(req: Request) {
 
     const apiKey = process.env.RESEND_API_KEY;
     const audienceId = process.env.RESEND_AUDIENCE_ID;
-    const fromEmail = process.env.NEWSLETTER_FROM_EMAIL ?? 'Kyriewen <coderkyriewen@gmail.com>';
+    const fromEmail = process.env.NEWSLETTER_FROM_EMAIL ?? 'Kyriewen <support@kyriewen.cn>';
 
     if (!apiKey || !audienceId) {
       // Save as draft without sending

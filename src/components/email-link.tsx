@@ -12,7 +12,7 @@ interface EmailLinkProps {
   className?: string;
 }
 
-const DEFAULT_EMAIL = 'coderkyriewen@gmail.com';
+const DEFAULT_EMAIL = 'support@kyriewen.cn';
 
 /**
  * 邮箱组件：点击调起 mailto:，不直接展示邮箱地址，hover 时 tooltip 展示。

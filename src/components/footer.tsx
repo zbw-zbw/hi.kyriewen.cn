@@ -42,7 +42,10 @@ export function Footer({ socialLinks }: { socialLinks: SerializableSocialLink[] 
                   })()}
                 </a>
               ))}
-            <EmailLink variant="pill" />
+            <EmailLink
+              variant="pill"
+              email={socialLinks.find((link) => link.isEmail)?.handle}
+            />
           </div>
         </div>
       </div>

@@ -201,7 +201,7 @@ export function CommandMenu({
                 onSelect={() =>
                   runAndClose(() => {
                     navigator.clipboard
-                      .writeText('coderkyriewen@gmail.com')
+                      .writeText('support@kyriewen.cn')
                       .then(() => {
                         toast.success(locale === 'zh' ? '邮箱已复制' : 'Email copied!');
                       })
