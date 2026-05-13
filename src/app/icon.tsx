@@ -11,7 +11,7 @@ export default function Icon() {
           width: 32,
           height: 32,
           borderRadius: 16,
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+          background: '#0a0a0a',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -19,7 +19,7 @@ export default function Icon() {
       >
         <div
           style={{
-            color: '#ffffff',
+            color: '#64ffda',
             fontSize: 18,
             fontWeight: 800,
             fontFamily: 'sans-serif',
