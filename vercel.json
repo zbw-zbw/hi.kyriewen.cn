@@ -16,10 +16,6 @@
     {
       "path": "/api/cron/sync-newsletter",
       "schedule": "15 0 * * *"
-    },
-    {
-      "path": "/api/cron/sync-articles",
-      "schedule": "20 0 * * *"
     }
   ],
   "headers": [
