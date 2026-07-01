@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { projects } from '@/lib/db/schema';
+import { db, projects } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 
 export const runtime = 'nodejs';
@@ -54,13 +53,10 @@ export async function GET(req: Request) {
     // 1. Fetch all public repos
     const res = await fetch(
       `${GITHUB_API}/users/${username}/repos?type=owner&per_page=100&sort=updated`,
-      { headers, cache: 'no-store' }
+      { headers, cache: 'no-store' },
     );
     if (!res.ok) {
-      return NextResponse.json(
-        { error: 'GitHub API error', status: res.status },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: 'GitHub API error', status: res.status }, { status: 502 });
     }
 
     const repos = (await res.json()) as GitHubRepo[];
@@ -86,18 +82,14 @@ export async function GET(req: Request) {
             repo: repo.html_url,
             // Update metrics with latest star count
             metrics: JSON.stringify({
-              ...((() => {
+              ...(() => {
                 try {
-                  const existing = existingProjects.find(
-                    (p) => p.slug === slug
-                  );
-                  return existing?.metrics
-                    ? JSON.parse(existing.metrics)
-                    : {};
+                  const existing = existingProjects.find((p) => p.slug === slug);
+                  return existing?.metrics ? JSON.parse(existing.metrics) : {};
                 } catch {
                   return {};
                 }
-              })()),
+              })(),
               stars: repo.stargazers_count,
             }),
             updatedAt: new Date(),
@@ -107,9 +99,7 @@ export async function GET(req: Request) {
       } else {
         // Insert as draft (featured=0, pinned=0)
         const year = new Date(repo.created_at).getFullYear();
-        const stack = [repo.language, ...(repo.topics ?? [])].filter(
-          Boolean
-        ) as string[];
+        const stack = [repo.language, ...(repo.topics ?? [])].filter(Boolean) as string[];
 
         await db.insert(projects).values({
           slug,
@@ -141,9 +131,6 @@ export async function GET(req: Request) {
     });
   } catch (err) {
     console.error('[cron:sync-projects] error', err);
-    return NextResponse.json(
-      { error: String(err) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

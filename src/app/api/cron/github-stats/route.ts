@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     PROJECTS.filter((p) => p.repo).map(async (p) => {
       const stats = await fetchRepoStats(p.repo!);
       return { slug: p.slug, stars: stats?.stars ?? 0 };
-    })
+    }),
   );
 
   try {
@@ -49,12 +49,17 @@ export async function GET(req: Request) {
     }
 
     for (const pr of productResults) {
-      await db.insert(productStats).values({
-        slug: pr.slug,
-        date: today,
-        stars: pr.stars,
-        users: 0,
-      });
+      await db
+        .insert(productStats)
+        .values({
+          slug: pr.slug,
+          date: today,
+          stars: pr.stars,
+        })
+        .onConflictDoUpdate({
+          target: [productStats.slug, productStats.date],
+          set: { stars: pr.stars },
+        });
     }
   } catch (err) {
     console.error('[cron:github] db error', err);

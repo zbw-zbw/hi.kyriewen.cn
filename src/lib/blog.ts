@@ -163,9 +163,7 @@ export async function getAdjacentPosts(
   locale: Locale,
   slug: string,
 ): Promise<{ previous: Post | null; next: Post | null }> {
-  const posts = shouldReadBlogDb()
-    ? await readDbPostsForLocale(locale)
-    : readPostsForLocale(locale);
+  const posts = await getAllPosts(locale);
   const index = posts.findIndex((p) => p.slug === slug);
   if (index === -1) return { previous: null, next: null };
   return {

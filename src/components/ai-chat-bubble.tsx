@@ -57,10 +57,15 @@ export function AiChatBubble() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, error } = useChat({
     transport: new TextStreamChatTransport({ api: '/api/chat' }),
     onError: (err: Error) => {
-      if (err.message?.includes('503') || err.message?.includes('not configured')) {
+      const msg = err.message?.toLowerCase() ?? '';
+      if (
+        msg.includes('503') ||
+        msg.includes('not configured') ||
+        msg.includes('service unavailable')
+      ) {
         setApiUnavailable(true);
       } else {
         setErrorMessage(t('sendFailed'));
@@ -69,6 +74,20 @@ export function AiChatBubble() {
   });
 
   const isStreaming = status === 'streaming' || status === 'submitted';
+
+  // 当 error 发生变化时，尝试判断是否为 API 不可用
+  useEffect(() => {
+    if (error) {
+      const msg = error.message?.toLowerCase() ?? '';
+      if (
+        msg.includes('503') ||
+        msg.includes('not configured') ||
+        msg.includes('service unavailable')
+      ) {
+        setApiUnavailable(true);
+      }
+    }
+  }, [error]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

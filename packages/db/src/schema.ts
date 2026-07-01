@@ -81,7 +81,10 @@ export const productStats = pgTable(
     stars: integer('stars').notNull().default(0),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (table) => [index('product_stats_slug_date_idx').on(table.slug, table.date)],
+  (table) => [
+    uniqueIndex('product_stats_slug_date_idx').on(table.slug, table.date),
+    index('product_stats_slug_date_lookup_idx').on(table.slug, table.date),
+  ],
 );
 
 /**

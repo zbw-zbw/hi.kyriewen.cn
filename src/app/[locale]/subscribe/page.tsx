@@ -7,8 +7,7 @@ import { SectionHeading } from '@/components/section-heading';
 import { NewsletterForm } from '@/components/newsletter-form';
 import { Card } from '@/components/ui/card';
 import type { Locale } from '@/i18n/routing';
-import { db } from '@/lib/db';
-import { newsletterIssues } from '@/lib/db/schema';
+import { db, newsletterIssues } from '@/lib/db';
 import { desc } from 'drizzle-orm';
 
 export const metadata: Metadata = {

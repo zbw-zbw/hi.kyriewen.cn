@@ -22,6 +22,13 @@
       "when": 1778381228338,
       "tag": "0002_bent_sunfire",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1782887255452,
+      "tag": "0003_oval_vin_gonzales",
+      "breakpoints": true
     }
   ]
 }

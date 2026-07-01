@@ -10,10 +10,7 @@ export const dynamic = 'force-dynamic';
  * PATCH /api/guestbook/[id]  body: { body: string }
  * 仅作者本人可编辑；自动写 updatedAt。
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -64,12 +61,9 @@ export async function PATCH(
 
 /**
  * DELETE /api/guestbook/[id]
- * 仅作者本人可删除；硬删除（楼中楼会一起断链）。
+ * 仅作者本人可删除；同时删除所有子回复，避免孤儿数据。
  */
-export async function DELETE(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
@@ -95,6 +89,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
 
+    // 先删除子回复，再删除主留言
+    await db.delete(guestbookMessages).where(eq(guestbookMessages.parentId, id));
     await db.delete(guestbookMessages).where(eq(guestbookMessages.id, id));
     return NextResponse.json({ ok: true });
   } catch (err) {

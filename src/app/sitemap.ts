@@ -5,13 +5,6 @@ import { getNavigationItems } from '@/lib/content-loader';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hi.kyriewen.cn';
 
-function localized(path: string) {
-  return routing.locales.map((locale) => {
-    const prefix = locale === routing.defaultLocale ? '' : `/${locale}`;
-    return `${SITE_URL}${prefix}${path}`;
-  });
-}
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
@@ -49,6 +42,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  void localized;
   return [...staticEntries, ...postEntries];
 }

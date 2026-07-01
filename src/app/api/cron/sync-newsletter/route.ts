@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { statsSnapshot } from '@/lib/db/schema';
+import { db, statsSnapshot } from '@/lib/db';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -36,38 +35,29 @@ export async function GET(req: Request) {
 
   try {
     // Fetch audience contacts count from Resend
-    const res = await fetch(
-      `https://api.resend.com/audiences/${audienceId}/contacts`,
-      {
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-        },
-        cache: 'no-store',
-      }
-    );
+    const res = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      cache: 'no-store',
+    });
 
     if (!res.ok) {
       const text = await res.text().catch(() => '');
       console.error('[cron:sync-newsletter] Resend API error', res.status, text);
-      return NextResponse.json(
-        { error: 'Resend API error', status: res.status },
-        { status: 502 }
-      );
+      return NextResponse.json({ error: 'Resend API error', status: res.status }, { status: 502 });
     }
 
     const data = (await res.json()) as { data: Array<{ id: string }> };
     const subscriberCount = data.data?.length ?? 0;
     const today = new Date().toISOString().slice(0, 10);
 
-    // Upsert into stats_snapshot
+    // Upsert into stats_snapshot — only touch newsletterSubscribers
     await db
       .insert(statsSnapshot)
       .values({
         date: today,
         newsletterSubscribers: subscriberCount,
-        githubStars: 0,
-        githubFollowers: 0,
-        chromeTotalUsers: 0,
       })
       .onConflictDoUpdate({
         target: statsSnapshot.date,

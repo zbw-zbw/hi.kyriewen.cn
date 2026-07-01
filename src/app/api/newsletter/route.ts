@@ -29,10 +29,7 @@ export async function POST(req: Request) {
   try {
     const { email } = (await req.json()) as { email?: string };
     if (!email || !EMAIL_RE.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email address' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
     const apiKey = process.env.RESEND_API_KEY;
@@ -41,26 +38,23 @@ export async function POST(req: Request) {
     if (!apiKey || !audienceId) {
       // 本地 / 未配置 Resend 时返回“假成功”避免阻塞开发
       console.warn(
-        '[newsletter] RESEND_API_KEY or RESEND_AUDIENCE_ID missing — accepting email but not persisting'
+        '[newsletter] RESEND_API_KEY or RESEND_AUDIENCE_ID missing — accepting email but not persisting',
       );
       return NextResponse.json({ ok: true, persisted: false });
     }
 
     // 1. 订阅到 Audience（Resend Contacts API）
-    const subscribeRes = await fetch(
-      `https://api.resend.com/audiences/${audienceId}/contacts`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          unsubscribed: false,
-        }),
-      }
-    );
+    const subscribeRes = await fetch(`https://api.resend.com/audiences/${audienceId}/contacts`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email,
+        unsubscribed: false,
+      }),
+    });
 
     if (!subscribeRes.ok) {
       const body = (await subscribeRes.json().catch(() => ({}))) as ResendErrorBody;
@@ -72,16 +66,11 @@ export async function POST(req: Request) {
         console.error(
           '[newsletter] resend subscribe error',
           subscribeRes.status,
-          JSON.stringify(body)
+          JSON.stringify(body),
         );
         return NextResponse.json(
-          {
-            error: 'Subscription failed',
-            resendStatus: subscribeRes.status,
-            resendError: body.name ?? null,
-            resendMessage: body.message ?? null,
-          },
-          { status: 502 }
+          { error: 'Subscription failed. Please try again later.' },
+          { status: 502 },
         );
       }
     }
@@ -89,8 +78,7 @@ export async function POST(req: Request) {
     // 2. 发欢迎邮件（可选，未配 FROM_EMAIL 就跳过）
     const fromEmail = process.env.NEWSLETTER_FROM_EMAIL;
     if (fromEmail) {
-      const siteUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hi.kyriewen.cn';
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hi.kyriewen.cn';
       const mailRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -108,21 +96,14 @@ export async function POST(req: Request) {
       if (!mailRes.ok) {
         // 欢迎邮件失败不影响订阅成功（邮箱已入库）
         const text = await mailRes.text().catch(() => '');
-        console.warn(
-          '[newsletter] resend send welcome failed',
-          mailRes.status,
-          text
-        );
+        console.warn('[newsletter] resend send welcome failed', mailRes.status, text);
       }
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error('[newsletter] unexpected error', err);
-    return NextResponse.json(
-      { error: 'Unexpected error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });
   }
 }
 

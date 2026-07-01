@@ -1,4 +1,4 @@
-import { marked } from 'marked';
+import { Marked } from 'marked';
 import DOMPurify from 'isomorphic-dompurify';
 
 /**
@@ -15,8 +15,8 @@ import DOMPurify from 'isomorphic-dompurify';
  * - 单条留言渲染 < 1ms
  */
 
-// 配置 marked：开启 GFM、自动换行、不允许 HTML 透传
-marked.setOptions({
+// 创建独立实例，避免全局副作用（Serverless 模块缓存场景下线程安全）
+const md = new Marked({
   gfm: true,
   breaks: true,
 });
@@ -47,19 +47,18 @@ const ALLOWED_ATTR = ['href', 'target', 'rel', 'class'];
  */
 export function renderSafeMarkdown(raw: string): string {
   if (!raw) return '';
-  const html = marked.parse(raw, { async: false }) as string;
+  const html = md.parse(raw, { async: false }) as string;
   const sanitized = DOMPurify.sanitize(html, {
     ALLOWED_TAGS,
     ALLOWED_ATTR,
     // 阻止 javascript: data: 等危险协议
-    ALLOWED_URI_REGEXP:
-      /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
+    ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.\-:]|$))/i,
   });
 
   // 后处理：所有外链强制 noopener + nofollow
   return sanitized.replace(
     /<a\s+([^>]*?)href="(https?:[^"]+)"([^>]*)>/g,
-    '<a $1href="$2"$3 target="_blank" rel="noopener noreferrer nofollow ugc">'
+    '<a $1href="$2"$3 target="_blank" rel="noopener noreferrer nofollow ugc">',
   );
 }
 

@@ -21,18 +21,13 @@ export async function GET(req: Request) {
   const today = new Date().toISOString().slice(0, 10);
 
   const results = await Promise.all(
-    PROJECTS.filter(
-      (p) => p.category === 'chrome-extension' && p.chromeStoreId
-    ).map(async (p) => {
+    PROJECTS.filter((p) => p.category === 'chrome-extension' && p.chromeStoreId).map(async (p) => {
       const stats = await fetchChromeStoreStats(p.chromeStoreId!);
       return { slug: p.slug, stats };
-    })
+    }),
   );
 
-  const totalUsers = results.reduce(
-    (sum, r) => sum + (r.stats?.users ?? 0),
-    0
-  );
+  const totalUsers = results.reduce((sum, r) => sum + (r.stats?.users ?? 0), 0);
 
   try {
     await db
@@ -45,12 +40,17 @@ export async function GET(req: Request) {
 
     for (const r of results) {
       if (!r.stats?.users) continue;
-      await db.insert(productStats).values({
-        slug: r.slug,
-        date: today,
-        users: r.stats.users,
-        stars: 0,
-      });
+      await db
+        .insert(productStats)
+        .values({
+          slug: r.slug,
+          date: today,
+          users: r.stats.users,
+        })
+        .onConflictDoUpdate({
+          target: [productStats.slug, productStats.date],
+          set: { users: r.stats.users },
+        });
     }
   } catch (err) {
     console.error('[cron:chrome] db error', err);
