@@ -40,27 +40,39 @@ export default function NavigationPage() {
   const [langTab, setLangTab] = useState<'en' | 'zh'>(locale);
 
   /* ── Fetch items ───────────────────────────────────────────── */
-  const fetchItems = useCallback(async () => {
-    try {
-      const response = await fetch('/api/navigation');
-      if (!response.ok) throw new Error('Failed to fetch navigation items');
-      const json = await response.json();
-      const list = Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
-      setItems(list);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+  // 纯数据加载：不碰 React 状态，便于在 effect（.then 回调）与事件处理器里复用。
+  const loadNavigation = useCallback(async (signal?: AbortSignal): Promise<NavigationItem[]> => {
+    const response = await fetch('/api/navigation', signal ? { signal } : undefined);
+    if (!response.ok) throw new Error('Failed to fetch navigation items');
+    const json = await response.json();
+    return Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : [];
   }, []);
 
+  // CRUD 成功后刷新：在事件处理器里调用，允许 setState。
+  const refresh = useCallback(async () => {
+    try {
+      setItems(await loadNavigation());
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to load data');
+    }
+  }, [loadNavigation]);
+
   useEffect(() => {
-    // fetchItems 内部的 setState 都发生在 await 之后（异步续体里），并非同步级联渲染，
-    // 规则的静态分析无法跨 async 边界推断。正解是把数据加载移到服务端组件，
-    // 属于独立重构，暂以定点抑制说明现状。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchItems();
-  }, [fetchItems]);
+    // 首屏加载：AbortController 防止组件卸载后仍 setState（竞态）。
+    // setState 都发生在 .then/.catch/.finally 回调里，不是 effect 体内的同步调用，
+    // 因此不触发 react-hooks/set-state-in-effect。
+    const controller = new AbortController();
+    loadNavigation(controller.signal)
+      .then((list) => setItems(list))
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        toast.error(error instanceof Error ? error.message : 'Failed to load data');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [loadNavigation]);
 
   /* ── Form helpers ──────────────────────────────────────────── */
   const openCreateForm = useCallback(() => {
@@ -143,7 +155,7 @@ export default function NavigationPage() {
 
       toast.success(isEdit ? t('navigation.toastUpdated') : t('navigation.toastCreated'));
       closeForm();
-      fetchItems();
+      refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     } finally {
@@ -166,7 +178,7 @@ export default function NavigationPage() {
       }
 
       toast.success(t('navigation.toastUpdated'));
-      fetchItems();
+      refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('common.somethingWrong'));
     }
@@ -184,7 +196,7 @@ export default function NavigationPage() {
       }
 
       toast.success(t('navigation.toastDeleted'));
-      fetchItems();
+      refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t('common.deleteFailed'));
     } finally {

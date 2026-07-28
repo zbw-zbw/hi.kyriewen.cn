@@ -29,14 +29,14 @@ export default function I18nPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   /* ── Fetch both zh and en items ────────────────────────────── */
-  const fetchItems = useCallback(async () => {
-    setLoading(true);
-    try {
+  const loadI18n = useCallback(
+    async (signal?: AbortSignal): Promise<{ zh: I18nMessage[]; en: I18nMessage[] }> => {
+      const init = signal ? { signal } : undefined;
       const [zhRes, enRes, zhJsonRes, enJsonRes] = await Promise.all([
-        fetch('/api/i18n?locale=zh'),
-        fetch('/api/i18n?locale=en'),
-        fetch('/api/i18n/json?locale=zh'),
-        fetch('/api/i18n/json?locale=en'),
+        fetch('/api/i18n?locale=zh', init),
+        fetch('/api/i18n?locale=en', init),
+        fetch('/api/i18n/json?locale=zh', init),
+        fetch('/api/i18n/json?locale=en', init),
       ]);
       if (!zhRes.ok) throw new Error('Failed to fetch zh messages');
 
@@ -74,7 +74,7 @@ export default function I18nPage() {
           }));
       }
 
-      setZhItems([...zhDbList, ...jsonBaseItems]);
+      const zhResult = [...zhDbList, ...jsonBaseItems];
 
       // 处理英文文案
       const enDbList: I18nMessage[] = [];
@@ -112,21 +112,44 @@ export default function I18nPage() {
         enDbList.push(...enJsonItems);
       }
 
-      setEnItems(enDbList);
+      return { zh: zhResult, en: enDbList };
+    },
+    [],
+  );
+
+  // 写操作成功后刷新：在事件处理器里调用，允许 setState。
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { zh, en } = await loadI18n();
+      setZhItems(zh);
+      setEnItems(en);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loadI18n]);
 
   useEffect(() => {
-    // fetchItems 内部的 setState 都发生在 await 之后（异步续体里），并非同步级联渲染，
-    // 规则的静态分析无法跳 async 边界推断。正解是把数据加载移到服务端组件，
-    // 属于独立重构，暂以定点抑制说明现状。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchItems();
-  }, [fetchItems]);
+    // 首屏加载：AbortController 防止组件卸载后仍 setState（竞态）。
+    // loading 初始值已为 true；setState 都在 .then/.catch/.finally 回调里，
+    // 不是 effect 体内的同步 setLoading(true) —— 那才是原先触发规则的真实原因。
+    const controller = new AbortController();
+    loadI18n(controller.signal)
+      .then(({ zh, en }) => {
+        setZhItems(zh);
+        setEnItems(en);
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        toast.error(error instanceof Error ? error.message : 'Failed to load data');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [loadI18n]);
 
   /* ── Build en lookup map ─────────────────────────────────────── */
   const enMap = new Map<string, I18nMessage>();
@@ -235,7 +258,7 @@ export default function I18nPage() {
         toast.error(t('translate.toastFailed'));
       }
 
-      fetchItems();
+      refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Update failed');
     } finally {
@@ -271,7 +294,7 @@ export default function I18nPage() {
       });
 
       toast.success(`"${item.key}" ${t('translate.toastSuccess')}`);
-      fetchItems();
+      refresh();
     } catch {
       toast.error(`"${item.key}" ${t('translate.toastFailed')}`);
     } finally {
@@ -338,7 +361,7 @@ export default function I18nPage() {
 
     toast.success(`${t('i18n.translating').replace('…', '')}: ${successCount} ✓, ${failCount} ✗`);
     setTranslatingAll(false);
-    fetchItems();
+    refresh();
   };
 
   /* ── Batch import from JSON ────────────────────────────────── */
@@ -387,7 +410,7 @@ export default function I18nPage() {
 
       const result = await response.json();
       toast.success(`Imported ${result.count ?? messages.length} message(s)`);
-      fetchItems();
+      refresh();
     } catch (error) {
       if (error instanceof SyntaxError) {
         toast.error('Invalid JSON file');
