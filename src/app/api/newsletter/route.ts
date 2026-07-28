@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { clientIp, enforceRateLimit } from '@/lib/ratelimit';
 
 /**
  * Newsletter 订阅 API：
@@ -26,6 +27,11 @@ interface ResendErrorBody {
 }
 
 export async function POST(req: Request) {
+  // 本端点会以本站域名向用户提供的任意邮箱发信，
+  // 不限流就是一个现成的邮件轰炸 / 发信域名声誉破坏工具。
+  const limited = await enforceRateLimit('newsletter', clientIp(req));
+  if (limited) return limited;
+
   try {
     const { email } = (await req.json()) as { email?: string };
     if (!email || !EMAIL_RE.test(email)) {

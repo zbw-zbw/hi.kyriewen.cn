@@ -2,19 +2,13 @@ import { NextResponse } from 'next/server';
 import { db, statsSnapshot, productStats } from '@/lib/db';
 import { fetchUserStats, fetchRepoStats } from '@/lib/github';
 import { PROJECTS } from '@/content/projects';
+import { authorizeCron } from '@/lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-function authorize(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true; // 本地开发不校验
-  const auth = req.headers.get('authorization');
-  return auth === `Bearer ${secret}`;
-}
-
 export async function GET(req: Request) {
-  if (!authorize(req)) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

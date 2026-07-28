@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db, statsSnapshot } from '@/lib/db';
+import { authorizeCron } from '@/lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-function authorize(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const auth = req.headers.get('authorization');
-  return auth === `Bearer ${secret}`;
-}
 
 /**
  * GET /api/cron/sync-newsletter
@@ -18,7 +12,7 @@ function authorize(req: Request) {
  * 写入 stats_snapshot.newsletter_subscribers。
  */
 export async function GET(req: Request) {
-  if (!authorize(req)) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

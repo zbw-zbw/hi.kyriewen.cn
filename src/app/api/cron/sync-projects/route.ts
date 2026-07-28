@@ -1,18 +1,12 @@
 import { NextResponse } from 'next/server';
 import { db, projects } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { authorizeCron } from '@/lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const GITHUB_API = 'https://api.github.com';
-
-function authorize(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const auth = req.headers.get('authorization');
-  return auth === `Bearer ${secret}`;
-}
 
 interface GitHubRepo {
   name: string;
@@ -36,7 +30,7 @@ interface GitHubRepo {
  * - 新项目：插入为 featured=0（草稿），等待人工审核
  */
 export async function GET(req: Request) {
-  if (!authorize(req)) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 

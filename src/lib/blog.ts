@@ -21,6 +21,12 @@ export interface Post extends PostFrontmatter {
   locale: Locale;
   content: string;
   readingTime: number; // minutes
+  /**
+   * 内容来源。决定正文的渲染方式：
+   * - 'file' —— src/content/blog/ 下经 git review 的文件，可以走 MDX
+   * - 'db'   —— 后台写入或第三方同步的不可信内容，必须走 sanitize 渲染
+   */
+  source: 'file' | 'db';
 }
 
 const CONTENT_ROOT = path.join(process.cwd(), 'src', 'content', 'blog');
@@ -61,6 +67,7 @@ function readPostsForLocale(locale: Locale): Post[] {
         locale,
         content,
         readingTime: calcReadingTime(content),
+        source: 'file',
       } satisfies Post;
     })
     .filter((p) => !p.draft)
@@ -91,6 +98,7 @@ function dbRowToPost(row: typeof blogPosts.$inferSelect): Post {
     locale: row.lang as Locale,
     content: row.content,
     readingTime: calcReadingTime(row.content),
+    source: 'db',
   };
 }
 

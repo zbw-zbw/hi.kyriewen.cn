@@ -5,6 +5,13 @@ const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  /**
+   * isomorphic-dompurify 在服务端依赖 jsdom，而 jsdom 会在运行时读自己的
+   * default-stylesheet.css 等静态资源。一旦被 webpack 打进 server bundle
+   * 就会 ENOENT（博客详情页在服务端 sanitize 正文时即命中）。
+   * 标为外部包，让它从 node_modules 原地加载。
+   */
+  serverExternalPackages: ['isomorphic-dompurify'],
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

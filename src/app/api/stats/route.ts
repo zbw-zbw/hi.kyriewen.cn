@@ -16,6 +16,7 @@ export async function GET() {
     return NextResponse.json({ snapshots });
   } catch (err) {
     console.error('[stats] db error', err);
-    return NextResponse.json({ snapshots: [], error: 'db_unavailable' });
+    // 不用 200 掩盖数据库故障，否则监控和调用方都看不到异常
+    return NextResponse.json({ snapshots: [], error: 'db_unavailable' }, { status: 503 });
   }
 }

@@ -1,5 +1,6 @@
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
+import { clientIp, enforceRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'edge';
 
@@ -54,10 +55,7 @@ interface NormalizedMessage {
  */
 function normalizeMessages(raw: unknown[]): NormalizedMessage[] {
   return raw
-    .filter(
-      (m): m is Record<string, unknown> =>
-        typeof m === 'object' && m !== null && 'role' in m
-    )
+    .filter((m): m is Record<string, unknown> => typeof m === 'object' && m !== null && 'role' in m)
     .map((m) => {
       const role = String(m.role) as 'user' | 'assistant';
       let content = '';
@@ -86,37 +84,41 @@ export async function POST(request: Request) {
   if (!apiKey) {
     return new Response(
       JSON.stringify({
-        error:
-          'AI Chat is not configured yet. Please set AI_API_KEY or OPENAI_API_KEY.',
+        error: 'AI Chat is not configured yet. Please set AI_API_KEY or OPENAI_API_KEY.',
       }),
-      { status: 503, headers: { 'Content-Type': 'application/json' } }
+      { status: 503, headers: { 'Content-Type': 'application/json' } },
     );
   }
+
+  // 限流：本端点无需登录，每次调用都在烧 LLM token，
+  // 按 IP 限额是避免成本被外部任意放大的唯一手段。
+  const limited = await enforceRateLimit('chat', clientIp(request));
+  if (limited) return limited;
 
   let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch {
-    return new Response(
-      JSON.stringify({ error: 'Invalid request body' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const rawMessages = body.messages;
   if (!Array.isArray(rawMessages) || rawMessages.length === 0) {
-    return new Response(
-      JSON.stringify({ error: 'messages array is required' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'messages array is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   const messages = normalizeMessages(rawMessages);
   if (messages.length === 0) {
-    return new Response(
-      JSON.stringify({ error: 'No valid messages provided' }),
-      { status: 400, headers: { 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ error: 'No valid messages provided' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -134,7 +136,7 @@ export async function POST(request: Request) {
       JSON.stringify({
         error: 'AI service error. Please try again later.',
       }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
     );
   }
 }

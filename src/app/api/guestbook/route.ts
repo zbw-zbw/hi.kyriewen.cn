@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db, guestbookMessages } from '@/lib/db';
-import { getRateLimiter } from '@/lib/ratelimit';
+import { enforceRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -62,13 +62,8 @@ export async function POST(req: Request) {
   }
 
   // 限流：每用户 60s 一条
-  const limiter = getRateLimiter();
-  if (limiter) {
-    const { success } = await limiter.limit(session.user.id);
-    if (!success) {
-      return NextResponse.json({ error: 'rate_limited' }, { status: 429 });
-    }
-  }
+  const limited = await enforceRateLimit('guestbook', session.user.id);
+  if (limited) return limited;
 
   // 校验 parentId 与 postSlug 一致性
   if (parentId) {
@@ -85,10 +80,7 @@ export async function POST(req: Request) {
       const parentSlug = parent.postSlug ?? null;
       const requestSlug = postSlug ?? null;
       if (parentSlug !== requestSlug) {
-        return NextResponse.json(
-          { error: 'parent_scope_mismatch' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'parent_scope_mismatch' }, { status: 400 });
       }
     } catch (err) {
       console.error('[guestbook] parent check error', err);

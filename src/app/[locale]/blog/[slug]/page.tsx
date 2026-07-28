@@ -17,6 +17,7 @@ import type { GuestbookMessage } from '@/lib/db';
 import { TagBadge } from '@/components/tag-badge';
 import { ViewCounter } from '@/components/view-counter';
 import { extractToc, getAdjacentPosts, getAllPostSlugs, getPostBySlug } from '@/lib/blog';
+import { renderArticleMarkdown } from '@/lib/markdown';
 import { formatDate } from '@/lib/utils';
 import { routing, type Locale } from '@/i18n/routing';
 
@@ -196,7 +197,17 @@ export default async function BlogPostPage({
           </header>
 
           <div className="prose-kw mt-4 space-y-4 leading-relaxed">
-            <Mdx source={post.content} />
+            {/*
+              正文渲染按来源分流：
+              - file：src/content/blog/ 下经 git review 的文件，可以信任，走 MDX（带 shiki 高亮）
+              - db：后台写入 / 掘金同步的内容，不可信。MDX 会在服务端求值 `{...}`
+                表达式，等于把数据当代码执行，因此必须走 sanitize 渲染。
+            */}
+            {post.source === 'file' ? (
+              <Mdx source={post.content} />
+            ) : (
+              <div dangerouslySetInnerHTML={{ __html: renderArticleMarkdown(post.content) }} />
+            )}
           </div>
 
           {(previous || next) && (

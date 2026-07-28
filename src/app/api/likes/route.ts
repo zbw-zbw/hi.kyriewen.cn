@@ -3,6 +3,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db, likes } from '@/lib/db';
 import type { LikeTargetType } from '@/lib/db';
+import { enforceRateLimit } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -41,9 +42,7 @@ export async function GET(req: Request) {
         count: sql<number>`count(*)::int`,
       })
       .from(likes)
-      .where(
-        and(eq(likes.targetType, targetType), inArray(likes.targetId, targetIds))
-      )
+      .where(and(eq(likes.targetType, targetType), inArray(likes.targetId, targetIds)))
       .groupBy(likes.targetId);
 
     const counts: Record<string, number> = {};
@@ -60,8 +59,8 @@ export async function GET(req: Request) {
           and(
             eq(likes.userId, session.user.id),
             eq(likes.targetType, targetType),
-            inArray(likes.targetId, targetIds)
-          )
+            inArray(likes.targetId, targetIds),
+          ),
         );
       mine = mineRows.map((r) => r.targetId);
     }
@@ -93,6 +92,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
+  // 限流：toggle 语义下单用户可无限反复写入
+  const limited = await enforceRateLimit('likes', session.user.id);
+  if (limited) return limited;
+
   try {
     const existing = await db
       .select({ id: likes.id })
@@ -101,8 +104,8 @@ export async function POST(req: Request) {
         and(
           eq(likes.userId, session.user.id),
           eq(likes.targetType, targetType),
-          eq(likes.targetId, targetId)
-        )
+          eq(likes.targetId, targetId),
+        ),
       )
       .limit(1);
 
@@ -124,9 +127,7 @@ export async function POST(req: Request) {
     const countResult = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(likes)
-      .where(
-        and(eq(likes.targetType, targetType), eq(likes.targetId, targetId))
-      );
+      .where(and(eq(likes.targetType, targetType), eq(likes.targetId, targetId)));
     const count = countResult[0]?.count ?? 0;
 
     return NextResponse.json({ liked, count });

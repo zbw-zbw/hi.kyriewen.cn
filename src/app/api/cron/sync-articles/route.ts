@@ -1,17 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db, blogPosts } from '@/lib/db';
 import { eq } from 'drizzle-orm';
+import { authorizeCron } from '@/lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
-
-function authorize(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  const auth = req.headers.get('authorization');
-  return auth === `Bearer ${secret}`;
-}
 
 /* ── Juejin API types ────────────────────────────────────────────── */
 
@@ -110,7 +104,7 @@ async function syncJuejin(userId: string) {
 /* ── GET handler ─────────────────────────────────────────────────── */
 
 export async function GET(req: Request) {
-  if (!authorize(req)) {
+  if (!authorizeCron(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

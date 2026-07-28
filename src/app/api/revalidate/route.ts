@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
+import { secretEquals } from '@/lib/cron-auth';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
     const { secret, paths } = body as { secret?: string; paths?: string[] };
 
     const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret || secret !== cronSecret) {
+    if (!cronSecret || typeof secret !== 'string' || !secretEquals(secret, cronSecret)) {
       return NextResponse.json({ error: 'invalid_secret' }, { status: 401 });
     }
 
