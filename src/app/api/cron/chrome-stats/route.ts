@@ -3,6 +3,9 @@ import { db, statsSnapshot, productStats } from '@/lib/db';
 import { fetchChromeStoreStats } from '@/lib/chrome-store';
 import { PROJECTS } from '@/content/projects';
 import { authorizeCron } from '@/lib/cron-auth';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('cron/chrome-stats');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -47,7 +50,7 @@ export async function GET(req: Request) {
         });
     }
   } catch (err) {
-    console.error('[cron:chrome] db error', err);
+    log.error('db_error', err);
     return NextResponse.json({ error: 'db error' }, { status: 500 });
   }
 

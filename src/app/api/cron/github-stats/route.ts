@@ -3,6 +3,9 @@ import { db, statsSnapshot, productStats } from '@/lib/db';
 import { fetchUserStats, fetchRepoStats } from '@/lib/github';
 import { PROJECTS } from '@/content/projects';
 import { authorizeCron } from '@/lib/cron-auth';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('cron/github-stats');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -56,7 +59,7 @@ export async function GET(req: Request) {
         });
     }
   } catch (err) {
-    console.error('[cron:github] db error', err);
+    log.error('db_error', err);
     return NextResponse.json({ error: 'db error' }, { status: 500 });
   }
 

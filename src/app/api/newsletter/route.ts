@@ -1,5 +1,9 @@
 import { NextResponse } from 'next/server';
 import { clientIp, enforceRateLimit } from '@/lib/ratelimit';
+import { consumeDailyBudget } from '@/lib/cost-guard';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/newsletter');
 
 /**
  * Newsletter 订阅 API：
@@ -43,9 +47,7 @@ export async function POST(req: Request) {
 
     if (!apiKey || !audienceId) {
       // 本地 / 未配置 Resend 时返回“假成功”避免阻塞开发
-      console.warn(
-        '[newsletter] RESEND_API_KEY or RESEND_AUDIENCE_ID missing — accepting email but not persisting',
-      );
+      log.warn('resend_not_configured', { persisted: false });
       return NextResponse.json({ ok: true, persisted: false });
     }
 
@@ -69,11 +71,10 @@ export async function POST(req: Request) {
         body.name === 'contact_already_exists' ||
         body.message?.toLowerCase().includes('already exists');
       if (!isDuplicate) {
-        console.error(
-          '[newsletter] resend subscribe error',
-          subscribeRes.status,
-          JSON.stringify(body),
-        );
+        log.error('resend_subscribe_failed', undefined, {
+          status: subscribeRes.status,
+          resendError: body.name,
+        });
         return NextResponse.json(
           { error: 'Subscription failed. Please try again later.' },
           { status: 502 },
@@ -82,8 +83,16 @@ export async function POST(req: Request) {
     }
 
     // 2. 发欢迎邮件（可选，未配 FROM_EMAIL 就跳过）
+    // 护栏只卡在「真正发信」这一步：它才是花钱且影响发信域名声誉的动作。
+    // 卡在订阅入库前会误挡正常订阅（邮箱已写入却提示失败）。
     const fromEmail = process.env.NEWSLETTER_FROM_EMAIL;
     if (fromEmail) {
+      const budget = await consumeDailyBudget('newsletter-welcome');
+      if (!budget.allowed) {
+        // 订阅已成功，仅跳过欢迎邮件 —— 对用户仍是成功
+        return NextResponse.json({ ok: true, welcomeEmailSkipped: true });
+      }
+
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hi.kyriewen.cn';
       const mailRes = await fetch('https://api.resend.com/emails', {
         method: 'POST',
@@ -101,14 +110,13 @@ export async function POST(req: Request) {
 
       if (!mailRes.ok) {
         // 欢迎邮件失败不影响订阅成功（邮箱已入库）
-        const text = await mailRes.text().catch(() => '');
-        console.warn('[newsletter] resend send welcome failed', mailRes.status, text);
+        log.warn('welcome_email_failed', { status: mailRes.status });
       }
     }
 
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('[newsletter] unexpected error', err);
+    log.error('unexpected_error', err);
     return NextResponse.json({ error: 'Unexpected error' }, { status: 500 });
   }
 }

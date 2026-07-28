@@ -4,6 +4,9 @@ import { auth } from '@/auth';
 import { db, likes } from '@/lib/db';
 import type { LikeTargetType } from '@/lib/db';
 import { enforceRateLimit } from '@/lib/ratelimit';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/likes');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,7 +70,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ counts, mine });
   } catch (err) {
-    console.error('[likes] GET error', err);
+    log.error('get_failed', err);
     return NextResponse.json({ counts: {}, mine: [], error: 'db_error' });
   }
 }
@@ -132,7 +135,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ liked, count });
   } catch (err) {
-    console.error('[likes] POST error', err);
+    log.error('post_failed', err);
     return NextResponse.json({ error: 'db_error' }, { status: 500 });
   }
 }

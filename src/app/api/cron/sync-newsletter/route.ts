@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { db, statsSnapshot } from '@/lib/db';
 import { authorizeCron } from '@/lib/cron-auth';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('cron/sync-newsletter');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,8 +40,7 @@ export async function GET(req: Request) {
     });
 
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      console.error('[cron:sync-newsletter] Resend API error', res.status, text);
+      log.error('resend_api_error', undefined, { status: res.status });
       return NextResponse.json({ error: 'Resend API error', status: res.status }, { status: 502 });
     }
 
@@ -66,7 +68,7 @@ export async function GET(req: Request) {
       updatedAt: today,
     });
   } catch (err) {
-    console.error('[cron:sync-newsletter] error', err);
+    log.error('sync_failed', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

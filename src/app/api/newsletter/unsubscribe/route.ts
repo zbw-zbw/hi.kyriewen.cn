@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/newsletter/unsubscribe');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -43,7 +46,7 @@ export async function GET(req: Request) {
 
   const secret = process.env.NEWSLETTER_UNSUBSCRIBE_SECRET;
   if (!secret) {
-    console.warn('[unsubscribe] NEWSLETTER_UNSUBSCRIBE_SECRET missing');
+    log.warn('unsubscribe_secret_missing');
     // dev 友好：缺 secret 时直接当成功
     return new NextResponse(renderHtml('success', email), {
       status: 200,
@@ -55,10 +58,7 @@ export async function GET(req: Request) {
   // 时间安全比较，防 timing attack
   const tokenBuf = Buffer.from(token);
   const expBuf = Buffer.from(expected);
-  if (
-    tokenBuf.length !== expBuf.length ||
-    !crypto.timingSafeEqual(tokenBuf, expBuf)
-  ) {
+  if (tokenBuf.length !== expBuf.length || !crypto.timingSafeEqual(tokenBuf, expBuf)) {
     return new NextResponse(renderHtml('error', email, 'Invalid token'), {
       status: 403,
       headers: { 'Content-Type': 'text/html; charset=utf-8' },
@@ -79,14 +79,13 @@ export async function GET(req: Request) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ unsubscribed: true }),
-        }
+        },
       );
       if (!res.ok) {
-        const txt = await res.text().catch(() => '');
-        console.warn('[unsubscribe] resend PATCH failed', res.status, txt);
+        log.warn('resend_patch_failed', { status: res.status });
       }
     } catch (err) {
-      console.error('[unsubscribe] resend fetch error', err);
+      log.error('resend_fetch_failed', err);
     }
   }
 
@@ -96,17 +95,9 @@ export async function GET(req: Request) {
   });
 }
 
-function renderHtml(
-  state: 'success' | 'error',
-  email: string,
-  error?: string
-): string {
-  const safeEmail = email
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-  const title =
-    state === 'success' ? 'Unsubscribed' : 'Unsubscribe failed';
+function renderHtml(state: 'success' | 'error', email: string, error?: string): string {
+  const safeEmail = email.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const title = state === 'success' ? 'Unsubscribed' : 'Unsubscribe failed';
   const body =
     state === 'success'
       ? `<p>You've been unsubscribed.</p><p>Sorry to see you go — feel free to <a href="/">come back</a> anytime.</p>`

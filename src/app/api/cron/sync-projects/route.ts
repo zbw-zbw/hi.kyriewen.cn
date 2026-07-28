@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { db, projects } from '@/lib/db';
 import { eq } from 'drizzle-orm';
 import { authorizeCron } from '@/lib/cron-auth';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('cron/sync-projects');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -124,7 +127,7 @@ export async function GET(req: Request) {
       syncedAt: new Date().toISOString(),
     });
   } catch (err) {
-    console.error('[cron:sync-projects] error', err);
+    log.error('sync_failed', err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

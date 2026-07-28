@@ -3,6 +3,9 @@ import { and, desc, eq, isNull } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db, guestbookMessages } from '@/lib/db';
 import { enforceRateLimit } from '@/lib/ratelimit';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/guestbook');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +32,7 @@ export async function GET(req: Request) {
       .limit(200);
     return NextResponse.json({ messages });
   } catch (err) {
-    console.error('[guestbook] list error', err);
+    log.error('list_failed', err);
     return NextResponse.json({ messages: [], error: 'db_unavailable' });
   }
 }
@@ -83,7 +86,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'parent_scope_mismatch' }, { status: 400 });
       }
     } catch (err) {
-      console.error('[guestbook] parent check error', err);
+      log.error('parent_check_failed', err);
       return NextResponse.json({ error: 'db_error' }, { status: 500 });
     }
   }
@@ -102,7 +105,7 @@ export async function POST(req: Request) {
       .returning();
     return NextResponse.json({ message: row });
   } catch (err) {
-    console.error('[guestbook] insert error', err);
+    log.error('insert_failed', err);
     return NextResponse.json({ error: 'db_error' }, { status: 500 });
   }
 }

@@ -1,6 +1,10 @@
 import { streamText } from 'ai';
 import { createOpenAI } from '@ai-sdk/openai';
 import { clientIp, enforceRateLimit } from '@/lib/ratelimit';
+import { consumeDailyBudget } from '@/lib/cost-guard';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/chat');
 
 export const runtime = 'edge';
 
@@ -95,6 +99,15 @@ export async function POST(request: Request) {
   const limited = await enforceRateLimit('chat', clientIp(request));
   if (limited) return limited;
 
+  // 每日全站总量护栏：限流按 IP，拦不住分布式小流量刷账单。
+  const budget = await consumeDailyBudget('ai-chat');
+  if (!budget.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'AI chat has reached its daily limit. Please try again tomorrow.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } },
+    );
+  }
+
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -131,7 +144,7 @@ export async function POST(request: Request) {
 
     return result.toTextStreamResponse();
   } catch (error) {
-    console.error('[api/chat] streamText failed', error);
+    log.error('stream_failed', error);
     return new Response(
       JSON.stringify({
         error: 'AI service error. Please try again later.',

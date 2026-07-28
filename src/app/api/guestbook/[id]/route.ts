@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
 import { auth } from '@/auth';
 import { db, guestbookMessages } from '@/lib/db';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/guestbook/[id]');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -54,7 +57,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json({ message: updated });
   } catch (err) {
-    console.error('[guestbook] PATCH error', err);
+    log.error('patch_failed', err);
     return NextResponse.json({ error: 'db_error' }, { status: 500 });
   }
 }
@@ -94,7 +97,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await db.delete(guestbookMessages).where(eq(guestbookMessages.id, id));
     return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error('[guestbook] DELETE error', err);
+    log.error('delete_failed', err);
     return NextResponse.json({ error: 'db_error' }, { status: 500 });
   }
 }

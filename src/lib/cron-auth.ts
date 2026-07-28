@@ -1,4 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('cron-auth');
 
 /**
  * CRON_SECRET 校验（cron 任务与按需缓存失效共用）。
@@ -26,7 +29,7 @@ export function secretEquals(a: string, b: string): boolean {
 export function authorizeCron(req: Request): boolean {
   const secret = process.env.CRON_SECRET;
   if (!secret) {
-    console.error('[cron] CRON_SECRET 未配置，拒绝请求');
+    log.error('cron_secret_missing');
     return false;
   }
   const header = req.headers.get('authorization');

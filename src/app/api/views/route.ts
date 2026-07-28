@@ -1,6 +1,9 @@
 import { sql, inArray } from 'drizzle-orm';
 import { db, pageViews } from '@/lib/db';
 import { clientIp, enforceRateLimit } from '@/lib/ratelimit';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/views');
 
 /** slug 会成为一行新记录，限制长度避免被用作写入放大器 */
 const MAX_SLUG_LENGTH = 256;
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
 
     return Response.json({ views: result[0]?.views ?? 1 });
   } catch (error) {
-    console.error('[api/views] POST failed', error);
+    log.error('post_failed', error);
     // 浏览量统计不应阻断页面，但也不能拿 200 掩盖故障
     return Response.json({ views: 0, error: 'db_unavailable' }, { status: 503 });
   }
@@ -72,7 +75,7 @@ export async function GET(request: Request) {
 
     return Response.json({ views: viewsMap });
   } catch (error) {
-    console.error('[api/views] GET failed', error);
+    log.error('get_failed', error);
     return Response.json({ views: {}, error: 'db_unavailable' }, { status: 503 });
   }
 }

@@ -1,5 +1,5 @@
 import { Ratelimit } from '@upstash/ratelimit';
-import { Redis } from '@upstash/redis';
+import { getRedis } from '@/lib/redis';
 
 /**
  * 命名限流器。
@@ -26,17 +26,7 @@ const QUOTA: Record<LimiterName, Parameters<typeof Ratelimit.slidingWindow>> = {
   likes: [30, '60 s'],
 };
 
-let redis: Redis | null = null;
 const limiters = new Map<LimiterName, Ratelimit>();
-
-function getRedis(): Redis | null {
-  if (redis) return redis;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  redis = new Redis({ url, token });
-  return redis;
-}
 
 export function getRateLimiter(name: LimiterName): Ratelimit | null {
   const cached = limiters.get(name);

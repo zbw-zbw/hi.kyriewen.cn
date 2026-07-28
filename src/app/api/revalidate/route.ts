@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { secretEquals } from '@/lib/cron-auth';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('api/revalidate');
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -29,7 +32,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ revalidated: true, paths });
   } catch (error) {
-    console.error('[api/revalidate] failed', error);
+    log.error('revalidation_failed', error);
     return NextResponse.json({ error: 'revalidation_failed' }, { status: 500 });
   }
 }
