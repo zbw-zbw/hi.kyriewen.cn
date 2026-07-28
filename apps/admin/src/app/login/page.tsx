@@ -5,8 +5,9 @@ import { LoginContent } from './login-content';
 export default async function LoginPage() {
   const session = await auth();
 
-  // 已登录则跳转到 Dashboard
-  if (session?.user) {
+  // 已以管理员身份登录才跳转 Dashboard；
+  // 非管理员会话留在登录页，否则会与 layout 的 redirect 形成无限跳转。
+  if (session?.user?.isAdmin) {
     redirect('/');
   }
 

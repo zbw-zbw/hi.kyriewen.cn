@@ -3,6 +3,7 @@ import { asc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { socialLinks } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
  * GET /api/social — 查询所有 socialLinks，按 sortOrder 排序
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const rows = await db.select().from(socialLinks).orderBy(asc(socialLinks.sortOrder));
 
@@ -26,6 +29,8 @@ export async function GET() {
  * Body: { name, href, iconName, handle?, isEmail?, sortOrder? }
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { name, href, iconName, handle, isEmail, sortOrder } = body as {

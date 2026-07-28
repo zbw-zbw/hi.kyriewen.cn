@@ -3,6 +3,7 @@ import { db } from '@repo/db';
 import { newsletterIssues } from '@repo/db/schema';
 import { desc } from 'drizzle-orm';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
  * GET /api/newsletter — 获取已发送的期刊列表
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const issues = await db.select().from(newsletterIssues).orderBy(desc(newsletterIssues.sentAt));
     return NextResponse.json(issues);
@@ -26,6 +29,8 @@ export async function GET() {
  * Body: { subject, previewText?, htmlContent }
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = (await req.json()) as {
       subject: string;

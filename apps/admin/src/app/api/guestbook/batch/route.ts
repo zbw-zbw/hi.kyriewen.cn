@@ -3,6 +3,7 @@ import { inArray } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { guestbookMessages } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,6 +13,8 @@ export const dynamic = 'force-dynamic';
  * Body: { ids: number[] }
  */
 export async function DELETE(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { ids } = (await req.json()) as { ids?: number[] };
 

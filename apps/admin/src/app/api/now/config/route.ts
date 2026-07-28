@@ -1,14 +1,13 @@
 import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { nowConfig } from '@repo/db/schema';
+import { requireAdmin } from '@/lib/guard';
 
-const VALID_KEYS = [
-  'updated_at',
-  'currently_building_en',
-  'currently_building_zh',
-] as const;
+const VALID_KEYS = ['updated_at', 'currently_building_en', 'currently_building_zh'] as const;
 
 export async function PUT(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await request.json();
 
@@ -33,9 +32,6 @@ export async function PUT(request: Request) {
     return NextResponse.json(results.filter(Boolean));
   } catch (error) {
     console.error('Failed to update now config:', error);
-    return NextResponse.json(
-      { error: 'Failed to update now config' },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: 'Failed to update now config' }, { status: 500 });
   }
 }

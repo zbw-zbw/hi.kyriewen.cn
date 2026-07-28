@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { i18nMessages } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
  * GET /api/i18n?locale=en&namespace=common — 查询指定 locale 的所有 i18n 文案
  */
 export async function GET(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const locale = searchParams.get('locale');
@@ -42,6 +45,8 @@ export async function GET(req: Request) {
  * Body: { locale, namespace, key, value }
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { locale, namespace, key, value } = body as {
@@ -90,6 +95,8 @@ export async function POST(req: Request) {
  * Body: { locale, messages: [{ namespace, key, value }] }
  */
 export async function PUT(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { locale, messages } = body as {
@@ -144,6 +151,8 @@ export async function PUT(req: Request) {
  * DELETE /api/i18n?id=xxx — 删除指定文案
  */
 export async function DELETE(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const id = Number(searchParams.get('id'));

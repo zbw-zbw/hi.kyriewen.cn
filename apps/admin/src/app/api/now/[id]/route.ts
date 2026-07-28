@@ -3,8 +3,11 @@ import { db } from '@repo/db';
 import { nowItems } from '@repo/db/schema';
 import { eq } from 'drizzle-orm';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { id } = await params;
     const itemId = Number(id);
@@ -44,6 +47,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { id } = await params;
     const itemId = Number(id);

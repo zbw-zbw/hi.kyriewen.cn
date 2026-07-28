@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { translateBatch } from '@/lib/translate';
 import type { TranslateFieldType } from '@/lib/translate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -17,28 +18,22 @@ interface TranslateItem {
  * Returns: { results: { field?: string, original: string, translated: string }[] }
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json();
     const { texts } = body as { texts: TranslateItem[] };
 
     if (!texts || !Array.isArray(texts) || texts.length === 0) {
-      return NextResponse.json(
-        { error: 'texts array is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'texts array is required' }, { status: 400 });
     }
 
     // Limit batch size to prevent abuse
     if (texts.length > 20) {
-      return NextResponse.json(
-        { error: 'Maximum 20 texts per request' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Maximum 20 texts per request' }, { status: 400 });
     }
 
-    const results = await translateBatch(
-      texts.map((t) => ({ text: t.text, type: t.type }))
-    );
+    const results = await translateBatch(texts.map((t) => ({ text: t.text, type: t.type })));
 
     // Attach field names back to results
     const response = results.map((r, i) => ({
@@ -55,7 +50,7 @@ export async function POST(req: Request) {
         error: 'Translation failed',
         detail: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

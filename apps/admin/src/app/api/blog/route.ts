@@ -6,6 +6,7 @@ import { desc, eq, and } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { blogPosts } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -49,6 +50,8 @@ function readFileBasedPublishedPosts() {
  * ?published=1 时只返回已发布文章（含文件来源）
  */
 export async function GET(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const lang = searchParams.get('lang');
@@ -106,6 +109,8 @@ export async function GET(req: Request) {
  * POST /api/blog — 新建 blogPost
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { slug, title, summary, content, tags, lang, draft, coverImage, publishedAt } =

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -44,13 +45,23 @@ function flattenMessages(obj: Record<string, unknown>, parentKey = ''): FlatMess
   return results;
 }
 
+/** 只允许读取已知 locale —— locale 会拼进文件路径，不能直接信任查询参数 */
+const ALLOWED_LOCALES: readonly string[] = ['zh', 'en'];
+
 /**
  * GET /api/i18n/json?locale=zh — 读取主项目 src/messages/{locale}.json 并返回扁平化的文案列表
  */
 export async function GET(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { searchParams } = new URL(req.url);
     const locale = searchParams.get('locale') || 'zh';
+
+    // 白名单校验：否则 `locale=../../../../package` 可读取服务器上任意 .json 文件
+    if (!ALLOWED_LOCALES.includes(locale)) {
+      return NextResponse.json({ error: 'invalid_locale' }, { status: 400 });
+    }
 
     // 从 monorepo 根目录的 src/messages 读取
     const messagesPath = join(process.cwd(), '..', '..', 'src', 'messages', `${locale}.json`);

@@ -3,6 +3,7 @@ import { asc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { projects } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -13,6 +14,8 @@ const JSON_FIELDS = ['stack', 'gallery', 'metrics', 'changelog'] as const;
  * GET /api/projects — 查询所有 projects，按 sortOrder 排序
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const rows = await db.select().from(projects).orderBy(asc(projects.sortOrder));
 
@@ -42,6 +45,8 @@ export async function GET() {
  * POST /api/projects — 新建 project
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const {

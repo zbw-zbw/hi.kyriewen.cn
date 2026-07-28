@@ -3,6 +3,7 @@ import { desc } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { timelineEvents } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
  * GET /api/timeline — 查询所有 timelineEvents，按 date 降序
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const rows = await db.select().from(timelineEvents).orderBy(desc(timelineEvents.date));
 
@@ -26,6 +29,8 @@ export async function GET() {
  * Body: { date, titleEn, titleZh, descriptionEn?, descriptionZh?, type, url? }
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await req.json().catch(() => ({}));
     const { date, titleEn, titleZh, descriptionEn, descriptionZh, type, url } = body as {

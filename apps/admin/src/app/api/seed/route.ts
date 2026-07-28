@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
+import { requireAdmin } from '@/lib/guard';
 import {
   projects,
   nowItems,
@@ -60,6 +61,8 @@ const ALL_TABLES: SeedTable[] = [
  * Body: { tables?: string[] }  — 不传则导入全部
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = (await req.json().catch(() => ({}))) as {
       tables?: string[];

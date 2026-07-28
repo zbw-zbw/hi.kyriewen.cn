@@ -3,6 +3,7 @@ import { db } from '@repo/db';
 import { guestbookMessages } from '@repo/db/schema';
 import { eq } from 'drizzle-orm';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
  * DELETE /api/guestbook/[id] — 删除单条留言
  */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { id } = await params;
     const numId = Number(id);

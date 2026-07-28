@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -56,6 +57,8 @@ const SYNC_TASKS: SyncTask[] = [
  * GET /api/sync — list all sync tasks
  */
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   return NextResponse.json({ data: SYNC_TASKS });
 }
 
@@ -64,6 +67,8 @@ export async function GET() {
  * Body: { taskId: string, sources?: string[] }
  */
 export async function POST(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const { taskId, sources } = (await req.json()) as { taskId?: string; sources?: string[] };
     if (!taskId) {

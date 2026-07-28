@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '@repo/db';
 import { i18nMessages } from '@repo/db/schema';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -11,6 +12,8 @@ export const dynamic = 'force-dynamic';
  * PATCH /api/i18n/[id] — 更新单条 i18n 文案
  */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {
@@ -49,6 +52,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
  * DELETE /api/i18n/[id] — 删除单条 i18n 文案
  */
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!Number.isFinite(id)) {

@@ -6,7 +6,9 @@ import { Topbar } from '@/components/topbar';
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
 
-  if (!session?.user) {
+  // 必须校验 isAdmin，而不是仅校验「有会话」：
+  // 任意 GitHub 用户都能在主站登录并拿到一个合法 session。
+  if (!session?.user?.isAdmin) {
     redirect('/login');
   }
 

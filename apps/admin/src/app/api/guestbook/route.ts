@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@repo/db';
 import { guestbookMessages } from '@repo/db/schema';
 import { desc, isNull, sql } from 'drizzle-orm';
+import { requireAdmin } from '@/lib/guard';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -15,6 +16,8 @@ export const dynamic = 'force-dynamic';
  *   - limit: number (default: 50)
  */
 export async function GET(req: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const url = new URL(req.url);
     const type = url.searchParams.get('type') ?? 'all';
@@ -32,9 +35,7 @@ export async function GET(req: Request) {
     if (type === 'guestbook') {
       query = query.where(isNull(guestbookMessages.postSlug)) as typeof query;
     } else if (type === 'blog') {
-      query = query.where(
-        sql`${guestbookMessages.postSlug} IS NOT NULL`
-      ) as typeof query;
+      query = query.where(sql`${guestbookMessages.postSlug} IS NOT NULL`) as typeof query;
     }
 
     const rows = await query;

@@ -3,8 +3,11 @@ import { db } from '@repo/db';
 import { popularPosts } from '@repo/db/schema';
 import { desc } from 'drizzle-orm';
 import { triggerRevalidation } from '@/lib/revalidate';
+import { requireAdmin } from '@/lib/guard';
 
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const posts = await db.select().from(popularPosts).orderBy(desc(popularPosts.views));
 
@@ -16,6 +19,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
   try {
     const body = await request.json();
     const { slug, views, trend } = body as {
