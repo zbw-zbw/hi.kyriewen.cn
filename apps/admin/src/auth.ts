@@ -101,6 +101,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
      *
      * 缺少这个回调时 next-auth 会把 `authorized` 视为恒 true 并直接 NextResponse.next()，
      * 也就是 `export { auth as middleware }` 完全不做任何鉴权。
+     *
+     * 注意：next-auth v5 至今只有 beta（npm 上 latest 仍是 4.x），上述语义属于
+     * 未冻结的实现细节。apps/admin/tests/middleware-canary.test.ts 会真实调用
+     * middleware 并断言未认证请求被拒；升级后若该探针变红，
+     * 说明鉴权已失效——不要删探针。
      */
     authorized({ request, auth: session }) {
       if (session?.user?.isAdmin === true) return true;
