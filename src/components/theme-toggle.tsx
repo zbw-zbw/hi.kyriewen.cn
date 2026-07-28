@@ -1,16 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useHydrated } from '@/lib/use-client-state';
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // resolvedTheme 在 SSR 时不可知，先等 hydration 完成再交图标，避免不一致
+  const hydrated = useHydrated();
 
-  const isDark = mounted && resolvedTheme === 'dark';
+  const isDark = hydrated && resolvedTheme === 'dark';
   const next = isDark ? 'light' : 'dark';
 
   return (
@@ -20,7 +20,7 @@ export function ThemeToggle() {
       aria-label={`Switch to ${next} theme`}
       onClick={() => setTheme(next)}
     >
-      {mounted ? (
+      {hydrated ? (
         isDark ? (
           <Sun className="h-4 w-4" />
         ) : (

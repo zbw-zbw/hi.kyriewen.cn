@@ -34,6 +34,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# 例外：不含真实值的模板必须入版本库
+!.env.example
 
 # vercel
 .vercel

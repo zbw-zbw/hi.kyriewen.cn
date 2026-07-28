@@ -45,14 +45,23 @@ function MarkdownBubble({ text }: { text: string }) {
   );
 }
 
+/** 判断错误是否代表“AI 服务未配置 / 不可用” */
+function isServiceUnavailable(error: Error | undefined): boolean {
+  const msg = error?.message?.toLowerCase() ?? '';
+  return (
+    msg.includes('503') || msg.includes('not configured') || msg.includes('service unavailable')
+  );
+}
+
 export function AiChatBubble() {
   const t = useTranslations('ask');
 
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
-  const [apiUnavailable, setApiUnavailable] = useState(false);
+  const [apiUnavailableFromCallback, setApiUnavailable] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
+  // 实测到的键盘高度；面板关闭时不参与布局，因此在渲染期归零而不是在 effect 里 setState
+  const [measuredKeyboardOffset, setMeasuredKeyboardOffset] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -75,19 +84,11 @@ export function AiChatBubble() {
 
   const isStreaming = status === 'streaming' || status === 'submitted';
 
-  // 当 error 发生变化时，尝试判断是否为 API 不可用
-  useEffect(() => {
-    if (error) {
-      const msg = error.message?.toLowerCase() ?? '';
-      if (
-        msg.includes('503') ||
-        msg.includes('not configured') ||
-        msg.includes('service unavailable')
-      ) {
-        setApiUnavailable(true);
-      }
-    }
-  }, [error]);
+  // 两路信号取并：onError 回调（可能早于 error 状态更新）+ 当前 error 推导。
+  // 直接推导而不是在 effect 里回写 state。
+  const apiUnavailable = apiUnavailableFromCallback || isServiceUnavailable(error);
+
+  const keyboardOffset = isOpen ? measuredKeyboardOffset : 0;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -101,17 +102,14 @@ export function AiChatBubble() {
 
   // 移动端键盘弹起适配：监听 visualViewport 变化，动态调整面板底部偏移
   useEffect(() => {
-    if (!isOpen) {
-      setKeyboardOffset(0);
-      return;
-    }
+    if (!isOpen) return;
     const vv = window.visualViewport;
     if (!vv) return;
 
     const handleResize = () => {
       // 键盘弹出时 visualViewport.height < window.innerHeight
       const diff = window.innerHeight - vv.height;
-      setKeyboardOffset(diff > 50 ? diff : 0);
+      setMeasuredKeyboardOffset(diff > 50 ? diff : 0);
     };
 
     vv.addEventListener('resize', handleResize);

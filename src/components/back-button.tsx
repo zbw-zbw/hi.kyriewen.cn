@@ -1,8 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
+import { useClientValue } from '@/lib/use-client-state';
 
 interface BackButtonProps {
   label: string;
@@ -51,46 +51,32 @@ interface SmartBackButtonProps {
 }
 
 /**
+ * 根据 document.referrer 判定返回目标。纯函数，仅客户端可调用。
+ * 同一次导航内 referrer 不会变，因此返回值稳定，适合做 useClientValue 的快照。
+ */
+function resolveBackHref(homeHref: string, listHref: string): string {
+  const referrer = document.referrer;
+  if (!referrer) return listHref;
+  try {
+    const referrerUrl = new URL(referrer);
+    if (referrerUrl.host !== window.location.host) return listHref;
+    // 去掉 locale 前缀后判断是否是首页
+    const referrerPath = referrerUrl.pathname.replace(/^\/(en|zh)/, '') || '/';
+    return referrerPath === '/' ? homeHref : listHref;
+  } catch {
+    return listHref;
+  }
+}
+
+/**
  * 智能返回按钮：根据来源页决定返回目标。
  * - 如果从首页进入 → 返回首页
  * - 其他所有情况（列表页、外部链接、直接访问等）→ 返回对应列表页
  */
-export function SmartBackButton({
-  label,
-  homeHref,
-  listHref,
-  listPathMatch,
-  className,
-}: SmartBackButtonProps) {
+export function SmartBackButton({ label, homeHref, listHref, className }: SmartBackButtonProps) {
   const router = useRouter();
-  const [targetHref, setTargetHref] = useState(listHref);
-
-  useEffect(() => {
-    const referrer = document.referrer;
-    if (!referrer) {
-      setTargetHref(listHref);
-      return;
-    }
-    try {
-      const referrerUrl = new URL(referrer);
-      const currentHost = window.location.host;
-      if (referrerUrl.host !== currentHost) {
-        setTargetHref(listHref);
-        return;
-      }
-      // 去掉 locale 前缀后判断是否是首页
-      const referrerPath = referrerUrl.pathname.replace(/^\/(en|zh)/, '') || '/';
-      const isFromHome = referrerPath === '/';
-      if (isFromHome) {
-        setTargetHref(homeHref);
-      } else {
-        // 从列表页或其他页面进入，统一返回列表页
-        setTargetHref(listHref);
-      }
-    } catch {
-      setTargetHref(listHref);
-    }
-  }, [homeHref, listHref, listPathMatch]);
+  // SSR 阶段读不到 referrer，先用列表页当回退
+  const targetHref = useClientValue(() => resolveBackHref(homeHref, listHref), listHref);
 
   return (
     <button

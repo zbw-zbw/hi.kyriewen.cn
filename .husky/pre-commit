@@ -1,15 +1,19 @@
-# Run prettier on staged files
+#!/bin/sh
+# 任一步骤失败立即中断提交。
+# 没有 set -e 时，hook 的退出码只取最后一条命令 —— lint 失败也照样能提交。
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# 对暂存文件跑 prettier
 pnpm lint-staged
 
-# Run ESLint for main site
-pnpm next lint
+# ESLint（主站 + Admin）
+pnpm lint:all
 
-# Run ESLint for admin
-cd apps/admin && pnpm next lint
+# TypeScript 类型检查（主站 + Admin，后者开了更严格的 noUncheckedIndexedAccess）
+pnpm type-check:all
 
-# TypeScript 类型检查（主站）
-cd "$OLDPWD"
-pnpm tsc --noEmit
-
-# TypeScript 类型检查（Admin 后台，有更严格的 noUncheckedIndexedAccess）
-cd apps/admin && pnpm tsc --noEmit
+# 安全不变式回归测试（鉴权、sanitize、fail-closed）
+pnpm test

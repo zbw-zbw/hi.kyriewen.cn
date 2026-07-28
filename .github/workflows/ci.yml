@@ -10,7 +10,7 @@ jobs:
   check:
     name: Lint · Type · Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     env:
       NEXT_TELEMETRY_DISABLED: '1'
@@ -33,14 +33,23 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint
-        run: pnpm lint
+      # lint / type-check / build 均覆盖两个应用：
+      # 以前 CI 只管主站，admin 的问题一直无人拦。
+      - name: Lint (main + admin)
+        run: pnpm lint:all
 
-      - name: Type check
-        run: pnpm type-check
+      - name: Type check (main + admin)
+        run: pnpm type-check:all
 
-      - name: Build
+      # 安全不变式回归测试：鉴权、sanitize、fail-closed 行为与结构约束
+      - name: Test
+        run: pnpm test
+
+      - name: Build main site
         run: pnpm build
+
+      - name: Build admin
+        run: pnpm --filter admin build
 
   lighthouse:
     name: Lighthouse CI

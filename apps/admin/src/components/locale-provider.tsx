@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
+import { useClientValue } from '@/lib/use-client-state';
 
 type Locale = 'en' | 'zh';
 
@@ -919,24 +920,30 @@ const enMessages: Record<string, string> = {
 
 const messages: Record<Locale, Record<string, string>> = { zh: zhMessages, en: enMessages };
 
-export function LocaleProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>('zh');
-  const [mounted, setMounted] = useState(false);
+/** 从 localStorage 读取已保存的语言。纯读取，仅客户端可调用。 */
+function readStoredLocale(): Locale {
+  try {
+    const saved = localStorage.getItem('admin-locale');
+    return saved === 'en' || saved === 'zh' ? saved : 'zh';
+  } catch {
+    return 'zh';
+  }
+}
 
-  useEffect(() => {
-    const saved = localStorage.getItem('admin-locale') as Locale | null;
-    if (saved === 'en' || saved === 'zh') setLocaleState(saved);
-    setMounted(true);
-  }, []);
+export function LocaleProvider({ children }: { children: React.ReactNode }) {
+  // localStorage 里的语言偏好：SSR 与首次 hydration 统一用 'zh'，避免不一致；
+  // 用双快照而不是在 effect 里 setState，避免级联渲染。
+  const storedLocale = useClientValue(readStoredLocale, 'zh');
+  // 用户主动切换后的覆盖值；null 表示仍用 localStorage 里的值
+  const [override, setOverride] = useState<Locale | null>(null);
+  const locale = override ?? storedLocale;
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
+    setOverride(next);
     localStorage.setItem('admin-locale', next);
   }, []);
 
-  // Use 'zh' consistently during SSR and first client render to avoid hydration mismatch.
-  // After mount, `locale` reflects the value from localStorage.
-  const effectiveLocale = mounted ? locale : 'zh';
+  const effectiveLocale: Locale = locale;
 
   const t = useCallback(
     (key: string) => messages[effectiveLocale]?.[key] ?? messages.en[key] ?? key,

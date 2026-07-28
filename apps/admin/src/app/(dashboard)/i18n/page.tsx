@@ -121,6 +121,10 @@ export default function I18nPage() {
   }, []);
 
   useEffect(() => {
+    // fetchItems 内部的 setState 都发生在 await 之后（异步续体里），并非同步级联渲染，
+    // 规则的静态分析无法跳 async 边界推断。正解是把数据加载移到服务端组件，
+    // 属于独立重构，暂以定点抑制说明现状。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 

@@ -1,6 +1,5 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Search } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/navigation';
@@ -9,6 +8,7 @@ import { AccentSwitcher } from '@/components/accent-switcher';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { MobileNav } from '@/components/mobile-nav';
 import { cn } from '@/lib/utils';
+import { useClientValue, useHydrated } from '@/lib/use-client-state';
 import type { NavigationItem, SerializableSocialLink } from '@/lib/content-loader';
 
 /** 触发 ⌘K 命令面板 */
@@ -32,12 +32,9 @@ export function Header({
   const tSite = useTranslations('site');
   const pathname = usePathname();
 
-  const [isMac, setIsMac] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => {
-    setIsMac(/Mac|iPhone|iPad/.test(navigator.platform));
-    setMounted(true);
-  }, []);
+  // navigator.platform 只在客户端可读；用双快照而不是在 effect 里 setState
+  const hydrated = useHydrated();
+  const isMac = useClientValue(() => /Mac|iPhone|iPad/.test(navigator.platform), false);
 
   const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
 
@@ -81,7 +78,7 @@ export function Header({
             className="mr-1 hidden cursor-pointer items-center gap-2 rounded-md border border-[var(--border)] px-2 py-1 text-xs text-[var(--muted)] transition-colors hover:bg-[var(--card)] hover:text-[var(--fg)] sm:inline-flex"
           >
             <Search className="h-3.5 w-3.5" />
-            {mounted && <kbd className="font-mono">{isMac ? '⌘K' : 'Ctrl K'}</kbd>}
+            {hydrated && <kbd className="font-mono">{isMac ? '⌘K' : 'Ctrl K'}</kbd>}
           </button>
           <button
             type="button"

@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { Menu, X, Github, Twitter, Mail, Rss } from 'lucide-react';
 import { Link, usePathname } from '@/i18n/navigation';
 import { cn } from '@/lib/utils';
+import { useHydrated } from '@/lib/use-client-state';
 import type { NavigationItem, SerializableSocialLink } from '@/lib/content-loader';
 
 const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -28,17 +29,19 @@ export function MobileNav({
   socialLinks: SerializableSocialLink[];
 }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const t = useTranslations('nav');
   const pathname = usePathname();
 
-  // 确保仅在客户端渲染 portal
-  useEffect(() => setMounted(true), []);
+  // portal 只能在客户端渲染
+  const mounted = useHydrated();
 
-  // 路由变化时关闭
-  useEffect(() => {
+  // 路由变化时关闭：在渲染期调整 state（React 官方推荐的做法），
+  // 而不是在 effect 里 setState —— 后者会多跑一轮渲染。
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // 打开时锁定 body 滚动 + ESC 关闭
   useEffect(() => {

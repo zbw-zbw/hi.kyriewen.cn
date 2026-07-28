@@ -1,12 +1,7 @@
 'use client';
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useState,
-} from 'react';
+import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { useClientValue } from '@/lib/use-client-state';
 
 export const ACCENTS = ['blue', 'green', 'purple', 'orange'] as const;
 export type Accent = (typeof ACCENTS)[number];
@@ -20,45 +15,48 @@ interface AccentContextValue {
 
 const AccentContext = createContext<AccentContextValue | null>(null);
 
+/** 从 localStorage / data-attr 读出当前 accent。纯读取，仅客户端可调用。 */
+function readAccentFromEnvironment(): Accent {
+  const fromStorage = (() => {
+    try {
+      return localStorage.getItem(ACCENT_STORAGE_KEY);
+    } catch {
+      return null;
+    }
+  })();
+  if (fromStorage && (ACCENTS as readonly string[]).includes(fromStorage)) {
+    return fromStorage as Accent;
+  }
+
+  const fromAttr = document.documentElement.getAttribute('data-accent');
+  if (fromAttr && (ACCENTS as readonly string[]).includes(fromAttr)) {
+    return fromAttr as Accent;
+  }
+
+  return DEFAULT_ACCENT;
+}
+
 /**
  * Accent 主题色 Provider：
  * - 通过 <html data-accent="..."> 切换全站强调色
  * - localStorage 持久化（防闪烁脚本在 layout 里同步注入）
  * - 由于切换写的是 documentElement，不需要 hydration mismatch 处理
  */
-export function ThemeAccentProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // 初始值从 localStorage / data-attr 读，SSR 时是 default
-  const [accent, setAccentState] = useState<Accent>(DEFAULT_ACCENT);
+export function ThemeAccentProvider({ children }: { children: React.ReactNode }) {
+  // 环境里的初始值：SSR 为 default，hydration 后变为真实值。
+  // 用双快照而不是在 effect 里 setState，避免级联渲染。
+  const initialAccent = useClientValue(readAccentFromEnvironment, DEFAULT_ACCENT);
+  // 用户主动切换后的覆盖值；null 表示“仍用环境值”
+  const [override, setOverride] = useState<Accent | null>(null);
+  const accent = override ?? initialAccent;
 
-  // 挂载后从 DOM 同步（防闪烁脚本可能先一步设置好了）
+  // 把最终值写回 DOM（防闪烁脚本可能已经先一步设好，这里只负责对齐）
   useEffect(() => {
-    const html = document.documentElement;
-    const fromAttr = html.getAttribute('data-accent') as Accent | null;
-    const fromStorage = (() => {
-      try {
-        return localStorage.getItem(ACCENT_STORAGE_KEY) as Accent | null;
-      } catch {
-        return null;
-      }
-    })();
-    const initial =
-      (fromStorage && (ACCENTS as readonly string[]).includes(fromStorage)
-        ? fromStorage
-        : null) ??
-      (fromAttr && (ACCENTS as readonly string[]).includes(fromAttr)
-        ? fromAttr
-        : null) ??
-      DEFAULT_ACCENT;
-    setAccentState(initial);
-    html.setAttribute('data-accent', initial);
-  }, []);
+    document.documentElement.setAttribute('data-accent', accent);
+  }, [accent]);
 
   const setAccent = useCallback((a: Accent) => {
-    setAccentState(a);
+    setOverride(a);
     try {
       localStorage.setItem(ACCENT_STORAGE_KEY, a);
     } catch {
@@ -67,11 +65,7 @@ export function ThemeAccentProvider({
     document.documentElement.setAttribute('data-accent', a);
   }, []);
 
-  return (
-    <AccentContext.Provider value={{ accent, setAccent }}>
-      {children}
-    </AccentContext.Provider>
-  );
+  return <AccentContext.Provider value={{ accent, setAccent }}>{children}</AccentContext.Provider>;
 }
 
 export function useAccent(): AccentContextValue {
