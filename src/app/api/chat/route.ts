@@ -99,15 +99,6 @@ export async function POST(request: Request) {
   const limited = await enforceRateLimit('chat', clientIp(request));
   if (limited) return limited;
 
-  // 每日全站总量护栏：限流按 IP，拦不住分布式小流量刷账单。
-  const budget = await consumeDailyBudget('ai-chat');
-  if (!budget.allowed) {
-    return new Response(
-      JSON.stringify({ error: 'AI chat has reached its daily limit. Please try again tomorrow.' }),
-      { status: 429, headers: { 'Content-Type': 'application/json' } },
-    );
-  }
-
   let body: Record<string, unknown>;
   try {
     body = await request.json();
@@ -132,6 +123,19 @@ export async function POST(request: Request) {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
+  }
+
+  // 每日全站总量护栏：限流按 IP，拦不住分布式小流量刷账单。
+  //
+  // 注意顺序：必须在所有校验通过之后、真正调模型之前才扣。
+  // 若提前到解析请求体之前，攻击者只需发频格式错误的请求就能耗尽当日额度而
+  // 一次 LLM 都不调用 —— 护栏反而成为廉价的功能拒绝服务通道。
+  const budget = await consumeDailyBudget('ai-chat');
+  if (!budget.allowed) {
+    return new Response(
+      JSON.stringify({ error: 'AI chat has reached its daily limit. Please try again tomorrow.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json' } },
+    );
   }
 
   try {

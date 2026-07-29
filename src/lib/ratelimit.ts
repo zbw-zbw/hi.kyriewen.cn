@@ -1,5 +1,8 @@
 import { Ratelimit } from '@upstash/ratelimit';
 import { getRedis } from '@/lib/redis';
+import { createLogger } from '@/lib/logger';
+
+const log = createLogger('ratelimit');
 
 /**
  * 命名限流器。
@@ -32,17 +35,24 @@ export function getRateLimiter(name: LimiterName): Ratelimit | null {
   const cached = limiters.get(name);
   if (cached) return cached;
 
-  const client = getRedis();
-  if (!client) return null;
+  // 客户端构造也可能抛错（例如 URL 格式非法），
+  // 不能让配置问题变成端点 500。
+  try {
+    const client = getRedis();
+    if (!client) return null;
 
-  const limiter = new Ratelimit({
-    redis: client,
-    limiter: Ratelimit.slidingWindow(...QUOTA[name]),
-    analytics: true,
-    prefix: `kw:${name}`,
-  });
-  limiters.set(name, limiter);
-  return limiter;
+    const limiter = new Ratelimit({
+      redis: client,
+      limiter: Ratelimit.slidingWindow(...QUOTA[name]),
+      analytics: true,
+      prefix: `kw:${name}`,
+    });
+    limiters.set(name, limiter);
+    return limiter;
+  } catch (error) {
+    log.error('limiter_init_failed', error, { limiter: name });
+    return null;
+  }
 }
 
 /**
@@ -61,17 +71,33 @@ export function clientIp(req: Request): string {
 
 /**
  * 便捷封装：超限时返回可直接 return 的 429 响应，否则返回 null。
+ *
+ * Upstash 不可用（网络故障、凭据无效、配额耗尽）时**放行**而不抛错。
+ *
+ * 这条很重要：限流是防滥用的辅助手段，不是鉴权。早前此处没有 try/catch，
+ * 导致 Upstash 在生产不可用时异常直接冒泡，把 chat / views / guestbook / likes /
+ * newsletter 所有写端点全部变成 500 —— 防滥用措施反而成了故障源。
  */
 export async function enforceRateLimit(name: LimiterName, key: string): Promise<Response | null> {
   const limiter = getRateLimiter(name);
   if (!limiter) return null;
 
-  const { success, reset } = await limiter.limit(key);
-  if (success) return null;
+  try {
+    const { success, reset } = await limiter.limit(key);
+    if (success) return null;
 
-  const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
-  return Response.json(
-    { error: 'rate_limited' },
-    { status: 429, headers: { 'Retry-After': String(retryAfter) } },
-  );
+    const retryAfter = Math.max(1, Math.ceil((reset - Date.now()) / 1000));
+    return Response.json(
+      { error: 'rate_limited' },
+      { status: 429, headers: { 'Retry-After': String(retryAfter) } },
+    );
+  } catch (error) {
+    log.error('ratelimit_unavailable', error, { limiter: name });
+    return null;
+  }
+}
+
+/** 仅供测试使用：清掉已缓存的限流器，避免用例间相互影响。 */
+export function resetRateLimitersForTests(): void {
+  limiters.clear();
 }
