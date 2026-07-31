@@ -53,11 +53,13 @@ describe('enforceRateLimit 的降级行为', () => {
     await expect(enforceRateLimit('chat', 'ip:1.2.3.4')).resolves.toBeNull();
   });
 
-  it('未配置 Redis 时放行且不报错', async () => {
+  it('未配置 Redis 时放行（未配置告警由 redis 模块负责）', async () => {
+    // 本文件 mock 了 @/lib/redis，所以不会触发真实的 upstash_not_configured
+    // 告警；那条告警的行为在 tests/redis.test.ts 里验证。
+    // 这里只关心一件事：拿不到限流器时必须放行。
     getRedisMock.mockReturnValue(null);
 
     await expect(enforceRateLimit('chat', 'ip:1.2.3.4')).resolves.toBeNull();
-    expect(loggerMock.error).not.toHaveBeenCalled();
   });
 
   it('额度内放行', async () => {
