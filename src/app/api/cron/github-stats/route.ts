@@ -4,6 +4,7 @@ import { fetchUserStats, fetchRepoStats } from '@/lib/github';
 import { PROJECTS } from '@/content/projects';
 import { authorizeCron } from '@/lib/cron-auth';
 import { createLogger } from '@/lib/logger';
+import { keepAliveRedis } from '@/lib/redis';
 
 const log = createLogger('cron/github-stats');
 
@@ -14,6 +15,11 @@ export async function GET(req: Request) {
   if (!authorizeCron(req)) {
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
+
+  // Upstash 保活：必须放在所有外部调用之前。
+  // 下面的 fetchUserStats 没有 try/catch，GitHub API 一挂整个 handler 就中断，
+  // 保活若放在后面会被连带跳过 —— 而那正是最需要它生效的时候。
+  await keepAliveRedis();
 
   const username = process.env.GITHUB_USERNAME ?? 'zbw-zbw';
   const user = await fetchUserStats(username);

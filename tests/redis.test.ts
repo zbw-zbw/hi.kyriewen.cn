@@ -11,15 +11,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
  */
 
 const loggerMock = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }));
+const setMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/logger', () => ({ createLogger: () => loggerMock }));
 vi.mock('@upstash/redis', () => ({
   Redis: class {
+    set = setMock;
     constructor(public config: unknown) {}
   },
 }));
 
-const { getRedis, resetRedisForTests } = await import('@/lib/redis');
+const { getRedis, keepAliveRedis, resetRedisForTests } = await import('@/lib/redis');
 
 const ORIGINAL_URL = process.env.UPSTASH_REDIS_REST_URL;
 const ORIGINAL_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -27,6 +29,7 @@ const ORIGINAL_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 beforeEach(() => {
   resetRedisForTests();
   loggerMock.error.mockReset();
+  setMock.mockReset().mockResolvedValue('OK');
   delete process.env.UPSTASH_REDIS_REST_URL;
   delete process.env.UPSTASH_REDIS_REST_TOKEN;
 });
@@ -81,5 +84,48 @@ describe('getRedis 配置缺失时的告警', () => {
     process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
 
     expect(getRedis()).toBe(getRedis());
+  });
+});
+
+/**
+ * 保活的存在理由：Upstash 对免费库「14 天无活动即删除」。
+ * 上一次就是限流 fail-open → Redis 无流量 → 被删库 → 限流永久失效。
+ */
+describe('keepAliveRedis', () => {
+  beforeEach(() => {
+    process.env.UPSTASH_REDIS_REST_URL = 'https://example.upstash.io';
+    process.env.UPSTASH_REDIS_REST_TOKEN = 'token';
+  });
+
+  it('写入保活键，值为 ISO 时间戳（可当诊断信息看）', async () => {
+    await expect(keepAliveRedis()).resolves.toBe(true);
+
+    expect(setMock).toHaveBeenCalledTimes(1);
+    const [key, value] = setMock.mock.calls[0] ?? [];
+    expect(key).toBe('kw:keepalive');
+    expect(new Date(String(value)).toISOString()).toBe(value);
+  });
+
+  it('Redis 抛错时返回 false 而不抛出（不能拖坠它依附的 cron）', async () => {
+    setMock.mockRejectedValue(new Error('fetch failed'));
+
+    await expect(keepAliveRedis()).resolves.toBe(false);
+    expect(loggerMock.error).toHaveBeenCalledWith(
+      'keepalive_failed',
+      expect.any(Error),
+      expect.objectContaining({ impact: expect.stringContaining('14d') }),
+    );
+  });
+
+  it('未配置 Redis 时返回 false，不重复报错', async () => {
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
+    resetRedisForTests();
+    loggerMock.error.mockReset();
+
+    await expect(keepAliveRedis()).resolves.toBe(false);
+    // 只应有 getRedis 的那一条告警，不应额外再报 keepalive_failed
+    expect(loggerMock.error).toHaveBeenCalledTimes(1);
+    expect(loggerMock.error.mock.calls[0]?.[0]).toBe('upstash_not_configured');
   });
 });
